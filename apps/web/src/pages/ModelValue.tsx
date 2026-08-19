@@ -81,6 +81,12 @@ export default function ModelValue() {
   const gridColor = isDark ? 'rgba(210,205,198,0.16)' : 'rgba(20,20,20,0.12)';
 
   // 散点图：X=综合分，Y=输出 token（对数刻度）
+  // X 轴起点取最低综合分再下探 5 分，避免所有点挤在右侧
+  const _scores = data.map((d) => d.averageScore);
+  const minScoreX = _scores.length > 0 ? Math.max(40, Math.floor(Math.min(..._scores)) - 5) : 0;
+  const _outs = data.map((d) => d.totalOutputTokens || 0);
+  const minY = _outs.length > 0 ? Math.max(1000, Math.pow(10, Math.floor(Math.log10(Math.min(..._outs))))) : 1000;
+
   const scatterOption = {
     tooltip: {
       trigger: 'item' as const,
@@ -100,18 +106,24 @@ export default function ModelValue() {
         );
       },
     },
-    grid: { left: 90, right: 30, top: 30, bottom: 50 },
+    grid: { left: 100, right: 30, top: 30, bottom: 70 },
     xAxis: {
       type: 'value' as const,
       name: lang === 'en' ? 'Composite Score' : '综合分',
-      nameTextStyle: { color: axisSubColor },
+      nameLocation: 'middle' as const,
+      nameGap: 28,
+      min: minScoreX,
+      nameTextStyle: { color: axisSubColor, fontSize: 13 },
       axisLabel: { color: axisLabelColor, fontWeight: 600 },
       splitLine: { lineStyle: { color: gridColor } },
     },
     yAxis: {
       type: 'log' as const,
       name: lang === 'en' ? 'Output tokens (log)' : '输出 token（对数）',
-      nameTextStyle: { color: axisSubColor },
+      nameLocation: 'middle' as const,
+      nameGap: 28,
+      min: minY,
+      nameTextStyle: { color: axisSubColor, fontSize: 13 },
       axisLabel: { color: axisSubColor, formatter: (v: number) => fmtTokens(v) },
       splitLine: { lineStyle: { color: gridColor } },
     },

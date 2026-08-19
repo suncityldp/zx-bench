@@ -94,15 +94,16 @@ function scoreColor(score: number): string {
 }
 
 // 评分证据强度元数据
-const EVIDENCE_META: Record<string, { label: string; color: string; desc: string }> = {
-  verified: { label: '真实执行', color: '#52c41a', desc: '沙箱测试 / 编译验证' },
-  rule: { label: '规则判定', color: '#1890ff', desc: '确定性规则匹配' },
-  llm: { label: 'AI 判分', color: '#722ed1', desc: 'AI Judge 语义评估' },
-  unmeasured: { label: '未测量', color: '#8c8c8c', desc: '该能力未覆盖（未参与加权）' },
+const EVIDENCE_META: Record<string, { label: Record<'zh' | 'en', string>; color: string; desc: Record<'zh' | 'en', string> }> = {
+  verified: { label: { zh: '真实执行', en: 'Verified' }, color: '#52c41a', desc: { zh: '沙箱测试 / 编译验证', en: 'Sandbox test / compile verify' } },
+  rule: { label: { zh: '规则判定', en: 'Rule' }, color: '#1890ff', desc: { zh: '确定性规则匹配', en: 'Deterministic rule match' } },
+  llm: { label: { zh: 'AI 判分', en: 'AI Judge' }, color: '#722ed1', desc: { zh: 'AI Judge 语义评估', en: 'AI semantic assessment' } },
+  unmeasured: { label: { zh: '未测量', en: 'Unmeasured' }, color: '#8c8c8c', desc: { zh: '该能力未覆盖（未参与加权）', en: 'Not covered (excluded from weighting)' } },
 };
 
 /** 证据强度徽标组 */
 function EvidenceTags({ ev }: { ev?: Record<string, number> }) {
+  const { lang } = useLanguage();
   const items = Object.entries(ev || {}).filter(([, v]) => v > 0);
   if (items.length === 0) return <span style={{ color: 'var(--text-helper)', fontSize: 12 }}>—</span>;
   return (
@@ -111,9 +112,9 @@ function EvidenceTags({ ev }: { ev?: Record<string, number> }) {
         const meta = EVIDENCE_META[k];
         if (!meta) return null;
         return (
-          <Tooltip key={k} title={`${meta.label}（${meta.desc}）：${v} 个评分轴`}>
+          <Tooltip key={k} title={`${meta.label[lang]} (${meta.desc[lang]}): ${v} ${lang === 'en' ? 'axes' : '个评分轴'}`}>
             <Tag color={meta.color} style={{ marginRight: 0, cursor: 'help' }}>
-              {meta.label} {v}
+              {meta.label[lang]} {v}
             </Tag>
           </Tooltip>
         );
@@ -147,7 +148,7 @@ export default function Report() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, lang]);
 
   const handleGenerateReport = async () => {
     if (!id) return;
@@ -423,45 +424,45 @@ export default function Report() {
       {report.hallucinationStats && (() => {
         const hs = report.hallucinationStats;
         const labelMeta: Array<{ key: string; label: string; color: string }> = [
-          { key: 'correct', label: '正确回答', color: '#52c41a' },
-          { key: 'correct_refusal', label: '正确拒答', color: '#1890ff' },
-          { key: 'partial', label: '部分正确', color: '#faad14' },
-          { key: 'hallucination', label: '幻觉', color: '#f5222d' },
-          { key: 'wrong_refusal', label: '过度拒答', color: '#eb2f96' },
-          { key: 'accepted_false_premise', label: '接受错误前提', color: '#fa541c' },
+          { key: 'correct', label: lang === 'en' ? 'Correct' : '正确回答', color: '#52c41a' },
+          { key: 'correct_refusal', label: lang === 'en' ? 'Correct Refusal' : '正确拒答', color: '#1890ff' },
+          { key: 'partial', label: lang === 'en' ? 'Partial' : '部分正确', color: '#faad14' },
+          { key: 'hallucination', label: lang === 'en' ? 'Hallucination' : '幻觉', color: '#f5222d' },
+          { key: 'wrong_refusal', label: lang === 'en' ? 'Over-refusal' : '过度拒答', color: '#eb2f96' },
+          { key: 'accepted_false_premise', label: lang === 'en' ? 'Accepted False Premise' : '接受错误前提', color: '#fa541c' },
         ];
         return (
           <Card className="swiss-card" style={{ marginBottom: 16 }}>
             <div className="swiss-card-title">
-              幻觉抵抗专项
+              {lang === 'en' ? 'Hallucination Resistance' : '幻觉抵抗专项'}
               <span style={{ fontSize: 12, color: 'var(--text-helper)', marginLeft: 12, fontWeight: 400 }}>
-                测模型「是否该回答、会不会被诱导、会不会编造」
+                {lang === 'en' ? 'Tests whether the model should answer, resists prompting, and avoids fabrication' : '测模型「是否该回答、会不会被诱导、会不会编造」'}
               </span>
             </div>
             <Row gutter={16} style={{ marginBottom: 16 }}>
               <Col span={8}>
                 <Statistic
-                  title="幻觉抵抗分 (HRS)"
+                  title={lang === 'en' ? 'HRS Score' : '幻觉抵抗分 (HRS)'}
                   value={hs.hrs}
                   suffix="分"
                   precision={1}
                   valueStyle={{ color: scoreColor(hs.hrs), fontSize: 30 }}
                 />
-                <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>越高越能抵抗幻觉，满分 100</div>
+                <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>{lang === 'en' ? 'Higher = more resistant, max 100' : '越高越能抵抗幻觉，满分 100'}</div>
               </Col>
               <Col span={8}>
                 <Statistic
-                  title="过度拒答率"
+                  title={lang === 'en' ? 'Over-refusal Rate' : '过度拒答率'}
                   value={hs.overRefusalRate}
                   suffix="%"
                   valueStyle={{ color: hs.overRefusalRate > 30 ? '#f5222d' : hs.overRefusalRate > 15 ? '#faad14' : '#52c41a', fontSize: 30 }}
                 />
                 <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
-                  对可回答的题错误拒答的比例（{hs.answerableCount} 道可答题）
+                  {lang === 'en' ? 'Wrong refusals of answerable questions (' + hs.answerableCount + ' answerable)' : '对可回答的题错误拒答的比例（' + hs.answerableCount + ' 道可答题）'}
                 </div>
               </Col>
               <Col span={8}>
-                <div style={{ fontSize: 13, color: 'var(--text-helper)', marginBottom: 8 }}>判定分布</div>
+                <div style={{ fontSize: 13, color: 'var(--text-helper)', marginBottom: 8 }}>{lang === 'en' ? 'Verdict Distribution' : '判定分布'}</div>
                 {labelMeta.map((m) => (
                   <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ width: 14, height: 14, background: m.color, borderRadius: 3, display: 'inline-block' }} />
