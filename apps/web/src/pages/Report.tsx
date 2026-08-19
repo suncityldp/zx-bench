@@ -385,15 +385,15 @@ export default function Report() {
 
       {/* Model Info */}
       <Card className="swiss-card" style={{ marginBottom: 16 }}>
-        <div className="swiss-card-title">模型信息</div>
+        <div className="swiss-card-title">{lang === 'en' ? 'Model Info' : '模型信息'}</div>
         <Row gutter={[24, 8]}>
-          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>模型名称：</span><b>{report.model.name}</b></Col>
-          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>提供方：</span><b>{report.model.provider}</b></Col>
+          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>{lang === 'en' ? 'Model: ' : '模型名称：'}</span><b>{report.model.name}</b></Col>
+          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>{lang === 'en' ? 'Provider: ' : '提供方：'}</span><b>{report.model.provider}</b></Col>
           <Col span={12}><span style={{ color: 'var(--text-secondary)' }}>Base URL：</span><b>{report.model.baseUrl}</b></Col>
           <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>Max Tokens：</span><b>{report.model.maxTokens}</b></Col>
           <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>Temperature：</span><b>{report.model.temperature ?? 'default'}</b></Col>
-          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>每题运行次数：</span><b>{report.model.runsPerQuestion}</b></Col>
-          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>AI Judge：</span><b>{report.model.judgeEnabled ? '启用' : '禁用'}</b></Col>
+          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>{lang === 'en' ? 'Runs/question: ' : '每题运行次数：'}</span><b>{report.model.runsPerQuestion}</b></Col>
+          <Col span={6}><span style={{ color: 'var(--text-secondary)' }}>{lang === 'en' ? 'AI Judge: ' : 'AI Judge：'}</span><b>{report.model.judgeEnabled ? (lang === 'en' ? 'Enabled' : '启用') : (lang === 'en' ? 'Disabled' : '禁用')}</b></Col>
         </Row>
       </Card>
 
@@ -478,9 +478,9 @@ export default function Report() {
       {/* 评分证据构成 */}
       <Card className="swiss-card" style={{ marginBottom: 16 }}>
         <div className="swiss-card-title">
-          评分证据构成
+          {lang === 'en' ? 'Evidence Composition' : '评分证据构成'}
           <span style={{ fontSize: 12, color: 'var(--text-helper)', marginLeft: 12, fontWeight: 400 }}>
-            每个维度的总分由哪些证据支撑（未测量轴不计入加权）
+            {lang === 'en' ? 'How each dimension total is supported (unmeasured axes excluded from weighting)' : '每个维度的总分由哪些证据支撑（未测量轴不计入加权）'}
           </span>
         </div>
         <Table
@@ -490,21 +490,21 @@ export default function Report() {
           dataSource={report.dimensions}
           columns={[
             {
-              title: '维度', dataIndex: 'dimensionLabel', key: 'dimensionLabel', width: 160,
+              title: lang === 'en' ? 'Dimension' : '维度', dataIndex: 'dimensionLabel', key: 'dimensionLabel', width: 160,
               render: (v: string) => <span style={{ fontWeight: 500 }}>{v}</span>,
             },
             {
-              title: '均分', dataIndex: 'averageScore', key: 'averageScore', width: 100,
+              title: lang === 'en' ? 'Avg' : '均分', dataIndex: 'averageScore', key: 'averageScore', width: 100,
               render: (v: number) => <span style={{ color: scoreColor(v), fontWeight: 600 }}>{v}</span>,
             },
             {
-              title: '证据构成', key: 'evidence',
+              title: lang === 'en' ? 'Evidence' : '证据构成', key: 'evidence',
               render: (_: unknown, r: DimensionReport) => <EvidenceTags ev={r.evidence} />,
             },
           ]}
           summary={() => (
             <Table.Summary.Row>
-              <Table.Summary.Cell index={0}><b>全局（全部维度轴数合计）</b></Table.Summary.Cell>
+              <Table.Summary.Cell index={0}><b>{lang === 'en' ? 'Total (all dimension axes)' : '全局（全部维度轴数合计）'}</b></Table.Summary.Cell>
               <Table.Summary.Cell index={1} />
               <Table.Summary.Cell index={2}><EvidenceTags ev={report.evidenceSummary} /></Table.Summary.Cell>
             </Table.Summary.Row>
@@ -518,7 +518,7 @@ export default function Report() {
           <Card className="swiss-card" style={{ height: '100%' }}>
             <div className="swiss-card-title">
               <TrophyOutlined style={{ color: '#52c41a', marginRight: 8 }} />
-              优势维度
+              {lang === 'en' ? 'Strengths' : '优势维度'}
             </div>
             {report.strengths.length > 0 ? (
               report.strengths.map((s, i) => (
@@ -530,11 +530,11 @@ export default function Report() {
                     strokeColor="#52c41a"
                     style={{ flex: 1, margin: 0 }}
                   />
-                  <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{s.passRate}% 通过</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{s.passRate}% {lang === 'en' ? 'pass' : '通过'}</span>
                 </div>
               ))
             ) : (
-              <div style={{ color: 'var(--text-helper)', textAlign: 'center', padding: 20 }}>暂无优势维度（均分≥75）</div>
+              <div style={{ color: 'var(--text-helper)', textAlign: 'center', padding: 20 }}>暂无{lang === 'en' ? 'Strengths' : '优势维度'}（均分≥75）</div>
             )}
           </Card>
         </Col>
@@ -542,7 +542,7 @@ export default function Report() {
           <Card className="swiss-card" style={{ height: '100%' }}>
             <div className="swiss-card-title">
               <WarningOutlined style={{ color: '#f5222d', marginRight: 8 }} />
-              待改进维度
+              {lang === 'en' ? 'To Improve' : '待改进维度'}
             </div>
             {report.weaknesses.length > 0 ? (
               report.weaknesses.map((w, i) => (
@@ -554,7 +554,7 @@ export default function Report() {
                     strokeColor="#f5222d"
                     style={{ flex: 1, margin: 0 }}
                   />
-                  <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{w.passRate}% 通过</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{w.passRate}% {lang === 'en' ? 'pass' : '通过'}</span>
                 </div>
               ))
             ) : (
@@ -564,12 +564,12 @@ export default function Report() {
         </Col>
       </Row>
 
-      {/* AI 评测分析报告 */}
+      {/* {lang === 'en' ? 'AI Analysis Report' : 'AI 评测分析报告'} */}
       <Card className="swiss-card" style={{ marginBottom: 16 }}>
         <div className="swiss-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>
             <RobotOutlined style={{ marginRight: 8, color: '#722ed1' }} />
-            AI 评测分析报告
+            {lang === 'en' ? 'AI Analysis Report' : 'AI 评测分析报告'}
           </span>
           <span style={{ display: 'flex', gap: 8 }}>
             {aiReport && (
@@ -632,7 +632,7 @@ export default function Report() {
         ) : (
           <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-helper)' }}>
             <RobotOutlined style={{ fontSize: 48, marginBottom: 16, color: '#d9d9d9' }} />
-            <p style={{ fontSize: 16, marginBottom: 8 }}>尚未生成 AI 分析报告</p>
+            <p style={{ fontSize: 16, marginBottom: 8 }}>{lang === 'en' ? 'No AI report generated yet' : '尚未生成 AI 分析报告'}</p>
             <p style={{ fontSize: 13 }}>
               点击上方「生成 AI 报告」按钮，AI Judge 模型将根据评测数据生成深度分析报告，<br />
               包括各维度能力评估、典型失分案例、改进建议等内容。

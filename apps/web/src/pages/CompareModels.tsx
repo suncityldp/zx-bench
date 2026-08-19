@@ -122,16 +122,16 @@ export default function CompareModels() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      message.success(`正在下载 ${format.toUpperCase()} 格式报告...`);
+      message.success(lang === 'en' ? `Downloading ${format.toUpperCase()} report...` : `正在下载 ${format.toUpperCase()} 格式报告...`);
     } catch (err) {
       console.error('Download failed:', err);
-      message.error('下载失败，请重试');
+      message.error(lang === 'en' ? 'Download failed, please retry' : '下载失败，请重试');
     }
-  }, []);
+  }, [lang]);
 
   const handleGenerate = async () => {
     if (selectedIds.length < 2) {
-      message.warning('请至少选择2个模型进行对比');
+      message.warning(lang === 'en' ? 'Please select at least 2 models to compare' : '请至少选择2个模型进行对比');
       return;
     }
     setGenerating(true);
@@ -154,12 +154,12 @@ export default function CompareModels() {
           saveHistory(next);
           return next;
         });
-        message.success('对比报告生成成功');
+        message.success(lang === 'en' ? 'Comparison report generated successfully' : '对比报告生成成功');
       } else {
-        message.error(data.error || '报告生成失败');
+        message.error(data.error || (lang === 'en' ? 'Failed to generate report' : '报告生成失败'));
       }
     } catch (err) {
-      message.error('请求失败，请检查 Judge 模型状态');
+      message.error(lang === 'en' ? 'Request failed, please check the Judge model status' : '请求失败，请检查 Judge 模型状态');
     } finally {
       setGenerating(false);
     }
@@ -211,50 +211,50 @@ export default function CompareModels() {
         );
       },
     },
-    { title: '模型', dataIndex: 'modelName', key: 'name', render: (v: string, r: ModelEntry) => <span style={{ fontWeight: 600 }}>{v}</span> },
-    { title: '提供方', dataIndex: 'provider', key: 'provider', render: (v: string) => <Tag>{v}</Tag> },
+    { title: lang === 'en' ? 'Model' : '模型', dataIndex: 'modelName', key: 'name', render: (v: string, r: ModelEntry) => <span style={{ fontWeight: 600 }}>{v}</span> },
+    { title: lang === 'en' ? 'Provider' : '提供方', dataIndex: 'provider', key: 'provider', render: (v: string) => <Tag>{v}</Tag> },
     {
-      title: '综合分', dataIndex: 'averageScore', key: 'score', sorter: (a: ModelEntry, b: ModelEntry) => b.averageScore - a.averageScore,
+      title: lang === 'en' ? 'Overall Score' : '综合分', dataIndex: 'averageScore', key: 'score', sorter: (a: ModelEntry, b: ModelEntry) => b.averageScore - a.averageScore,
       render: (v: number) => <span style={{ fontSize: 18, fontWeight: 700, color: v >= 80 ? '#52c41a' : v >= 60 ? '#1890ff' : '#faad14' }}>{v.toFixed(2)}</span>,
     },
     {
-      title: '通过率', dataIndex: 'passRate', key: 'passRate',
+      title: lang === 'en' ? 'Pass Rate' : '通过率', dataIndex: 'passRate', key: 'passRate',
       render: (v: number) => `${v}%`,
     },
     {
-      title: '题数', dataIndex: 'totalScenarios', key: 'total',
+      title: lang === 'en' ? 'Questions' : '题数', dataIndex: 'totalScenarios', key: 'total',
       render: (_: unknown, r: ModelEntry) => (
         <div>
           <div>{r.totalScenarios}</div>
           {(r.missingScenarios ?? 0) > 0 && (
-            <div style={{ fontSize: 11, color: '#f5222d' }}>⚠ 缺失 {r.missingScenarios} 题</div>
+            <div style={{ fontSize: 11, color: '#f5222d' }}>⚠ {lang === 'en' ? `Missing ${r.missingScenarios} questions` : `缺失 ${r.missingScenarios} 题`}</div>
           )}
         </div>
       ),
     },
     {
-      title: '安全红线', dataIndex: 'redLineCount', key: 'redLine',
+      title: lang === 'en' ? 'Red Lines' : '安全红线', dataIndex: 'redLineCount', key: 'redLine',
       render: (v: number) => <Tag color={v > 0 ? 'red' : 'green'}>{v}</Tag>,
     },
     {
-      title: '评测时间', dataIndex: 'evaluatedAt', key: 'evaluatedAt',
-      render: (t: string) => <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{t ? new Date(t).toLocaleString('zh-CN', { hour12: false }) : '-'}</span>,
+      title: lang === 'en' ? 'Evaluated At' : '评测时间', dataIndex: 'evaluatedAt', key: 'evaluatedAt',
+      render: (t: string) => <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{t ? new Date(t).toLocaleString(lang === 'en' ? 'en-US' : 'zh-CN', { hour12: false }) : '-'}</span>,
     },
   ];
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 24, gap: 16 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>返回</Button>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>{lang === 'en' ? 'Back' : '返回'}</Button>
         <h2 className="swiss-page-title" style={{ margin: 0, flex: 1 }}>
           <TrophyOutlined style={{ marginRight: 8 }} />
-          模型对比分析
+          {lang === 'en' ? 'Model Comparison Analysis' : '模型对比分析'}
         </h2>
       </div>
 
       <Card className="swiss-card" style={{ marginBottom: 24 }}>
         <div className="swiss-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>选择参与对比的模型（已选 {selectedIds.length}/{models.length} 个）</span>
+          <span>{lang === 'en' ? `Select models to compare (${selectedIds.length}/${models.length} selected)` : `选择参与对比的模型（已选 ${selectedIds.length}/${models.length} 个）`}</span>
           <Button
             type="primary"
             icon={<RobotOutlined />}
@@ -263,16 +263,16 @@ export default function CompareModels() {
             disabled={selectedIds.length < 2}
             style={{ borderRadius: 6 }}
           >
-            {generating ? '生成中...' : `生成对比报告 (${selectedIds.length} 个模型)`}
+            {generating ? (lang === 'en' ? 'Generating...' : '生成中...') : (lang === 'en' ? `Generate Comparison Report (${selectedIds.length} models)` : `生成对比报告 (${selectedIds.length} 个模型)`)}
           </Button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>分数口径：</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{lang === 'en' ? 'Score basis: ' : '分数口径：'}</span>
           <Segmented
             size="small"
             options={[
-              { value: 'latest', label: '最新 run' },
-              { value: 'best', label: '跨 run 最优' },
+              { value: 'latest', label: lang === 'en' ? 'Latest Run' : '最新 run' },
+              { value: 'best', label: lang === 'en' ? 'Best Across Runs' : '跨 run 最优' },
             ]}
             value={scope}
             onChange={(v) => setScope(v as 'latest' | 'best')}
@@ -288,7 +288,7 @@ export default function CompareModels() {
             style={{ marginTop: 8 }}
           />
         ) : (
-          <Empty description="暂无已完成评测的模型" style={{ padding: 40 }} />
+          <Empty description={lang === 'en' ? 'No models with completed evaluations yet' : '暂无已完成评测的模型'} style={{ padding: 40 }} />
         )}
       </Card>
 
@@ -296,18 +296,18 @@ export default function CompareModels() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16 }}>
           <HistoryOutlined style={{ marginRight: 8, color: '#722ed1' }} />
-          已生成的对比报告（{reportHistory.length}）
+          {lang === 'en' ? `Generated Comparison Reports (${reportHistory.length})` : `已生成的对比报告（${reportHistory.length}）`}
         </h3>
         {reportHistory.length > 0 && (
-          <Popconfirm title="确认清空所有已保存的对比报告？" onConfirm={handleClear} okText="清空" cancelText="取消">
-            <Button size="small" icon={<ClearOutlined />} danger>清空历史</Button>
+          <Popconfirm title={lang === 'en' ? 'Clear all saved comparison reports?' : '确认清空所有已保存的对比报告？'} onConfirm={handleClear} okText={lang === 'en' ? 'Clear' : '清空'} cancelText={lang === 'en' ? 'Cancel' : '取消'}>
+            <Button size="small" icon={<ClearOutlined />} danger>{lang === 'en' ? 'Clear History' : '清空历史'}</Button>
           </Popconfirm>
         )}
       </div>
 
       {reportHistory.length === 0 ? (
         <Card className="swiss-card" style={{ marginBottom: 16 }}>
-          <Empty description="还没有生成任何对比报告，选择模型后点击上方按钮生成" style={{ padding: 32 }} />
+          <Empty description={lang === 'en' ? 'No comparison reports generated yet. Select models and click the button above to generate.' : '还没有生成任何对比报告，选择模型后点击上方按钮生成'} style={{ padding: 32 }} />
         </Card>
       ) : (
         reportHistory.map((record) => (
@@ -317,17 +317,17 @@ export default function CompareModels() {
                 <RobotOutlined style={{ color: '#722ed1' }} />
                 <span>{record.modelNames.join('  vs  ')}</span>
                 <Tag color="default" style={{ marginLeft: 4 }}>
-                  {new Date(record.createdAt).toLocaleString('zh-CN', { hour12: false })}
+                  {new Date(record.createdAt).toLocaleString(lang === 'en' ? 'en-US' : 'zh-CN', { hour12: false })}
                 </Tag>
               </span>
               <span style={{ display: 'flex', gap: 8 }}>
-                <Tooltip title="下载 Markdown 格式">
+                <Tooltip title={lang === 'en' ? 'Download Markdown' : '下载 Markdown 格式'}>
                   <Button size="small" icon={<FileTextOutlined />} onClick={() => handleDownload(record, 'md')} style={{ borderRadius: 6 }}>MD</Button>
                 </Tooltip>
-                <Tooltip title="下载 HTML 报告（可用浏览器 Ctrl+P 另存为 PDF）">
+                <Tooltip title={lang === 'en' ? 'Download HTML report (use browser Ctrl+P to save as PDF)' : '下载 HTML 报告（可用浏览器 Ctrl+P 另存为 PDF）'}>
                   <Button size="small" icon={<FilePdfOutlined />} onClick={() => handleDownload(record, 'html')} style={{ borderRadius: 6 }}>PDF</Button>
                 </Tooltip>
-                <Tooltip title="删除此报告">
+                <Tooltip title={lang === 'en' ? 'Delete this report' : '删除此报告'}>
                   <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)} style={{ borderRadius: 6 }} />
                 </Tooltip>
               </span>

@@ -14,22 +14,23 @@ import {
 } from '@ant-design/icons';
 import type { EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage } from '@zxbench/types';
 import { useTheme } from '../theme';
+import { useLanguage, dimLabel } from '../i18n';
 
 const { Text, Paragraph } = Typography;
 
-// ===== 维度元数据 =====
-const DIMENSION_LABELS: Record<string, string> = {
-  data_extraction: '数据抽取',
-  instruction_following: '指令遵循',
-  reasoning_math: '推理与数学',
-  structured_output: '结构化输出',
-  tool_cli_workflow: '工具/CLI/工作流',
-  safety_authority: '安全与权限',
-  agent_workflow: '智能体工作流',
-  cli_deep_tasks: '深度命令行任务',
-  program: '编程能力',
-  hallucination_resistance: '幻觉抵抗',
-};
+// ===== 维度 key 列表（标签统一走 i18n 的 dimLabel） =====
+const DIMENSION_KEYS: string[] = [
+  'data_extraction',
+  'instruction_following',
+  'reasoning_math',
+  'structured_output',
+  'tool_cli_workflow',
+  'safety_authority',
+  'agent_workflow',
+  'cli_deep_tasks',
+  'program',
+  'hallucination_resistance',
+];
 
 const DIMENSION_COLORS: Record<string, string> = {
   data_extraction: '#1890ff',
@@ -45,18 +46,18 @@ const DIMENSION_COLORS: Record<string, string> = {
 };
 
 // ===== 阶段元数据 =====
-const STAGE_CONFIG: Record<EvalStage, { label: string; icon: React.ReactNode; color: string }> = {
-  queued:              { label: '排队中',     icon: <ClockCircleOutlined />,        color: '#8c8c8c' },
-  initializing:        { label: '初始化',     icon: <LoadingOutlined spin />,        color: '#1890ff' },
-  calling_model:       { label: '调用模型',   icon: <ThunderboltOutlined />,         color: '#fa8c16' },
-  building_metadata:   { label: '提取输出',   icon: <FileSearchOutlined />,          color: '#13c2c2' },
-  parsing_output:      { label: '格式验证',   icon: <CheckSquareOutlined />,         color: '#52c41a' },
-  deterministic_scoring:{ label: '确定性评分', icon: <CalculatorOutlined />,          color: '#722ed1' },
-  safety_check:        { label: '安全检查',   icon: <SafetyOutlined />,              color: '#f5222d' },
-  ai_judge:            { label: 'AI Judge',   icon: <RobotOutlined />,               color: '#eb2f96' },
-  reasoning_limit:     { label: '思考超限',   icon: <ClockCircleOutlined />,        color: '#fa541c' },
-  completed:           { label: '完成',       icon: <CheckCircleOutlined />,         color: '#52c41a' },
-  failed:              { label: '失败',       icon: <CloseCircleOutlined />,         color: '#f5222d' },
+const STAGE_CONFIG: Record<EvalStage, { label: { zh: string; en: string }; icon: React.ReactNode; color: string }> = {
+  queued:              { label: { zh: '排队中', en: 'Queued' },            icon: <ClockCircleOutlined />,        color: '#8c8c8c' },
+  initializing:        { label: { zh: '初始化', en: 'Initializing' },      icon: <LoadingOutlined spin />,        color: '#1890ff' },
+  calling_model:       { label: { zh: '调用模型', en: 'Calling model' },   icon: <ThunderboltOutlined />,         color: '#fa8c16' },
+  building_metadata:   { label: { zh: '提取输出', en: 'Extracting output' }, icon: <FileSearchOutlined />,        color: '#13c2c2' },
+  parsing_output:      { label: { zh: '格式验证', en: 'Format check' },    icon: <CheckSquareOutlined />,         color: '#52c41a' },
+  deterministic_scoring:{ label: { zh: '确定性评分', en: 'Deterministic scoring' }, icon: <CalculatorOutlined />,  color: '#722ed1' },
+  safety_check:        { label: { zh: '安全检查', en: 'Safety check' },    icon: <SafetyOutlined />,              color: '#f5222d' },
+  ai_judge:            { label: { zh: 'AI Judge', en: 'AI Judge' },        icon: <RobotOutlined />,               color: '#eb2f96' },
+  reasoning_limit:     { label: { zh: '思考超限', en: 'Reasoning limit' }, icon: <ClockCircleOutlined />,         color: '#fa541c' },
+  completed:           { label: { zh: '完成', en: 'Completed' },           icon: <CheckCircleOutlined />,         color: '#52c41a' },
+  failed:              { label: { zh: '失败', en: 'Failed' },              icon: <CloseCircleOutlined />,         color: '#f5222d' },
 };
 
 const EVALUATION_STAGES: EvalStage[] = [
@@ -87,6 +88,7 @@ export default function EvalLive() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { mode } = useTheme();
+  const { lang } = useLanguage();
   const [progress, setProgress] = useState<EvalProgress | null>(null);
   const [runInfo, setRunInfo] = useState<RunInfo | null>(null);
   const [wsConnected, setWsConnected] = useState(false);
@@ -143,18 +145,18 @@ export default function EvalLive() {
       });
       const json = await res.json();
       if (json.success) {
-        setConfigNotice(json.data.notice || '已更新');
-        message.success('生成额度已更新');
+        setConfigNotice(json.data.notice || (lang === 'en' ? 'Updated' : '已更新'));
+        message.success(lang === 'en' ? 'Generation budget updated' : '生成额度已更新');
         fetchRunInfo();
       } else {
-        message.error(json.error || '更新失败');
+        message.error(json.error || (lang === 'en' ? 'Update failed' : '更新失败'));
       }
     } catch {
-      message.error('更新失败，请检查服务器状态');
+      message.error(lang === 'en' ? 'Update failed, check server status' : '更新失败，请检查服务器状态');
     } finally {
       setConfigSaving(false);
     }
-  }, [id, maxTokensValue, fetchRunInfo]);
+  }, [id, maxTokensValue, fetchRunInfo, lang]);
 
   // 从 REST API 获取进度（后备方案：WS 无缓存时使用）
   const fetchProgress = useCallback(async () => {
@@ -307,7 +309,7 @@ export default function EvalLive() {
       const res = await fetch(`/api/runs/${id}/resume`, { method: 'POST' });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) {
-        const errMsg = json.error || `恢复失败 (HTTP ${res.status})`;
+        const errMsg = json.error || (lang === 'en' ? `Resume failed (HTTP ${res.status})` : `恢复失败 (HTTP ${res.status})`);
         message.error(errMsg);
         setActionLoading(false);
         return;
@@ -321,11 +323,11 @@ export default function EvalLive() {
       }
     } catch (err) {
       console.error('Resume failed:', err);
-      message.error('恢复评测失败，请检查服务器状态');
+      message.error(lang === 'en' ? 'Failed to resume evaluation, check server status' : '恢复评测失败，请检查服务器状态');
     } finally {
       setActionLoading(false);
     }
-  }, [id, connectWs, fetchRunInfo, fetchProgress]);
+  }, [id, connectWs, fetchRunInfo, fetchProgress, lang]);
 
   // 取消评测
   const handleCancel = useCallback(async () => {
@@ -368,7 +370,7 @@ export default function EvalLive() {
       if (json.success) {
         setForkModalOpen(false);
         setForkDimensions([]);
-        message.success('维度已添加，评测正在重启...');
+        message.success(lang === 'en' ? 'Dimension added, evaluation is restarting...' : '维度已添加，评测正在重启...');
         // 刷新进度和运行信息
         setTimeout(() => {
           fetchRunInfo();
@@ -378,15 +380,15 @@ export default function EvalLive() {
           }
         }, 1500);
       } else {
-        message.error(json.error || '添加维度失败');
+        message.error(json.error || (lang === 'en' ? 'Failed to add dimension' : '添加维度失败'));
       }
     } catch (err) {
       console.error('Fork failed:', err);
-      message.error('添加维度失败');
+      message.error(lang === 'en' ? 'Failed to add dimension' : '添加维度失败');
     } finally {
       setForkLoading(false);
     }
-  }, [id, forkDimensions, fetchRunInfo, fetchProgress, connectWs]);
+  }, [id, forkDimensions, fetchRunInfo, fetchProgress, connectWs, lang]);
 
   // 单题重试（最多同时4题）
   const handleRetry = useCallback(async (scenarioId: string) => {
@@ -462,7 +464,7 @@ export default function EvalLive() {
   if (!runInfo && !progress) {
     return (
       <div style={{ textAlign: 'center', padding: 80 }}>
-        <Spin size="large" tip="连接中..." />
+        <Spin size="large" tip={lang === 'en' ? 'Connecting...' : '连接中...'} />
       </div>
     );
   }
@@ -496,7 +498,7 @@ export default function EvalLive() {
     ? tokensPerSec >= 1000
       ? `${(tokensPerSec / 1000).toFixed(1)}K t/s`
       : `${tokensPerSec} t/s`
-    : '计算中...';
+    : (lang === 'en' ? 'Calculating...' : '计算中...');
 
   const totalTokensText = progress?.totalTokens != null
     ? progress.totalTokens >= 1000000
@@ -513,11 +515,15 @@ export default function EvalLive() {
       {/* ===== Header ===== */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/eval/history')}>返回</Button>
-          <h2 className="swiss-page-title" style={{ margin: 0 }}>{runInfo?.name || `评测 ${id}`}</h2>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/eval/history')}>{lang === 'en' ? 'Back' : '返回'}</Button>
+          <h2 className="swiss-page-title" style={{ margin: 0 }}>{runInfo?.name || (lang === 'en' ? `Eval ${id}` : `评测 ${id}`)}</h2>
           <Badge
             status={wsConnected ? 'success' : 'error'}
-            text={wsConnected ? '实时连接' : (wsReconnectAttempt > 0 ? `重连中(${wsReconnectAttempt}/5)...` : '断开重连中...')}
+            text={wsConnected
+              ? (lang === 'en' ? 'Live' : '实时连接')
+              : (wsReconnectAttempt > 0
+                  ? (lang === 'en' ? `Reconnecting (${wsReconnectAttempt}/5)...` : `重连中(${wsReconnectAttempt}/5)...`)
+                  : (lang === 'en' ? 'Reconnecting...' : '断开重连中...'))}
           />
         </Space>
         <Space>
@@ -528,7 +534,7 @@ export default function EvalLive() {
               loading={actionLoading}
               danger
             >
-              暂停
+              {lang === 'en' ? 'Pause' : '暂停'}
             </Button>
           )}
           {isPaused && (
@@ -538,7 +544,7 @@ export default function EvalLive() {
               onClick={handleResume}
               loading={actionLoading}
             >
-              继续评测
+              {lang === 'en' ? 'Resume' : '继续评测'}
             </Button>
           )}
           {isFailed && (
@@ -548,7 +554,7 @@ export default function EvalLive() {
               onClick={handleResume}
               loading={actionLoading}
             >
-              从中断处恢复
+              {lang === 'en' ? 'Resume from interruption' : '从中断处恢复'}
             </Button>
           )}
           {isActive && (
@@ -558,7 +564,7 @@ export default function EvalLive() {
               loading={actionLoading}
               danger
             >
-              取消
+              {lang === 'en' ? 'Cancel' : '取消'}
             </Button>
           )}
           {isActive && (
@@ -574,7 +580,7 @@ export default function EvalLive() {
                     }
                   }
                 }
-                const available = Object.keys(DIMENSION_LABELS).filter((dim) => {
+                const available = DIMENSION_KEYS.filter((dim) => {
                   if (activeDims.has(dim)) return false;
                   const dp = dimProgress.find((d) => d.dimension === dim);
                   return !dp || dp.completed < dp.total; // 未完成或不存在
@@ -584,23 +590,25 @@ export default function EvalLive() {
               }}
               style={{ borderColor: '#722ed1', color: '#722ed1' }}
             >
-              添加维度测试
+              {lang === 'en' ? 'Add dimension test' : '添加维度测试'}
             </Button>
           )}
           {isCompleted && (
             <Button type="primary" icon={<EyeOutlined />} onClick={() => navigate(`/eval/${id}`)}>
-              查看完整详情
+              {lang === 'en' ? 'View full details' : '查看完整详情'}
             </Button>
           )}
-          <Button icon={<ReloadOutlined />} onClick={() => { fetchRunInfo(); connectWs(); }}>刷新</Button>
+          <Button icon={<ReloadOutlined />} onClick={() => { fetchRunInfo(); connectWs(); }}>{lang === 'en' ? 'Refresh' : '刷新'}</Button>
         </Space>
       </div>
 
       {/* ===== 状态横幅 ===== */}
       {isPaused && (
         <Alert
-          message="评测已暂停"
-          description="评测已暂停，已完成的题目结果已保存。点击「继续评测」可从中断处恢复。"
+          message={lang === 'en' ? 'Evaluation paused' : '评测已暂停'}
+          description={lang === 'en'
+            ? 'Evaluation is paused. Completed results are saved. Click "Resume" to continue from where it stopped.'
+            : '评测已暂停，已完成的题目结果已保存。点击「继续评测」可从中断处恢复。'}
           type="warning"
           showIcon
           icon={<PauseCircleOutlined />}
@@ -609,8 +617,10 @@ export default function EvalLive() {
       )}
       {isFailed && (
         <Alert
-          message="评测异常中断"
-          description="评测过程中发生错误或被中断。已完成的题目结果已保存。点击「从中断处恢复」可继续未完成的测试。"
+          message={lang === 'en' ? 'Evaluation interrupted' : '评测异常中断'}
+          description={lang === 'en'
+            ? 'An error occurred or the evaluation was interrupted. Completed results are saved. Click "Resume from interruption" to continue.'
+            : '评测过程中发生错误或被中断。已完成的题目结果已保存。点击「从中断处恢复」可继续未完成的测试。'}
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
@@ -618,8 +628,10 @@ export default function EvalLive() {
       )}
       {isCompleted && (
         <Alert
-          message="评测完成"
-          description={`共 ${progress?.total || 0} 题，综合分 ${overallAvg.toFixed(2)}，通过 ${totalPassed} 题，失败 ${totalFailed} 题${totalRedLine > 0 ? `，安全红线 ${totalRedLine} 题` : ''}。`}
+          message={lang === 'en' ? 'Evaluation complete' : '评测完成'}
+          description={lang === 'en'
+            ? `${progress?.total || 0} questions, composite score ${overallAvg.toFixed(2)}, ${totalPassed} passed, ${totalFailed} failed${totalRedLine > 0 ? `, ${totalRedLine} red-line` : ''}.`
+            : `共 ${progress?.total || 0} 题，综合分 ${overallAvg.toFixed(2)}，通过 ${totalPassed} 题，失败 ${totalFailed} 题${totalRedLine > 0 ? `，安全红线 ${totalRedLine} 题` : ''}。`}
           type="success"
           showIcon
           style={{ marginBottom: 16 }}
@@ -632,7 +644,7 @@ export default function EvalLive() {
           <div className="swiss-card-title">
             <Space>
               <ForkOutlined />
-              <span>并行测试组 ({groupRuns.length} 个运行)</span>
+              <span>{lang === 'en' ? `Parallel runs (${groupRuns.length} runs)` : `并行测试组 (${groupRuns.length} 个运行)`}</span>
             </Space>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -657,8 +669,10 @@ export default function EvalLive() {
         {/* 生成额度：实时展示 + 可修改（运行中后续题目立即生效） */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
           <ThunderboltOutlined style={{ color: '#fa8c16' }} />
-          <Text strong style={{ fontSize: 13 }}>生成额度 (maxTokens)</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>推理模型思考链长，额度不足会被截断压低分数</Text>
+          <Text strong style={{ fontSize: 13 }}>{lang === 'en' ? 'Generation budget (maxTokens)' : '生成额度 (maxTokens)'}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>{lang === 'en'
+            ? 'Reasoning budget for the model; insufficient budget truncates reasoning and lowers scores'
+            : '推理模型思考链长，额度不足会被截断压低分数'}</Text>
           <InputNumber
             min={1024}
             max={131072}
@@ -675,27 +689,27 @@ export default function EvalLive() {
             loading={configSaving}
             disabled={isCompleted || isFailed}
           >
-            保存
+            {lang === 'en' ? 'Save' : '保存'}
           </Button>
           {configNotice && (
             <Text type="success" style={{ fontSize: 12 }}>{configNotice}</Text>
           )}
           {!isCompleted && !isFailed && runInfo?.config && typeof runInfo.config.maxTokens === 'number' && runInfo.config.maxTokens !== maxTokensValue && (
-            <Tag color="orange" style={{ fontSize: 11 }}>未保存</Tag>
+            <Tag color="orange" style={{ fontSize: 11 }}>{lang === 'en' ? 'Unsaved' : '未保存'}</Tag>
           )}
         </div>
         <Row gutter={24} align="middle">
           <Col span={16}>
             <div style={{ marginBottom: 8 }}>
               <Text strong style={{ fontSize: 16 }}>
-                {isRunning ? '正在评测中' : isCompleted ? '评测完成' : '评测状态'}
+                {isRunning ? (lang === 'en' ? 'Running' : '正在评测中') : isCompleted ? (lang === 'en' ? 'Completed' : '评测完成') : (lang === 'en' ? 'Status' : '评测状态')}
               </Text>
               <Text type="secondary" style={{ marginLeft: 12 }}>
-                {progress?.completed || 0} / {progress?.total || 0} 题
+                {progress?.completed || 0} / {progress?.total || 0} {lang === 'en' ? 'questions' : '题'}
               </Text>
               {progress?.totalTokens != null && totalTokensText && (
                 <Tag icon={<DashboardOutlined />} color="blue" style={{ marginLeft: 8 }}>
-                  累计 {totalTokensText} tokens
+                  {lang === 'en' ? 'Total' : '累计'} {totalTokensText} tokens
                 </Tag>
               )}
               {isRunning && tokensPerSec != null && (
@@ -714,16 +728,16 @@ export default function EvalLive() {
           <Col span={8}>
             <Row gutter={16}>
               <Col span={6}>
-                <Statistic title="通过" value={totalPassed} valueStyle={{ color: '#52c41a' }} />
+                <Statistic title={lang === 'en' ? 'Passed' : '通过'} value={totalPassed} valueStyle={{ color: '#52c41a' }} />
               </Col>
               <Col span={6}>
-                <Statistic title="失败" value={totalFailed} valueStyle={{ color: '#f5222d' }} />
+                <Statistic title={lang === 'en' ? 'Failed' : '失败'} value={totalFailed} valueStyle={{ color: '#f5222d' }} />
               </Col>
               <Col span={6}>
-                <Statistic title="红线" value={totalRedLine} valueStyle={{ color: totalRedLine > 0 ? '#f5222d' : undefined }} />
+                <Statistic title={lang === 'en' ? 'Red-line' : '红线'} value={totalRedLine} valueStyle={{ color: totalRedLine > 0 ? '#f5222d' : undefined }} />
               </Col>
               <Col span={6}>
-                <Statistic title="综合分" value={overallAvg} suffix="分" precision={2} />
+                <Statistic title={lang === 'en' ? 'Composite Score' : '综合分'} value={overallAvg} suffix={lang === 'en' ? '' : '分'} precision={2} />
               </Col>
             </Row>
           </Col>
@@ -752,7 +766,7 @@ export default function EvalLive() {
                     display: 'inline-block',
                     boxShadow: `0 0 6px ${DIMENSION_COLORS[dim] || '#1890ff'}`,
                   }} />
-                  {DIMENSION_LABELS[dim] || dim}
+                  {dimLabel(dim, lang)}
                 </span>
               ),
               children: (
@@ -760,14 +774,14 @@ export default function EvalLive() {
                   <Row gutter={16}>
                     <Col span={6}>
                       <div style={{ marginBottom: 8 }}>
-                        <Text type="secondary">题目 ID</Text>
+                        <Text type="secondary">{lang === 'en' ? 'Question ID' : '题目 ID'}</Text>
                         <div><Text code copyable>{info.scenarioId}</Text></div>
                       </div>
                       <div style={{ marginBottom: 8 }}>
-                        <Text type="secondary">维度</Text>
+                        <Text type="secondary">{lang === 'en' ? 'Dimension' : '维度'}</Text>
                         <div>
                           <Tag color={DIMENSION_COLORS[dim] || '#1890ff'}>
-                            {DIMENSION_LABELS[dim] || dim}
+                            {dimLabel(dim, lang)}
                           </Tag>
                         </div>
                       </div>
@@ -775,29 +789,29 @@ export default function EvalLive() {
                     <Col span={6}>
                       {info.difficulty && (
                         <div style={{ marginBottom: 8 }}>
-                          <Text type="secondary">难度</Text>
+                          <Text type="secondary">{lang === 'en' ? 'Difficulty' : '难度'}</Text>
                           <div>
                             <Tag color={
                               info.difficulty === 'hard' ? 'red' :
                               info.difficulty === 'medium' ? 'orange' : 'green'
                             }>
-                              {info.difficulty === 'hard' ? '困难' :
-                               info.difficulty === 'medium' ? '中等' : '简单'}
+                              {info.difficulty === 'hard' ? (lang === 'en' ? 'Hard' : '困难') :
+                               info.difficulty === 'medium' ? (lang === 'en' ? 'Medium' : '中等') : (lang === 'en' ? 'Easy' : '简单')}
                             </Tag>
                           </div>
                         </div>
                       )}
                       {info.language && (
                         <div style={{ marginBottom: 8 }}>
-                          <Text type="secondary">语言</Text>
+                          <Text type="secondary">{lang === 'en' ? 'Language' : '语言'}</Text>
                           <div><Tag color="blue">{info.language}</Tag></div>
                         </div>
                       )}
                     </Col>
                     <Col span={12}>
-                      <Text type="secondary">题目预览</Text>
+                      <Text type="secondary">{lang === 'en' ? 'Question preview' : '题目预览'}</Text>
                       <Paragraph
-                        ellipsis={{ rows: 4, expandable: true, symbol: '展开' }}
+                        ellipsis={{ rows: 4, expandable: true, symbol: lang === 'en' ? 'Expand' : '展开' }}
                         style={{
                           marginTop: 4, padding: 12,
                           background: 'var(--grey-1)', borderRadius: 0,
@@ -806,7 +820,7 @@ export default function EvalLive() {
                           overflow: 'auto', border: '1px solid var(--border-subtle)',
                         }}
                       >
-                        {info.promptPreview || '(无预览)'}
+                        {info.promptPreview || (lang === 'en' ? '(No preview)' : '(无预览)')}
                       </Paragraph>
                     </Col>
                   </Row>
@@ -823,7 +837,7 @@ export default function EvalLive() {
                         const isPassed = stageIdx >= 0 && stageIdx > idx;
                         return (
                           <div key={stage} style={{ display: 'flex', alignItems: 'center' }}>
-                            <Tooltip title={sc.label}>
+                            <Tooltip title={sc.label[lang]}>
                               <div style={{
                                 display: 'flex', alignItems: 'center', gap: 6,
                                 padding: '3px 10px', borderRadius: 16, fontSize: 11,
@@ -835,7 +849,7 @@ export default function EvalLive() {
                                 ...(isActive ? { boxShadow: `0 0 6px ${sc.color}40` } : {}),
                               }}>
                                 <span style={{ fontSize: 13 }}>{sc.icon}</span>
-                                <span>{sc.label}</span>
+                                <span>{sc.label[lang]}</span>
                               </div>
                             </Tooltip>
                             {idx < EVALUATION_STAGES.length - 1 && (
@@ -857,9 +871,9 @@ export default function EvalLive() {
               <div className="swiss-card-title">
                 <Space>
                   {isPaused ? <PauseCircleOutlined /> : <LoadingOutlined spin />}
-                  <span>{isPaused ? '已暂停' : '正在测试'}</span>
+                  <span>{isPaused ? (lang === 'en' ? 'Paused' : '已暂停') : (lang === 'en' ? 'Testing' : '正在测试')}</span>
                   {activeDims.length > 1 && (
-                    <Tag icon={<ThunderboltFilled />} color="blue">并行 {activeDims.length} 维度</Tag>
+                    <Tag icon={<ThunderboltFilled />} color="blue">{lang === 'en' ? `Parallel ${activeDims.length} dims` : `并行 ${activeDims.length} 维度`}</Tag>
                   )}
                 </Space>
               </div>
@@ -881,10 +895,10 @@ export default function EvalLive() {
               <div className="swiss-card-title">
                 <Space>
                   {isPaused ? <PauseCircleOutlined /> : <LoadingOutlined spin />}
-                  <span>{isPaused ? '已暂停' : '等待数据...'}</span>
+                  <span>{isPaused ? (lang === 'en' ? 'Paused' : '已暂停') : (lang === 'en' ? 'Waiting for data...' : '等待数据...')}</span>
                 </Space>
               </div>
-              <Empty description="等待题目数据..." image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              <Empty description={lang === 'en' ? 'Waiting for question data...' : '等待题目数据...'} image={Empty.PRESENTED_IMAGE_SIMPLE} />
             </div>
           );
         }
@@ -894,59 +908,59 @@ export default function EvalLive() {
             <div className="swiss-card-title">
               <Space>
                 {isPaused ? <PauseCircleOutlined /> : <LoadingOutlined spin />}
-                <span>{isPaused ? '已暂停' : '正在测试'}</span>
+                <span>{isPaused ? (lang === 'en' ? 'Paused' : '已暂停') : (lang === 'en' ? 'Testing' : '正在测试')}</span>
                 {activeDims.length > 1 && (
-                  <Tag icon={<ThunderboltFilled />} color="blue">并行 {activeDims.length} 维度</Tag>
+                  <Tag icon={<ThunderboltFilled />} color="blue">{lang === 'en' ? `Parallel ${activeDims.length} dims` : `并行 ${activeDims.length} 维度`}</Tag>
                 )}
               </Space>
             </div>
             <Row gutter={16}>
             <Col span={6}>
               <div style={{ marginBottom: 8 }}>
-                <Text type="secondary">题目 ID</Text>
+                <Text type="secondary">{lang === 'en' ? 'Question ID' : '题目 ID'}</Text>
                 <div>
                   <Text code copyable>{progress.currentScenarioId}</Text>
                 </div>
               </div>
               <div style={{ marginBottom: 8 }}>
-                <Text type="secondary">维度</Text>
+                <Text type="secondary">{lang === 'en' ? 'Dimension' : '维度'}</Text>
                 <div>
                   <Tag color={DIMENSION_COLORS[progress.currentDimension || ''] || '#1890ff'}>
-                    {DIMENSION_LABELS[progress.currentDimension || ''] || progress.currentDimension || '-'}
+                    {progress.currentDimension ? dimLabel(progress.currentDimension, lang) : '-'}
                   </Tag>
                 </div>
               </div>
             </Col>
             <Col span={6}>
               <div style={{ marginBottom: 8 }}>
-                <Text type="secondary">难度</Text>
+                <Text type="secondary">{lang === 'en' ? 'Difficulty' : '难度'}</Text>
                 <div>
                   <Tag color={
                     progress.currentDifficulty === 'hard' ? 'red' :
                     progress.currentDifficulty === 'medium' ? 'orange' : 'green'
                   }>
-                    {progress.currentDifficulty === 'hard' ? '困难' :
-                     progress.currentDifficulty === 'medium' ? '中等' :
-                     progress.currentDifficulty === 'easy' ? '简单' :
+                    {progress.currentDifficulty === 'hard' ? (lang === 'en' ? 'Hard' : '困难') :
+                     progress.currentDifficulty === 'medium' ? (lang === 'en' ? 'Medium' : '中等') :
+                     progress.currentDifficulty === 'easy' ? (lang === 'en' ? 'Easy' : '简单') :
                      progress.currentDifficulty || '-'}
                   </Tag>
                 </div>
               </div>
               <div style={{ marginBottom: 8 }}>
-                <Text type="secondary">语言</Text>
+                <Text type="secondary">{lang === 'en' ? 'Language' : '语言'}</Text>
                 <div>
                   <Tag color="blue">{progress.currentLanguage || '-'}</Tag>
                 </div>
               </div>
             </Col>
             <Col span={12}>
-              <Text type="secondary">题目预览</Text>
-              <Paragraph ellipsis={{ rows: 4, expandable: true, symbol: '展开' }} style={{
+              <Text type="secondary">{lang === 'en' ? 'Question preview' : '题目预览'}</Text>
+              <Paragraph ellipsis={{ rows: 4, expandable: true, symbol: lang === 'en' ? 'Expand' : '展开' }} style={{
                 marginTop: 4, padding: 12, background: 'var(--grey-1)', borderRadius: 0,
                 fontSize: 13, fontFamily: 'var(--mono)', whiteSpace: 'pre-wrap',
                 maxHeight: 120, overflow: 'auto', border: '1px solid var(--border-subtle)',
               }}>
-                {progress.currentPromptPreview || '(无预览)'}
+                {progress.currentPromptPreview || (lang === 'en' ? '(No preview)' : '(无预览)')}
               </Paragraph>
             </Col>
           </Row>
@@ -958,7 +972,7 @@ export default function EvalLive() {
               const isPassed = EVALUATION_STAGES.indexOf(currentStage) > idx;
               return (
                 <div key={stage} style={{ display: 'flex', alignItems: 'center' }}>
-                  <Tooltip title={cfg.label}>
+                  <Tooltip title={cfg.label[lang]}>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 6,
                       padding: '4px 12px', borderRadius: 16, fontSize: 12,
@@ -970,7 +984,7 @@ export default function EvalLive() {
                       ...(isActive ? { boxShadow: `0 0 8px ${cfg.color}40` } : {}),
                     }}>
                       <span style={{ fontSize: 14 }}>{cfg.icon}</span>
-                      <span>{cfg.label}</span>
+                      <span>{cfg.label[lang]}</span>
                     </div>
                   </Tooltip>
                   {idx < EVALUATION_STAGES.length - 1 && (
@@ -988,14 +1002,14 @@ export default function EvalLive() {
       <div className="swiss-card" style={{ marginBottom: 16 }}>
         <div className="swiss-card-title">
           <Space>
-            <span>各维度进度</span>
-            <Tag color="processing">测试中</Tag>
-            <Tag color="default">待测</Tag>
-            <Tag color="success">已完成</Tag>
+            <span>{lang === 'en' ? 'Dimension Progress' : '各维度进度'}</span>
+            <Tag color="processing">{lang === 'en' ? 'Testing' : '测试中'}</Tag>
+            <Tag color="default">{lang === 'en' ? 'Pending' : '待测'}</Tag>
+            <Tag color="success">{lang === 'en' ? 'Completed' : '已完成'}</Tag>
           </Space>
         </div>
         {dimProgress.length === 0 ? (
-          <Empty description="等待数据..." />
+          <Empty description={lang === 'en' ? 'Waiting for data...' : '等待数据...'} />
         ) : (
           <Row gutter={[12, 12]}>
             {dimProgress.map((dim) => {
@@ -1007,11 +1021,11 @@ export default function EvalLive() {
               // 状态标签
               let statusBadge: React.ReactNode = null;
               if (isCompleted) {
-                statusBadge = <Badge status="success" text="已完成" />;
+                statusBadge = <Badge status="success" text={lang === 'en' ? 'Completed' : '已完成'} />;
               } else if (isInProgress) {
-                statusBadge = <Badge status="processing" text="测试中" />;
+                statusBadge = <Badge status="processing" text={lang === 'en' ? 'Testing' : '测试中'} />;
               } else if (isPending) {
-                statusBadge = <Badge status="default" text="待测" />;
+                statusBadge = <Badge status="default" text={lang === 'en' ? 'Pending' : '待测'} />;
               } else {
                 // 部分完成但未激活
                 statusBadge = <Badge status="warning" text={`${dim.completed}/${dim.total}`} />;
@@ -1030,7 +1044,7 @@ export default function EvalLive() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <Text strong style={{ fontSize: 13 }}>
-                      {DIMENSION_LABELS[dim.dimension] || dim.dimension}
+                      {dimLabel(dim.dimension, lang)}
                     </Text>
                     {statusBadge}
                   </div>
@@ -1043,26 +1057,26 @@ export default function EvalLive() {
                   />
                   <Row gutter={8} style={{ marginTop: 8 }}>
                     <Col span={6}>
-                      <Tooltip title="通过">
+                      <Tooltip title={lang === 'en' ? 'Passed' : '通过'}>
                         <Tag color="green" style={{ fontSize: 11 }}>{dim.passed}</Tag>
                       </Tooltip>
                     </Col>
                     <Col span={6}>
-                      <Tooltip title="失败">
+                      <Tooltip title={lang === 'en' ? 'Failed' : '失败'}>
                         <Tag color="red" style={{ fontSize: 11 }}>{dim.failed}</Tag>
                       </Tooltip>
                     </Col>
                     <Col span={6}>
-                      <Tooltip title="安全红线">
+                      <Tooltip title={lang === 'en' ? 'Safety red-line' : '安全红线'}>
                         <Tag color={dim.redLine > 0 ? 'red' : 'default'} style={{ fontSize: 11 }}>
                           {dim.redLine > 0 ? <ExclamationCircleOutlined /> : null} {dim.redLine}
                         </Tag>
                       </Tooltip>
                     </Col>
                     <Col span={6}>
-                      <Tooltip title="维度均分">
+                      <Tooltip title={lang === 'en' ? 'Dimension avg' : '维度均分'}>
                         <Text style={{ fontSize: 11, color: dim.completed > 0 ? (dim.avgScore >= 60 ? '#52c41a' : '#f5222d') : '#8c8c8c' }}>
-                          {dim.completed > 0 ? `均${dim.avgScore}` : '-'}
+                          {dim.completed > 0 ? (lang === 'en' ? `avg ${dim.avgScore}` : `均${dim.avgScore}`) : '-'}
                         </Text>
                       </Tooltip>
                     </Col>
@@ -1077,9 +1091,9 @@ export default function EvalLive() {
 
       {/* ===== 实时结果表 ===== */}
       <div className="swiss-card">
-        <div className="swiss-card-title">实时结果（{recentResults.length} 条）</div>
+        <div className="swiss-card-title">{lang === 'en' ? `Real-time Results (${recentResults.length})` : `实时结果（${recentResults.length} 条）`}</div>
         {recentResults.length === 0 ? (
-          <Empty description="等待评测结果..." />
+          <Empty description={lang === 'en' ? 'Waiting for results...' : '等待评测结果...'} />
         ) : (
           <Table
             dataSource={recentResults}
@@ -1088,31 +1102,31 @@ export default function EvalLive() {
             pagination={{ pageSize: 15, size: 'small' }}
             columns={[
               {
-                title: '题目 ID', dataIndex: 'scenarioId', key: 'scenarioId', width: 180,
+                title: lang === 'en' ? 'Question ID' : '题目 ID', dataIndex: 'scenarioId', key: 'scenarioId', width: 180,
                 render: (v: string) => <Text code style={{ fontSize: 12 }}>{v}</Text>,
               },
               {
-                title: '维度', dataIndex: 'dimension', key: 'dimension', width: 120,
+                title: lang === 'en' ? 'Dimension' : '维度', dataIndex: 'dimension', key: 'dimension', width: 120,
                 render: (v: string) => (
                   <Tag color={DIMENSION_COLORS[v] || '#1890ff'}>
-                    {DIMENSION_LABELS[v] || v}
+                    {dimLabel(v, lang)}
                   </Tag>
                 ),
               },
               {
-                title: '难度', dataIndex: 'difficulty', key: 'difficulty', width: 70,
+                title: lang === 'en' ? 'Difficulty' : '难度', dataIndex: 'difficulty', key: 'difficulty', width: 70,
                 render: (v: string) => (
                   <Tag color={v === 'hard' ? 'red' : v === 'medium' ? 'orange' : 'green'}>
-                    {v === 'hard' ? '困难' : v === 'medium' ? '中等' : '简单'}
+                    {v === 'hard' ? (lang === 'en' ? 'Hard' : '困难') : v === 'medium' ? (lang === 'en' ? 'Medium' : '中等') : (lang === 'en' ? 'Easy' : '简单')}
                   </Tag>
                 ),
               },
               {
-                title: '语言', dataIndex: 'language', key: 'language', width: 80,
+                title: lang === 'en' ? 'Language' : '语言', dataIndex: 'language', key: 'language', width: 80,
                 render: (v: string) => <Tag color="blue">{v}</Tag>,
               },
               {
-                title: '分数', dataIndex: 'totalScore', key: 'totalScore', width: 100,
+                title: lang === 'en' ? 'Score' : '分数', dataIndex: 'totalScore', key: 'totalScore', width: 100,
                 render: (v: number, r: QuestionLiveResult) => (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Progress
@@ -1129,19 +1143,19 @@ export default function EvalLive() {
                 sorter: (a: QuestionLiveResult, b: QuestionLiveResult) => a.totalScore - b.totalScore,
               },
               {
-                title: '安全', dataIndex: 'safetyLevel', key: 'safetyLevel', width: 70,
+                title: lang === 'en' ? 'Safety' : '安全', dataIndex: 'safetyLevel', key: 'safetyLevel', width: 70,
                 render: (v: string) => (
                   <Tag color={v === 'red_line' ? 'red' : 'green'}>
-                    {v === 'red_line' ? '红线' : '安全'}
+                    {v === 'red_line' ? (lang === 'en' ? 'Red-line' : '红线') : (lang === 'en' ? 'Safe' : '安全')}
                   </Tag>
                 ),
               },
               {
-                title: '耗时', dataIndex: 'durationMs', key: 'durationMs', width: 80,
+                title: lang === 'en' ? 'Duration' : '耗时', dataIndex: 'durationMs', key: 'durationMs', width: 80,
                 render: (v: number) => v > 1000 ? `${(v / 1000).toFixed(1)}s` : `${v}ms`,
               },
               {
-                title: 'Token速度', key: 'tokenSpeed', width: 100,
+                title: lang === 'en' ? 'Token speed' : 'Token速度', key: 'tokenSpeed', width: 100,
                 render: (_: unknown, r: QuestionLiveResult) => {
                   // 优先 LM Studio 原生值，其次服务端预计算 tokenSpeed（流式精确值），最后用 inferenceMs 推算
                   const tps = r.nativeTokensPerSecond
@@ -1162,26 +1176,26 @@ export default function EvalLive() {
                 },
               },
               {
-                title: '状态', dataIndex: 'stage', key: 'stage', width: 100,
+                title: lang === 'en' ? 'Status' : '状态', dataIndex: 'stage', key: 'stage', width: 100,
                 render: (v: string, r: QuestionLiveResult) => {
-                  if (v === 'completed') return <Tag color="success" icon={<CheckCircleOutlined />}>通过</Tag>;
+                  if (v === 'completed') return <Tag color="success" icon={<CheckCircleOutlined />}>{lang === 'en' ? 'Passed' : '通过'}</Tag>;
                   if (v === 'reasoning_limit') return (
-                    <Tooltip title={r.error || '思考/输出超限，已中断判分'}>
-                      <Tag color="volcano" icon={<ClockCircleOutlined />}>思考超限</Tag>
+                    <Tooltip title={r.error || (lang === 'en' ? 'Reasoning/output limit exceeded, scoring interrupted' : '思考/输出超限，已中断判分')}>
+                      <Tag color="volcano" icon={<ClockCircleOutlined />}>{lang === 'en' ? 'Reasoning limit' : '思考超限'}</Tag>
                     </Tooltip>
                   );
                   if (v === 'failed') return (
-                    <Tooltip title={r.error || '执行失败'}>
-                      <Tag color="error" icon={<CloseCircleOutlined />}>失败</Tag>
+                    <Tooltip title={r.error || (lang === 'en' ? 'Execution failed' : '执行失败')}>
+                      <Tag color="error" icon={<CloseCircleOutlined />}>{lang === 'en' ? 'Failed' : '失败'}</Tag>
                     </Tooltip>
                   );
                   return <Tag icon={<LoadingOutlined spin />}>{v}</Tag>;
                 },
               },
               {
-                title: '操作', key: 'action', width: 80,
+                title: lang === 'en' ? 'Action' : '操作', key: 'action', width: 80,
                 render: (_: unknown, r: QuestionLiveResult) => (
-                  <Tooltip title="重新测试此题">
+                  <Tooltip title={lang === 'en' ? 'Re-test this question' : '重新测试此题'}>
                     <Button
                       type="text"
                       size="small"
@@ -1200,20 +1214,21 @@ export default function EvalLive() {
 
       {/* ===== 添加维度并行测试 Modal ===== */}
       <Modal
-        title="添加维度到当前测试"
+        title={lang === 'en' ? 'Add dimension to current evaluation' : '添加维度到当前测试'}
         open={forkModalOpen}
         onOk={handleFork}
         onCancel={() => { setForkModalOpen(false); setForkDimensions([]); }}
         confirmLoading={forkLoading}
-        okText="添加并重启测试"
-        cancelText="取消"
+        okText={lang === 'en' ? 'Add & restart' : '添加并重启测试'}
+        cancelText={lang === 'en' ? 'Cancel' : '取消'}
         okButtonProps={{ disabled: forkDimensions.length === 0 }}
         width={520}
       >
         <div style={{ marginBottom: 16 }}>
           <Text type="secondary">
-            选择要添加的维度。新维度将合并到当前测试中，评测会重启并断点续测（已完成的题目不会重跑）。
-            所有结果保存在同一个测试记录中。
+            {lang === 'en'
+              ? 'Select dimensions to add. New dimensions merge into the current evaluation, which restarts and resumes from checkpoints (completed questions are not re-run). All results are saved in the same evaluation record.'
+              : '选择要添加的维度。新维度将合并到当前测试中，评测会重启并断点续测（已完成的题目不会重跑）。所有结果保存在同一个测试记录中。'}
           </Text>
         </div>
 
@@ -1230,8 +1245,8 @@ export default function EvalLive() {
                 if (nameParts.length > 1) {
                   const dimNames = nameParts[nameParts.length - 1].trim().split('+');
                   for (const dn of dimNames) {
-                    const found = Object.entries(DIMENSION_LABELS).find(([, l]) => l === dn.trim());
-                    if (found) sibActive.add(found[0]);
+                    const found = DIMENSION_KEYS.find((k) => dimLabel(k, 'zh') === dn.trim() || dimLabel(k, 'en') === dn.trim());
+                    if (found) sibActive.add(found);
                   }
                 }
               }
@@ -1244,13 +1259,13 @@ export default function EvalLive() {
           return (
             <div style={{ marginBottom: 12, padding: '8px 12px', background: '#fff7e6', borderRadius: 4, border: '1px solid #ffd591' }}>
               <Text type="warning" strong style={{ fontSize: 12 }}>
-                已在测试中（不可选）：
+                {lang === 'en' ? 'Already testing (not selectable):' : '已在测试中（不可选）：'}
               </Text>
               <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {[...allActive].map((dim) => (
                   <Tag key={dim} color="orange" style={{ fontSize: 11 }}>
-                    {DIMENSION_LABELS[dim] || dim}
-                    {activeInRun.includes(dim) ? ' (本运行)' : ' (并行运行)'}
+                    {dimLabel(dim, lang)}
+                    {activeInRun.includes(dim) ? (lang === 'en' ? ' (this run)' : ' (本运行)') : (lang === 'en' ? ' (parallel run)' : ' (并行运行)')}
                   </Tag>
                 ))}
               </div>
@@ -1259,8 +1274,8 @@ export default function EvalLive() {
         })()}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {Object.entries(DIMENSION_LABELS)
-            .map(([dim, label]) => {
+          {DIMENSION_KEYS
+            .map((dim) => {
               const dp = dimProgress.find((d) => d.dimension === dim);
               const isCompleted = dp && dp.completed >= dp.total;
 
@@ -1277,8 +1292,8 @@ export default function EvalLive() {
                     if (nameParts.length > 1) {
                       const dimNames = nameParts[nameParts.length - 1].trim().split('+');
                       for (const dn of dimNames) {
-                        const found = Object.entries(DIMENSION_LABELS).find(([, l]) => l === dn.trim());
-                        if (found) sibActive.add(found[0]);
+                        const found = DIMENSION_KEYS.find((k) => dimLabel(k, 'zh') === dn.trim() || dimLabel(k, 'en') === dn.trim());
+                        if (found) sibActive.add(found);
                       }
                     }
                   }
@@ -1290,12 +1305,12 @@ export default function EvalLive() {
                 return (
                   <Checkbox key={dim} checked={false} disabled>
                     <Tag color={DIMENSION_COLORS[dim] || 'blue'} style={{ marginRight: 8, opacity: 0.6 }}>
-                      {label}
+                      {dimLabel(dim, lang)}
                     </Tag>
                     {isCompleted ? (
-                      <Text type="secondary">(已完成 {dp!.completed}/{dp!.total})</Text>
+                      <Text type="secondary">{lang === 'en' ? `(Completed ${dp!.completed}/${dp!.total})` : `(已完成 ${dp!.completed}/${dp!.total})`}</Text>
                     ) : (
-                      <Text type="warning">(已在测试中，不可选)</Text>
+                      <Text type="warning">{lang === 'en' ? '(Already testing, not selectable)' : '(已在测试中，不可选)'}</Text>
                     )}
                   </Checkbox>
                 );
@@ -1314,12 +1329,12 @@ export default function EvalLive() {
                   }}
                 >
                   <Tag color={DIMENSION_COLORS[dim] || 'blue'} style={{ marginRight: 8 }}>
-                    {label}
+                    {dimLabel(dim, lang)}
                   </Tag>
                   {dp ? (
-                    <Text type="secondary">({dp.completed}/{dp.total} 已完成, 可补充)</Text>
+                    <Text type="secondary">{lang === 'en' ? `(${dp.completed}/${dp.total} done, can add)` : `(${dp.completed}/${dp.total} 已完成, 可补充)`}</Text>
                   ) : (
-                    <Text type="secondary">(未开始)</Text>
+                    <Text type="secondary">{lang === 'en' ? '(Not started)' : '(未开始)'}</Text>
                   )}
                 </Checkbox>
               );

@@ -4,8 +4,9 @@ import { Table, Tag, Spin, Card, Empty, Tooltip, Segmented } from 'antd';
 import { TrophyOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import ScoreFormulaTooltip from '../components/ScoreFormulaTooltip';
+import { useLanguage, dimLabel } from '../i18n';
 
-/** 维度中文名（与 EvalLive 的 DIMENSION_LABELS 保持一致） */
+/** 维度 key 的规范展示顺序（展示标签统一走 i18n 的 dimLabel） */
 const DIMENSION_LABELS: Record<string, string> = {
   program: '编程能力',
   reasoning_math: '推理与数学',
@@ -63,6 +64,7 @@ function rankStyle(rank: number): { color: string; fontSize: number; fontWeight:
 export default function Leaderboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { lang } = useLanguage();
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [rankBy, setRankBy] = useState<string>('overall');
@@ -90,7 +92,7 @@ export default function Leaderboard() {
   }, [location.key, scope, fetchData]);
 
   if (loading) return <div style={{ padding: 80, textAlign: 'center' }}><Spin size="large" /></div>;
-  if (!data || data.length === 0) return <Empty description="暂无已完成评测的模型" style={{ padding: 80 }} />;
+  if (!data || data.length === 0) return <Empty description={lang === 'en' ? 'No models with completed evaluations yet' : '暂无已完成评测的模型'} style={{ padding: 80 }} />;
 
   // ===== 按维度排名：过滤出该维度有成绩的模型，并按维度均分排序 =====
   const isDimMode = rankBy !== 'overall';
@@ -109,13 +111,13 @@ export default function Leaderboard() {
   // 排名切换选项：总览 + 实际有数据的维度
   const dimsPresent = Array.from(new Set(data.flatMap((e) => Object.keys(e.dimensionScores || {}).filter((d) => (e.dimensionScores[d]?.count ?? 0) > 0))));
   const rankOptions = [
-    { value: 'overall', label: '总览' },
-    ...Object.keys(DIMENSION_LABELS).filter((d) => dimsPresent.includes(d)).map((d) => ({ value: d, label: DIMENSION_LABELS[d] })),
+    { value: 'overall', label: lang === 'en' ? 'Overview' : '总览' },
+    ...Object.keys(DIMENSION_LABELS).filter((d) => dimsPresent.includes(d)).map((d) => ({ value: d, label: dimLabel(d, lang) })),
   ];
 
   const columns: ColumnsType<LeaderboardEntry> = [
     {
-      title: '排名',
+      title: lang === 'en' ? 'Rank' : '排名',
       key: 'rank',
       width: 80,
       fixed: 'left',
@@ -126,7 +128,7 @@ export default function Leaderboard() {
       ),
     },
     {
-      title: '模型名称',
+      title: lang === 'en' ? 'Model Name' : '模型名称',
       dataIndex: 'modelName',
       key: 'modelName',
       width: 240,
@@ -139,20 +141,20 @@ export default function Leaderboard() {
       ),
     },
     {
-      title: '类型',
+      title: lang === 'en' ? 'Type' : '类型',
       key: 'type',
       width: 90,
       render: (_: unknown, record: LeaderboardEntry) => (
         <Tag color={record.reasoningModel ? 'purple' : 'blue'} style={{ marginRight: 0 }}>
-          {record.reasoningModel ? '推理' : '非推理'}
+          {record.reasoningModel ? (lang === 'en' ? 'Reasoning' : '推理') : (lang === 'en' ? 'Non-reasoning' : '非推理')}
         </Tag>
       ),
     },
     {
       title: (
-        <Tooltip title="评测配置：maxTokens 决定单题生成预算（推理模型过小会因思考链截断被压低分数）；截断率为输出被截断的结果占比。不同模型应使用可比配置再比较排名">
+        <Tooltip title={lang === 'en' ? 'Eval config: maxTokens sets the per-question generation budget (too-small budgets penalize reasoning models via truncated chains); truncation rate is the share of outputs truncated. Compare models under comparable configs.' : '评测配置：maxTokens 决定单题生成预算（推理模型过小会因思考链截断被压低分数）；截断率为输出被截断的结果占比。不同模型应使用可比配置再比较排名'}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            评测配置
+            {lang === 'en' ? 'Eval Config' : '评测配置'}
             <InfoCircleOutlined style={{ fontSize: 12, color: 'var(--text-helper)' }} />
           </span>
         </Tooltip>
@@ -166,10 +168,10 @@ export default function Leaderboard() {
           <div>
             <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
               maxTokens: {mt >= 32768 ? `${mt / 1024}K` : mt}
-              {record.reasoningModel && mt < 16384 && <span style={{ color: '#f5222d', marginLeft: 4 }}>⚠不足</span>}
+              {record.reasoningModel && mt < 16384 && <span style={{ color: '#f5222d', marginLeft: 4 }}>⚠{lang === 'en' ? 'insufficient' : '不足'}</span>}
             </div>
             <div style={{ fontSize: 12, color: trunc > 30 ? '#f5222d' : 'var(--text-helper)' }}>
-              截断率: {trunc}%
+              {lang === 'en' ? 'Truncation: ' : '截断率: '}{trunc}%
             </div>
           </div>
         );
@@ -178,7 +180,7 @@ export default function Leaderboard() {
     {
       title: (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          {isDimMode ? `${DIMENSION_LABELS[rankBy]}成绩` : '综合分'}
+          {isDimMode ? `${dimLabel(rankBy, lang)} ${lang === 'en' ? 'Score' : '成绩'}` : (lang === 'en' ? 'Composite Score' : '综合分')}
           <ScoreFormulaTooltip placement="bottom" />
         </span>
       ),
@@ -192,13 +194,13 @@ export default function Leaderboard() {
         return (
           <div>
             <span style={{ fontSize: 22, fontWeight: 800, color: scoreColor(score) }}>{score.toFixed(2)}</span>
-            {isDimMode && <div style={{ fontSize: 11, color: 'var(--text-helper)' }}>{dimCount} 题</div>}
+            {isDimMode && <div style={{ fontSize: 11, color: 'var(--text-helper)' }}>{dimCount} {lang === 'en' ? 'questions' : '题'}</div>}
           </div>
         );
       },
     },
     {
-      title: '通过率',
+      title: lang === 'en' ? 'Pass Rate' : '通过率',
       key: 'passRate',
       width: 110,
       sorter: (a, b) => mainPassRate(a) - mainPassRate(b),
@@ -209,9 +211,9 @@ export default function Leaderboard() {
             <span style={{ fontWeight: 600, color: pr >= 70 ? '#52c41a' : '#faad14' }}>{pr}%</span>
             {!isDimMode && (
               <>
-                <div style={{ fontSize: 11, color: 'var(--text-helper)' }}>{record.passCount}/{record.totalScenarios} 题</div>
+                <div style={{ fontSize: 11, color: 'var(--text-helper)' }}>{record.passCount}/{record.totalScenarios} {lang === 'en' ? 'questions' : '题'}</div>
                 {(record.missingScenarios ?? 0) > 0 && (
-                  <div style={{ fontSize: 11, color: '#f5222d' }}>⚠ 缺失 {record.missingScenarios} 题</div>
+                  <div style={{ fontSize: 11, color: '#f5222d' }}>⚠ {lang === 'en' ? `Missing ${record.missingScenarios} questions` : `缺失 ${record.missingScenarios} 题`}</div>
                 )}
               </>
             )}
@@ -220,19 +222,19 @@ export default function Leaderboard() {
       },
     },
     {
-      title: '评测时间',
+      title: lang === 'en' ? 'Evaluated At' : '评测时间',
       dataIndex: 'evaluatedAt',
       key: 'evaluatedAt',
       width: 130,
-      render: (t: string) => <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{new Date(t).toLocaleDateString('zh-CN')}</span>,
+      render: (t: string) => <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{new Date(t).toLocaleDateString(lang === 'en' ? 'en-US' : 'zh-CN')}</span>,
     },
     {
-      title: '操作',
+      title: lang === 'en' ? 'Actions' : '操作',
       key: 'action',
       width: 100,
       fixed: 'right',
       render: (_: unknown, record: LeaderboardEntry) => (
-        <a onClick={() => navigate(`/report/${record.latestRunId}`)}>查看报告</a>
+        <a onClick={() => navigate(`/report/${record.latestRunId}`)}>{lang === 'en' ? 'View Report' : '查看报告'}</a>
       ),
     },
   ];
@@ -240,22 +242,22 @@ export default function Leaderboard() {
   // 前三名奖牌卡片
   const top3 = ranked.slice(0, 3);
   const medalColors = ['#faad14', '#bfbfbf', '#d48806'];
-  const medalLabels = ['冠军', '亚军', '季军'];
+  const medalLabels = lang === 'en' ? ['Champion', 'Runner-up', 'Third Place'] : ['冠军', '亚军', '季军'];
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto' }}>
       <h2 className="swiss-page-title" style={{ marginBottom: 16, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-        模型排行榜
+        {lang === 'en' ? 'Model Leaderboard' : '模型排行榜'}
         <ScoreFormulaTooltip placement="bottom" icon={true} />
       </h2>
 
       {/* 分数口径：最新 run（默认）或跨 run 最优 */}
       <div style={{ marginBottom: 12 }}>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginRight: 8 }}>分数口径：</span>
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)', marginRight: 8 }}>{lang === 'en' ? 'Score basis: ' : '分数口径：'}</span>
         <Segmented
           options={[
-            { value: 'latest', label: '最新 run' },
-            { value: 'best', label: '跨 run 最优' },
+            { value: 'latest', label: lang === 'en' ? 'Latest run' : '最新 run' },
+            { value: 'best', label: lang === 'en' ? 'Best across runs' : '跨 run 最优' },
           ]}
           value={scope}
           onChange={(v) => setScope(v as 'latest' | 'best')}
@@ -272,10 +274,12 @@ export default function Leaderboard() {
         />
         <div style={{ fontSize: 12, color: 'var(--text-helper)', marginTop: 8 }}>
           {isDimMode
-            ? `按「${DIMENSION_LABELS[rankBy]}」维度的难度加权均分排名，仅统计在该维度有成绩的模型`
+            ? (lang === 'en'
+              ? `Ranked by difficulty-weighted average score on the ${dimLabel(rankBy, lang)} dimension; only models with scores in this dimension are counted`
+              : `按「${dimLabel(rankBy, lang)}」维度的难度加权均分排名，仅统计在该维度有成绩的模型`)
             : (scope === 'best'
-              ? '按跨 run 最优的加权综合分排名（各维度权重见分数公式）'
-              : '按最新一次 run 的加权综合分排名（各维度权重见分数公式）')}
+              ? (lang === 'en' ? 'Ranked by best composite score across runs (dimension weights: see score formula)' : '按跨 run 最优的加权综合分排名（各维度权重见分数公式）')
+              : (lang === 'en' ? 'Ranked by composite score of the latest run (dimension weights: see score formula)' : '按最新一次 run 的加权综合分排名（各维度权重见分数公式）'))}
         </div>
       </div>
 
@@ -297,14 +301,14 @@ export default function Leaderboard() {
               <div style={{ textAlign: 'center' }}>
                 <TrophyOutlined style={{ fontSize: 32, color: medalColors[i] }} />
                 <div style={{ fontSize: 14, color: 'var(--text-helper)', marginTop: 8 }}>
-                  {isDimMode ? `${DIMENSION_LABELS[rankBy]} · ${medalLabels[i]}` : medalLabels[i]}
+                  {isDimMode ? `${dimLabel(rankBy, lang)} · ${medalLabels[i]}` : medalLabels[i]}
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, margin: '4px 0' }}>{entry.modelName}</div>
                 <div style={{ fontSize: 40, fontWeight: 800, color: scoreColor(mainScore(entry)) }}>
                   {mainScore(entry).toFixed(2)}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
-                  通过率 {mainPassRate(entry)}%
+                  {lang === 'en' ? 'Pass rate' : '通过率'} {mainPassRate(entry)}%
                 </div>
               </div>
             </Card>
@@ -321,7 +325,7 @@ export default function Leaderboard() {
           scroll={{ x: 1100 }}
           pagination={false}
           size="middle"
-          locale={isDimMode ? { emptyText: `暂无模型在「${DIMENSION_LABELS[rankBy]}」维度有成绩` } : undefined}
+          locale={isDimMode ? { emptyText: lang === 'en' ? `No models have scores in the ${dimLabel(rankBy, lang)} dimension` : `暂无模型在「${dimLabel(rankBy, lang)}」维度有成绩` } : undefined}
         />
       </Card>
     </div>

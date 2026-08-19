@@ -121,3 +121,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLanguage() {
   return useContext(LanguageContext);
 }
+
+/** 维度名 → 中英文标签（全站图表统一使用） */
+export const DIMENSION_LABELS: Record<string, { zh: string; en: string }> = {
+  program: { zh: '编程能力', en: 'Programming' },
+  reasoning_math: { zh: '推理与数学', en: 'Reasoning & Math' },
+  hallucination_resistance: { zh: '幻觉抵抗', en: 'Hallucination Resistance' },
+  instruction_following: { zh: '指令遵循', en: 'Instruction Following' },
+  safety_authority: { zh: '安全权限', en: 'Safety & Authority' },
+  agent_workflow: { zh: '智能体工作流', en: 'Agent Workflow' },
+  tool_cli_workflow: { zh: '工具/CLI', en: 'Tool/CLI Workflow' },
+  data_extraction: { zh: '数据抽取', en: 'Data Extraction' },
+  cli_deep_tasks: { zh: '深度命令行', en: 'Deep CLI Tasks' },
+  structured_output: { zh: '结构化输出', en: 'Structured Output' },
+};
+
+export function dimLabel(dim: string, lang: 'zh' | 'en'): string {
+  return DIMENSION_LABELS[dim]?.[lang] ?? dim;
+}

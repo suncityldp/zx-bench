@@ -3,6 +3,7 @@ import { Table, Tag, Button, Space, message, Badge } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { EyeOutlined, MonitorOutlined, PlayCircleOutlined, FileSearchOutlined } from '@ant-design/icons';
 import ScoreFormulaTooltip from '../components/ScoreFormulaTooltip';
+import { useLanguage, dimLabel } from '../i18n';
 
 interface RunItem {
   id: string;
@@ -39,13 +40,16 @@ const statusColors: Record<string, string> = {
   cancelled: 'warning',
 };
 
-const statusLabels: Record<string, string> = {
-  pending: '等待中',
-  running: '运行中',
-  paused: '已暂停',
-  completed: '已完成',
-  failed: '已中断',
-  cancelled: '已取消',
+const statusLabel = (status: string, lang: 'zh' | 'en'): string => {
+  const labels: Record<string, { zh: string; en: string }> = {
+    pending: { zh: '等待中', en: 'Pending' },
+    running: { zh: '运行中', en: 'Running' },
+    paused: { zh: '已暂停', en: 'Paused' },
+    completed: { zh: '已完成', en: 'Completed' },
+    failed: { zh: '已中断', en: 'Interrupted' },
+    cancelled: { zh: '已取消', en: 'Cancelled' },
+  };
+  return labels[status]?.[lang] ?? status;
 };
 
 function formatTimeShort(t: string | null): string {
@@ -62,6 +66,7 @@ export default function EvalHistory() {
   const [runs, setRuns] = useState<RunItem[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { lang } = useLanguage();
 
   const fetchRuns = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -146,13 +151,13 @@ export default function EvalHistory() {
       const res = await fetch(`/api/runs/${runId}/resume`, { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        message.success('评测已恢复，正在跳转实时监控...');
+        message.success(lang === 'en' ? 'Evaluation resumed, redirecting to live monitor...' : '评测已恢复，正在跳转实时监控...');
         navigate(`/eval/live/${runId}`);
       } else {
-        message.error(data.error || '恢复失败');
+        message.error(data.error || (lang === 'en' ? 'Resume failed' : '恢复失败'));
       }
     } catch {
-      message.error('请求失败');
+      message.error(lang === 'en' ? 'Request failed' : '请求失败');
     }
   };
 
@@ -164,19 +169,19 @@ export default function EvalHistory() {
       size="small"
       pagination={false}
       columns={[
-        { title: '运行ID', dataIndex: 'id', key: 'id', width: 280, render: (v: string) => <code style={{ fontSize: 11 }}>{v}</code> },
+        { title: lang === 'en' ? 'Run ID' : '运行ID', dataIndex: 'id', key: 'id', width: 280, render: (v: string) => <code style={{ fontSize: 11 }}>{v}</code> },
         {
-          title: '状态', dataIndex: 'status', key: 'status', width: 90,
-          render: (s: string) => <Tag color={statusColors[s]}>{statusLabels[s] || s}</Tag>,
+          title: lang === 'en' ? 'Status' : '状态', dataIndex: 'status', key: 'status', width: 90,
+          render: (s: string) => <Tag color={statusColors[s]}>{statusLabel(s, lang)}</Tag>,
         },
         {
-          title: '题数', key: 'scenarios', width: 80,
+          title: lang === 'en' ? 'Scenarios' : '题数', key: 'scenarios', width: 80,
           render: (_: unknown, r: RunItem) => r.summary?.completedScenarios ?? '-',
         },
         {
           title: (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              综合分
+              {lang === 'en' ? 'Composite Score' : '综合分'}
               <ScoreFormulaTooltip placement="bottom" />
             </span>
           ),
@@ -184,7 +189,7 @@ export default function EvalHistory() {
           render: (_: unknown, r: RunItem) => r.summary?.averageScore != null ? r.summary.averageScore.toFixed(2) : '-',
         },
         {
-          title: 'Token速度', key: 'tokenSpeed', width: 90,
+          title: lang === 'en' ? 'Token Speed' : 'Token速度', key: 'tokenSpeed', width: 90,
           render: (_: unknown, r: RunItem) => {
             const tps = r.summary?.avgTokensPerSecond;
             if (tps == null) return '-';
@@ -195,15 +200,15 @@ export default function EvalHistory() {
             );
           },
         },
-        { title: '时间', dataIndex: 'createdAt', key: 'createdAt', width: 110, render: (v: string) => formatTimeShort(v) },
+        { title: lang === 'en' ? 'Time' : '时间', dataIndex: 'createdAt', key: 'createdAt', width: 110, render: (v: string) => formatTimeShort(v) },
         {
-          title: '操作', key: 'action', width: 150,
+          title: lang === 'en' ? 'Actions' : '操作', key: 'action', width: 150,
           render: (_: unknown, r: RunItem) => (
             <Space size={4}>
-              <Button icon={<EyeOutlined />} size="small" onClick={() => navigate(`/eval/${r.id}`)}>详情</Button>
+              <Button icon={<EyeOutlined />} size="small" onClick={() => navigate(`/eval/${r.id}`)}>{lang === 'en' ? 'Details' : '详情'}</Button>
               {(r.status === 'paused' || r.status === 'failed') && (
                 <Button type="primary" icon={<PlayCircleOutlined />} size="small" onClick={() => handleResume(r.id)}>
-                  {r.status === 'paused' ? '继续' : '恢复'}
+                  {r.status === 'paused' ? (lang === 'en' ? 'Continue' : '继续') : (lang === 'en' ? 'Resume' : '恢复')}
                 </Button>
               )}
             </Space>
@@ -215,7 +220,7 @@ export default function EvalHistory() {
 
   return (
     <div>
-      <h2 className="swiss-page-title">评测历史</h2>
+      <h2 className="swiss-page-title">{lang === 'en' ? 'Eval History' : '评测历史'}</h2>
       <div className="swiss-card">
         <Table
           dataSource={groupedRuns}
@@ -227,7 +232,7 @@ export default function EvalHistory() {
           }}
           columns={[
             {
-              title: '评测名称', key: 'name', width: 300,
+              title: lang === 'en' ? 'Eval Name' : '评测名称', key: 'name', width: 300,
               render: (_: unknown, g: GroupedRun) => (
                 <div>
                   <span style={{ fontWeight: 500 }}>{g.mainRun.name}</span>
@@ -237,15 +242,15 @@ export default function EvalHistory() {
                 </div>
               ),
             },
-            { title: '模型', key: 'model', width: 220, render: (_: unknown, g: GroupedRun) => g.modelName },
+            { title: lang === 'en' ? 'Model' : '模型', key: 'model', width: 220, render: (_: unknown, g: GroupedRun) => g.modelName },
             {
-              title: '状态', key: 'status', width: 90,
-              render: (_: unknown, g: GroupedRun) => <Tag color={statusColors[g.status]}>{statusLabels[g.status] || g.status}</Tag>,
+              title: lang === 'en' ? 'Status' : '状态', key: 'status', width: 90,
+              render: (_: unknown, g: GroupedRun) => <Tag color={statusColors[g.status]}>{statusLabel(g.status, lang)}</Tag>,
             },
             {
               title: (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  综合分
+                  {lang === 'en' ? 'Composite Score' : '综合分'}
                   <ScoreFormulaTooltip placement="bottom" />
                 </span>
               ),
@@ -256,7 +261,7 @@ export default function EvalHistory() {
               },
             },
             {
-              title: 'Token速度', key: 'tokenSpeed', width: 100,
+              title: lang === 'en' ? 'Token Speed' : 'Token速度', key: 'tokenSpeed', width: 100,
               render: (_: unknown, g: GroupedRun) => {
                 if (g.avgTokensPerSecond == null) return '-';
                 const tps = g.avgTokensPerSecond;
@@ -269,11 +274,11 @@ export default function EvalHistory() {
               sorter: (a: GroupedRun, b: GroupedRun) => (a.avgTokensPerSecond || 0) - (b.avgTokensPerSecond || 0),
             },
             {
-              title: '开始时间', key: 'createdAt', width: 110,
+              title: lang === 'en' ? 'Start Time' : '开始时间', key: 'createdAt', width: 110,
               render: (_: unknown, g: GroupedRun) => formatTimeShort(g.createdAt),
             },
             {
-              title: '完成时间', key: 'finishedAt', width: 110,
+              title: lang === 'en' ? 'Finish Time' : '完成时间', key: 'finishedAt', width: 110,
               render: (_: unknown, g: GroupedRun) => (
                 <span style={{ color: g.finishedAt ? undefined : 'var(--text-helper)' }}>
                   {formatTimeShort(g.finishedAt)}
@@ -281,7 +286,7 @@ export default function EvalHistory() {
               ),
             },
             {
-              title: '操作', key: 'action', width: 250,
+              title: lang === 'en' ? 'Actions' : '操作', key: 'action', width: 250,
               render: (_: unknown, g: GroupedRun) => {
                 const mainId = g.mainRun.id;
                 const activeRun = g.allRuns.find((r) => r.status === 'running' || r.status === 'pending');
@@ -292,19 +297,19 @@ export default function EvalHistory() {
                   <Space size={4}>
                     {activeRun && (
                       <Button type="primary" icon={<MonitorOutlined />} size="small" onClick={() => navigate(`/eval/live/${activeRun.id}`)}>
-                        实时监控
+                        {lang === 'en' ? 'Live Monitor' : '实时监控'}
                       </Button>
                     )}
                     {(pausedRun || failedRun) && !activeRun && (
                       <Button type="primary" icon={<PlayCircleOutlined />} size="small" onClick={() => handleResume((pausedRun || failedRun)!.id)}>
-                        恢复
+                        {lang === 'en' ? 'Resume' : '恢复'}
                       </Button>
                     )}
                     <Button icon={<EyeOutlined />} size="small" onClick={() => navigate(`/eval/${mainId}`)}>
-                      详情
+                      {lang === 'en' ? 'Details' : '详情'}
                     </Button>
                     <Button icon={<FileSearchOutlined />} size="small" onClick={() => navigate(`/report/${mainId}`)}>
-                      报告
+                      {lang === 'en' ? 'Report' : '报告'}
                     </Button>
                   </Space>
                 );
