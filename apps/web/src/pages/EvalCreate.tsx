@@ -54,8 +54,7 @@ export default function EvalCreate() {
       const constraints: Record<string, unknown> = {};
       if (values.answerFirst) constraints.answerFirst = true;
       if (values.maxReasoningTokens) constraints.maxReasoningTokens = values.maxReasoningTokens;
-      if (values.maxAnswerTokens) constraints.maxAnswerTokens = values.maxAnswerTokens;
-      if (values.hardTimeLimitSec) constraints.hardTimeLimitMs = (values.hardTimeLimitSec as number) * 1000;
+            if (values.hardTimeLimitSec) constraints.hardTimeLimitMs = (values.hardTimeLimitSec as number) * 1000;
       const hasActiveConstraint = Object.keys(constraints).length > 0;
       if (hasActiveConstraint && values.onLimit) constraints.onLimit = values.onLimit;
 
@@ -181,6 +180,7 @@ export default function EvalCreate() {
                       setSelectedModelReasoning(isReasoning);
                       if (isReasoning) {
                         form.setFieldValue('maxTokens', 49152);
+                        form.setFieldValue('maxReasoningTokens', 30000);
                       }
                     }}>
                     {testedModels.map((m) => (
@@ -219,7 +219,7 @@ export default function EvalCreate() {
           {mode === 'single' && selectedModelReasoning && (
             <Alert
               message="推理模型已选择"
-              description="推理模型会产生大量思考链 tokens。Max Tokens 已自动设为 49152（可自行调整），若仍频繁截断可调至 65536。"
+              description="推理模型会产生大量思考链 tokens。已自动设为 Max Tokens=49152、思考链上限=30000（可自行调整），若仍频繁截断可调至 65536。"
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
@@ -384,18 +384,9 @@ export default function EvalCreate() {
               <Form.Item
                 label={t('eval.maxReasoningTokens')}
                 name="maxReasoningTokens"
-                tooltip="思考链（reasoning_content）允许的最大 token 数。硬校验：预算耗尽且无有效答案时立即判超限。0 表示不限制"
+                tooltip="思考链（reasoning_content）允许的最大 token 数。答案预算 = Max Tokens − 思考链上限，无需单独设置。0 表示不限制"
               >
                 <InputNumber min={0} max={131072} step={1024} style={{ width: '100%' }} placeholder="不限制" />
-              </Form.Item>
-            </Col>
-            <Col span={6}>
-              <Form.Item
-                label={t('eval.maxAnswerTokens')}
-                name="maxAnswerTokens"
-                tooltip="最终答案（content）允许的最大 token 数。与思考链上限共同决定单题总预算"
-              >
-                <InputNumber min={0} max={65536} step={256} style={{ width: '100%' }} placeholder="不限制" />
               </Form.Item>
             </Col>
             <Col span={6}>

@@ -157,6 +157,7 @@ async function parseStreamResponse(
   let reasoningContent = '';
   let finishReason: FinishReason = 'unknown';
   let usage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+  let lastTimings: Record<string, number> | undefined;
   let firstTokenTime = 0;
   let lastTokenTime = 0;
   let buffer = '';
@@ -202,6 +203,7 @@ async function parseStreamResponse(
 
           if (chunk.usage) {
             usage = extractTokenUsage(chunk);
+            lastTimings = chunk.timings as Record<string, number> | undefined;
           }
         } catch {
           // 跳过无法解析的 chunk
@@ -217,6 +219,7 @@ async function parseStreamResponse(
           const chunk = JSON.parse(dataStr);
           if (chunk.usage) {
             usage = extractTokenUsage(chunk);
+            lastTimings = chunk.timings as Record<string, number> | undefined;
           }
         } catch { /* ignore */ }
       }
@@ -249,7 +252,7 @@ async function parseStreamResponse(
     ttftMs,
     generationMs,
     tokensPerSecond,
-    raw: { streamed: true, contentLength: content.length },
+    raw: { streamed: true, contentLength: content.length, timings: lastTimings },
   };
 }
 
