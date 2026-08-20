@@ -1,9 +1,8 @@
 // 重新计算所有 completed/paused 运行的 summary（难度加权 + 维度加权 + passCount）
 // 纯 node 版本（不依赖 tsx/esbuild）。运行: node src/scripts/recalc-scores.mjs
 import { DatabaseSync } from 'node:sqlite';
-import path from 'node:path';
 
-const DB_PATH = (process.env.ZXBENCH_DB_PATH || path.resolve(import.meta.dirname, '../../../data/zxbench.db'));
+const DB_PATH = (process.env.ZXBENCH_DB_PATH || 'J:/AI/zxbench-webui/apps/data/zxbench.db');
 
 const DIMENSION_WEIGHTS = {
   program: 0.20,
@@ -34,14 +33,18 @@ for (const run of runs) {
   // difficulty lookup
   const scenarioIds = [...new Set(results.map((r) => r.scenarioId))];
   const diffLookup = {};
+  const sandboxIds = new Set();
   for (const sid of scenarioIds) {
-    const sd = db.prepare("SELECT difficulty FROM ScenarioDefinition WHERE id = ?").get(sid);
+    const sd = db.prepare("SELECT difficulty, requirements FROM ScenarioDefinition WHERE id = ?").get(sid);
     diffLookup[sid] = sd ? sd.difficulty : 'medium';
+    if (sd && sd.requirements) { try { const req = JSON.parse(sd.requirements); if (req.requiresSandbox) sandboxIds.add(sid); } catch {} }
   }
+  // 排除需沙箱执行的调查型题目（沙箱未实现，其结果不可信，不参与维度均分）
+  const filtered = results.filter((r) => !sandboxIds.has(r.scenarioId));
 
   // 难度加权维度均分
   const dimSums = {}, dimTotals = {};
-  for (const r of results) {
+  for (const r of filtered) {
     const w = DIFFICULTY_WEIGHTS[diffLookup[r.scenarioId]] ?? 1;
     dimSums[r.dimension] = (dimSums[r.dimension] || 0) + r.totalScore * w;
     dimTotals[r.dimension] = (dimTotals[r.dimension] || 0) + w;
@@ -61,7 +64,7 @@ for (const run of runs) {
   // 去重 passCount（score >= 60）
   const passSeen = new Set();
   let passCount = 0;
-  for (const r of results) {
+  for (const r of filtered) {
     if (passSeen.has(r.scenarioId)) continue;
     passSeen.add(r.scenarioId);
     if (r.totalScore >= 60) passCount++;
@@ -70,18 +73,18 @@ for (const run of runs) {
   const old = JSON.parse(run.summary || '{}');
   const newSummary = {
     ...old,
-    totalScenarios: results.length,
-    completedScenarios: results.length,
+    totalScenarios: filtered.length,
+    completedScenarios: filtered.length,
     averageScore: avgScore,
     passCount,
     dimensionAverages: dimAvgs,
-    safetyRedLineCount: results.filter((r) => r.safetyLevel === 'red_line').length,
+    safetyRedLineCount: filtered.filter((r) => r.safetyLevel === 'red_line').length,
   };
   db.prepare("UPDATE EvalRun SET summary = ? WHERE id = ?").run(JSON.stringify(newSummary), run.id);
 
   const oldScore = old.averageScore ?? '?';
   console.log(`  [更新] ${run.name}`);
-  console.log(`         ${oldScore} → ${avgScore} (${results.length} 题, pass=${passCount})`);
+  console.log(`         ${oldScore} → ${avgScore} (${filtered.length} 题, pass=${passCount})`);
   updated++;
 }
 

@@ -82,13 +82,20 @@ async function computeDifficultyWeightedDimAvgs(
   const scenarioIds = [...new Set(results.map((r) => r.scenarioId))];
   const scenarios = await prisma.scenarioDefinition.findMany({
     where: { id: { in: scenarioIds } },
-    select: { id: true, difficulty: true },
+    select: { id: true, difficulty: true, requirements: true },
   });
   const difficultyLookup = new Map<string, string>();
+  const sandboxIds = new Set<string>();
   for (const s of scenarios) {
     difficultyLookup.set(s.id, s.difficulty);
+    try {
+      const req = JSON.parse(s.requirements || '{}');
+      if (req.requiresSandbox) sandboxIds.add(s.id);
+    } catch { /* ignore */ }
   }
-  return computeDifficultyWeightedDimAvgsPure(results, difficultyLookup);
+  // 排除需沙箱执行的调查型题目（沙箱未实现，其结果不可信，不参与维度均分）
+  const usable = results.filter((r) => !sandboxIds.has(r.scenarioId));
+  return computeDifficultyWeightedDimAvgsPure(usable, difficultyLookup);
 }
 
 /**
@@ -2983,6 +2990,7 @@ async function runEvaluation(
     try {
       const req = s.requirements ? JSON.parse(s.requirements) : null;
       if (req?.validUntil && new Date(req.validUntil).getTime() < Date.now()) return false;
+      if (req?.requiresSandbox) return false; // 沙箱执行未实现：跳过需实地调查的题目，避免不可作答的 0 分拖低维度分
     } catch { /* requirements 解析失败不阻塞选题 */ }
     return true;
   });
