@@ -91,7 +91,7 @@ function buildLimitExceededResult(
   onLimit?: 'fail' | 'degrade' | 'flag',
   detail?: { inputTokens?: number; outputTokens?: number; reasoningContent?: string },
 ): ScenarioResult {
-  const evidence = [`REASONING_LIMIT: ${reason}`];
+  const evidence = [reason];
   const humanReviewRequired = onLimit === 'flag';
   return {
     scenarioId: scenario.id,
@@ -176,7 +176,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       console.warn(`[orchestrator] ${msg} for scenario ${scenario.id} — marking reasoning limit exceeded`);
       return buildLimitExceededResult(
         scenario,
-        `Model call timed out (${msg}) — reasoning/thinking exceeded time budget`,
+        `HARD_TIME_LIMIT: ${msg} — hard time limit reached`,
         startedAt,
         new Date().toISOString(),
         onLimit,
@@ -193,7 +193,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       console.warn(`[orchestrator] Constraints active, empty output with finish_reason=length for ${scenario.id} — marking reasoning limit exceeded`);
       return buildLimitExceededResult(
         scenario,
-        `Reasoning exceeded token budget: maxTokens=${effectiveMaxTokens}, output tokens=${modelResponse.usage.outputTokens}, thinking consumed the entire budget`,
+        `REASONING_TOKEN_BUDGET: reasoning exhausted maxTokens=${effectiveMaxTokens}, output tokens=${modelResponse.usage.outputTokens} (empty output, thinking consumed the budget)`,
         startedAt,
         new Date().toISOString(),
         onLimit,

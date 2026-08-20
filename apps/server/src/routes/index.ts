@@ -621,7 +621,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       // 拉齐评测配置：推理模型强制 maxTokens 下限
       // （防止同一排行榜下不同模型评测条件不一致导致排名失真，如 27B 推理模型被 8192 预算系统性压低）
       let configNotice: string | null = null;
-      if (modelConfig.reasoningModel && typeof config.maxTokens === 'number' && config.maxTokens < 32768) {
+      if (modelConfig.reasoningModel && (!config.maxTokens || config.maxTokens < 32768)) {
         config.maxTokens = 49152;
         configNotice = `推理模型 ${modelConfig.name} 的 maxTokens 低于 32768，已自动提升至 49152（拉齐评测配置，避免思考链截断压低分数）`;
       }
