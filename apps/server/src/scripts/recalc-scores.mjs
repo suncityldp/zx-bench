@@ -33,14 +33,12 @@ for (const run of runs) {
   // difficulty lookup
   const scenarioIds = [...new Set(results.map((r) => r.scenarioId))];
   const diffLookup = {};
-  const sandboxIds = new Set();
   for (const sid of scenarioIds) {
     const sd = db.prepare("SELECT difficulty, requirements FROM ScenarioDefinition WHERE id = ?").get(sid);
     diffLookup[sid] = sd ? sd.difficulty : 'medium';
-    if (sd && sd.requirements) { try { const req = JSON.parse(sd.requirements); if (req.requiresSandbox) sandboxIds.add(sid); } catch {} }
   }
-  // 排除需沙箱执行的调查型题目（沙箱未实现，其结果不可信，不参与维度均分）
-  const filtered = results.filter((r) => !sandboxIds.has(r.scenarioId));
+  // 沙箱执行已实现（工作区物化 + 探查转录）：requiresSandbox 调查题结果参与维度均分
+  const filtered = results;
 
   // 难度加权维度均分
   const dimSums = {}, dimTotals = {};

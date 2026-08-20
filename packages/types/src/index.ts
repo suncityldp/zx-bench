@@ -300,6 +300,13 @@ export interface RuntimeEvaluation {
   details: TestDetail[];
   runtimeError?: string;
   patchEfficiency?: number;   // 成功修复数 / 修改行数
+  /** requiresSandbox 题目：工作区沙箱探查摘要 */
+  sandbox?: {
+    workspaceFiles: number;
+    gitRepos: number;
+    exploreSteps: number;
+    transcriptChars: number;
+  };
 }
 
 export interface TestDetail {

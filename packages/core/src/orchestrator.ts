@@ -25,11 +25,13 @@ import type {
   RunManifest,
   EvalConstraints,
   ModelResponse,
+  RuntimeEvaluation,
 } from '@zxbench/types';
 import { callModelWithRetry } from './model/caller.js';
 import { buildOutputMetadata } from '@zxbench/utils';
 import { runTieredJudge, type JudgeOptions } from './judge/index.js';
 import { getEvaluator } from './evaluators/index.js';
+import { prepareSandboxEvaluation } from './sandbox/workspace.js';
 import { checkSafetyRedLines } from './safety/index.js';
 import { getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount } from './scoring.js';
 
@@ -159,12 +161,35 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   const initialMaxTokens = modelParams.maxTokens ?? 8192;
   let effectiveMaxTokens = initialMaxTokens;
   let modelResponse: ModelResponse;
+
+  // ===== Stage 1.5: 沙箱工作区探查（requiresSandbox 实地调查题） =====
+  // 物化题述工作区（文件树/git 仓库）→ 执行探查 → 生成真实转录注入 prompt，
+  // 模型基于真实数据推理作答（端口优先级/环境变量覆盖/git 作者去重等）
+  let userPrompt = resolveUserPrompt(scenario.dimension, modelConfig, scenario.promptTemplate);
+  let sandboxEvaluation: RuntimeEvaluation | undefined;
+  let sandboxSummary: string | null = null;
+  const scenarioRequirements = (scenario.requirements ?? {}) as Record<string, unknown>;
+  if (scenarioRequirements.requiresSandbox === true) {
+    onProgress?.('sandbox_prepare');
+    try {
+      const prepared = prepareSandboxEvaluation(scenario.id, scenarioRequirements);
+      userPrompt = userPrompt + '\n\n' + prepared.transcript;
+      sandboxEvaluation = prepared.runtimeEvaluation;
+      sandboxSummary = prepared.summary;
+      console.log(`[orchestrator] Sandbox prepared for ${scenario.id} — ${prepared.summary}`);
+    } catch (sandboxErr) {
+      const msg = sandboxErr instanceof Error ? sandboxErr.message : String(sandboxErr);
+      console.warn(`[orchestrator] Sandbox prepare failed for ${scenario.id}: ${msg}`);
+      sandboxSummary = `SANDBOX_PREPARE_FAILED: ${scenario.id} — ${msg}`;
+    }
+  }
+
   try {
     modelResponse = await callModelWithRetry({
       config: modelConfig,
       params: { ...modelParams, maxTokens: effectiveMaxTokens },
       systemPrompt,
-      userPrompt: resolveUserPrompt(scenario.dimension, modelConfig, scenario.promptTemplate),
+      userPrompt,
       constraints: effectiveConstraints,
       stream: true, // 流式调用以获取精确 TTFT 和生成速度
     });
@@ -222,7 +247,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
         config: modelConfig,
         params: { ...modelParams, maxTokens: effectiveMaxTokens },
         systemPrompt,
-        userPrompt: resolveUserPrompt(scenario.dimension, modelConfig, scenario.promptTemplate),
+        userPrompt,
         constraints: effectiveConstraints,
         stream: true,
       });
@@ -330,6 +355,10 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
 
   if (evaluator) {
     result = await evaluator.evaluate(scenario, modelResponse.content, outputMetadata, modelResponse);
+    // 沙箱探查摘要（存在则置顶，便于审计）
+    if (sandboxSummary) {
+      result.evidence = [sandboxSummary, ...(result.evidence || [])];
+    }
   } else {
     // 降级：使用基础评分
     result = {
@@ -505,7 +534,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     outputMetadata,
     structuredAnswer,
     formatParseSuccess,
-    runtimeEvaluation: undefined, // TODO: 沙箱执行
+    runtimeEvaluation: sandboxEvaluation,
     axisScores: result.axisScores || {},
     // 透传评分器证据标记 + 兜底（未显式标注的轴默认视为 rule）+ AI Judge 参与时补充 llm 语义轴
     axisEvidence: {

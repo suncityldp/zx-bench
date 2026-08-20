@@ -18,10 +18,10 @@
   },
   "dependencies": {
     "@zxbench/types": "workspace:*",
-    "@zxbench/utils": "workspace:*"
+    "@zxbench/utils": "workspace:*",
+    "typescript": "^5.4.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "typescript": "^5.4.0"
+    "@types/node": "^22.0.0"
   }
 }

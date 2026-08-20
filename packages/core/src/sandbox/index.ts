@@ -1,4 +1,46 @@
 // ============================================================
+// TS → JS 转译（隐藏测试沙箱）
+// TS 题源码带类型注解（interface/泛型/参数与返回类型），
+// 直接 new AsyncFunction 会 SyntaxError → 全部 0 分。
+// 这里仅当代码含 TS 语法时用 TypeScript 编译器剥离类型（不校验），
+// 纯 JS 代码原样透传，不影响既有 JS/Python/Go 题。
+// ============================================================
+
+/** 检测代码是否含 TS 类型语法（类型注解 / 接口 / 泛型） */
+function looksLikeTypeScript(code: string): boolean {
+  return (
+    /\b(interface|type|enum|namespace)\s+[A-Za-z_$]/.test(code) ||
+    /\)\s*:\s*[A-Za-z_$][\w$<>\[\].|,{}:\s]*\s*\{/.test(code) ||               // 返回类型 ) : Type {
+    /\)\s*:\s*[A-Za-z_$][\w$<>\[\].|]*\s*=>/.test(code) ||                       // 箭头函数返回 ) : Type =>
+    /\(\s*[A-Za-z_$]\w*\s*:\s*[A-Za-z_$][\w$<>\[\].|]*\s*[,)]/.test(code) ||  // 参数注解 name: Type
+    /\b(?:const|let|var)\s+[A-Za-z_$]\w*\s*:\s*[A-Za-z_$]/.test(code) ||          // 变量注解 name: Type
+    /[A-Za-z_$]\w*\s*<[A-Za-z_$][^>{]*>\s*\(/.test(code)                           // 泛型函数 f<T>( 或 f<T, U>(
+  );
+}
+
+/** 剥离 TS 类型语法 → 纯 JS（供 AsyncFunction 沙箱执行） */
+function transpileTsForSandbox(code: string): string {
+  // export 在 AsyncFunction 作用域非法：先剥掉（同名声明仍留在作用域，测试可直接调用）
+  const cleaned = code
+    .replace(/^\s*export\s+default\s+/gm, '')
+    .replace(/^\s*export\s+/gm, '');
+  const out = ts.transpileModule(cleaned, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.None,
+      isolatedModules: true,
+    },
+    reportDiagnostics: false,
+  });
+  return out.outputText;
+}
+
+/** 供沙箱运行的最终代码：TS 检测后转译，纯 JS 透传 */
+function toRunnableJs(code: string): string {
+  return looksLikeTypeScript(code) ? transpileTsForSandbox(code) : code;
+}
+
+// ============================================================
 // 沙箱执行环境 — 子进程隔离执行（GPT5.6 P0-1）
 // 替代 VM2：使用独立子进程执行不可信代码
 // 每个代码任务在独立进程中运行，具备超时/内存/文件系统隔离
@@ -9,6 +51,7 @@ import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { HiddenTestCase, TestDetail } from '@zxbench/types';
+import ts from 'typescript';
 
 export interface SandboxResult {
   success: boolean;
@@ -214,7 +257,7 @@ export async function runTestCase(
     ${testCase.testCode}
   `;
 
-  const result = await runInSandbox(fullCode, {
+  const result = await runInSandbox(toRunnableJs(fullCode), {
     timeout: testCase.timeout || options.timeout || 10000,
     ...options,
   });
@@ -261,7 +304,7 @@ export async function runReplacedCodeTest(
     // ===== 测试代码 =====
     ${testCase.testCode}
   `;
-  const result = await runInSandbox(fullCode, {
+  const result = await runInSandbox(toRunnableJs(fullCode), {
     timeout: testCase.timeout || options.timeout || 10000,
     ...options,
   });
