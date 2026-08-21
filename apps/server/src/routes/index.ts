@@ -9,7 +9,7 @@ import { generateId, generateRunId } from '@zxbench/utils';
 import { orchestrateEvaluation, generateManifest, callModel } from '@zxbench/core';
 import { generateReport, generateCompareReport } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
-import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure } from '@zxbench/core';
+import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, validateScenario } from '@zxbench/core';
 import { broadcastProgress, getLatestProgress } from '../ws/index.js';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
@@ -1470,12 +1470,43 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         scenarioVersion: String(s.scenarioVersion || '1.0.0'),
         scenarioHash: String(s.scenarioHash || ''),
       };
+      // Phase 1 契约校验（宽松模式：不拒绝导入，仅返回报告供作者修复）
+      const contractReport = validateScenario({
+        id: String(s.id),
+        dimension: data.dimension,
+        category: data.category,
+        difficulty: data.difficulty as 'easy' | 'medium' | 'hard' | 'adversarial',
+        language: data.language,
+        locale: data.locale,
+        status: data.status as 'valid' | 'invalid' | 'ambiguous' | 'needs_context' | 'retired',
+        tier: data.tier as 'public_dev' | 'private_validation' | 'blind_holdout',
+        promptTemplate: data.promptTemplate,
+        sourceCode: data.sourceCode ?? undefined,
+        functionName: data.functionName ?? undefined,
+        expectedVerdict: data.expectedVerdict as 'fix' | 'no_bug' | undefined,
+        grader: data.grader,
+        graderVersion: data.graderVersion,
+        scoring: JSON.parse(data.scoring),
+        hiddenTests: data.hiddenTests ? JSON.parse(data.hiddenTests) : undefined,
+        requirements: data.requirements ? JSON.parse(data.requirements) : undefined,
+        scenarioVersion: data.scenarioVersion,
+        scenarioHash: data.scenarioHash,
+      });
+
       const scenario = await prisma.scenarioDefinition.upsert({
         where: { id: String(s.id) },
         create: { id: String(s.id), ...data },
         update: data,
       });
-      return { success: true, data: scenario };
+      return {
+        success: true,
+        data: scenario,
+        contractValidation: {
+          eligible: contractReport.eligible,
+          errors: contractReport.errors,
+          warnings: contractReport.warnings,
+        },
+      };
     } catch (err) {
       return reply.status(500).send({ success: false, error: String(err) });
     }

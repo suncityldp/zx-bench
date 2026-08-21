@@ -97,6 +97,20 @@ export interface Scenario {
   maxAnswerTokens?: number;
   /** 思考链（reasoning_content）token 上限；超出判定思考超限 */
   maxReasoningTokens?: number;
+
+  // ----- Governance fields (Phase 1: align with Prisma schema / benchmark.json) -----
+  /** Review status: "unreviewed" | "verified" | ... (official runs require verified) */
+  reviewStatus?: string | null;
+  /** Provenance of the gold answer (official requires traceability) */
+  goldSource?: string | null;
+  /** Timestamp of independent gold verification */
+  goldVerifiedAt?: string | Date | null;
+  /** Execution environment image (for containerized runner) */
+  environmentImage?: string | null;
+  /** Parameterization seed */
+  seed?: string | number | null;
+  /** Response mode: plan | simulated_actions | live_execution | raw_output */
+  responseMode?: string | null;
 }
 
 /** 评测运行级思考/输出约束策略 */
@@ -778,4 +792,40 @@ export interface ParameterVariable {
   // 兼容旧字段
   generator?: string;
   value?: string | number;
+}
+
+// ----- Scenario contracts (Phase 1: single per-grader contract) -----
+
+/** Capabilities declared by a grader contract (supported format/language/response mode). */
+export interface ScenarioCapabilities {
+  supportedFormats?: string[];
+  supportedLanguages?: string[];
+  /** Languages that can be truly executed in an isolated environment (others are static/keyword-scored). */
+  executableLanguages?: string[];
+  supportedResponseModes?: ("plan" | "simulated_actions" | "live_execution" | "raw_output")[];
+  requiresSandbox?: boolean;
+}
+
+/** A contract validation issue (error blocks official eligibility; warning = migration/governance hint). */
+export interface ContractValidationIssue {
+  severity: "error" | "warning";
+  code: string;
+  message: string;
+  path?: string;
+}
+
+/** Per-scenario contract validation report. */
+export interface ValidationReport {
+  scenarioId: string;
+  grader: string;
+  graderVersion: string;
+  eligible: boolean;
+  errors: ContractValidationIssue[];
+  warnings: ContractValidationIssue[];
+}
+
+/** Official eligibility gate result. */
+export interface ScenarioEligibility {
+  eligible: boolean;
+  reasons: string[];
 }
