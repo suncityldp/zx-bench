@@ -1,681 +1,851 @@
 [
- {
-  "id": "CR2-JS-001",
-  "dimension": "program",
-  "category": "type_coercion",
-  "difficulty": "easy",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。以下年龄校验函数在输入为字符串 '9' 时错误地返回 true。请找出并修复 bug：\n\n```javascript\nfunction isAdult(ageInput) {\n  return ageInput >= '18';\n}\n```\n\n功能要求：无论输入是数字还是数字字符串，都应正确判断是否 >= 18。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释字符串比较的陷阱）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function isAdult(ageInput) {\n  return ageInput >= '18';\n}",
-  "functionName": "isAdult",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-JS-001",
+    "dimension": "program",
+    "category": "type_coercion",
+    "difficulty": "easy",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。以下年龄校验函数在输入为字符串 '9' 时错误地返回 true。请找出并修复 bug：\n\n```javascript\nfunction isAdult(ageInput) {\n  return ageInput >= '18';\n}\n```\n\n功能要求：无论输入是数字还是数字字符串，都应正确判断是否 >= 18。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释字符串比较的陷阱）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function isAdult(ageInput) {\n  return ageInput >= '18';\n}",
+    "functionName": "isAdult",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-001-t1",
+        "type": "hidden",
+        "testCode": "console.log(isAdult(20), isAdult('9'), isAdult(17), isAdult('18'))",
+        "description": "数字与字符串混合输入",
+        "expectedOutput": "true false false true"
+      },
+      {
+        "id": "CR2-JS-001-t2",
+        "type": "boundary",
+        "testCode": "console.log(isAdult('17'), isAdult('19'))",
+        "description": "字符串边界值",
+        "expectedOutput": "false true"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function isAdult(ageInput) {\n  return ageInput >= '18';\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "Number(",
+        "parseInt",
+        "18"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "type-coercion",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "9a57b0e21a8e0a36"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-001-t1",
-    "type": "hidden",
-    "testCode": "console.log(isAdult(20), isAdult('9'), isAdult(17), isAdult('18'))",
-    "description": "数字与字符串混合输入",
-    "expectedOutput": "true false false true"
-   },
-   {
-    "id": "CR2-JS-001-t2",
-    "type": "boundary",
-    "testCode": "console.log(isAdult('17'), isAdult('19'))",
-    "description": "字符串边界值",
-    "expectedOutput": "false true"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function isAdult(ageInput) {\n  return ageInput >= '18';\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "Number(",
-    "parseInt",
-    "18"
-   ]
+  {
+    "id": "CR2-JS-002",
+    "dimension": "program",
+    "category": "closure_scope",
+    "difficulty": "easy",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。以下函数期望返回 [0,1,2]，实际返回 [3,3,3]。请找出并修复 bug：\n\n```javascript\nfunction delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 var 的作用域问题）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}",
+    "functionName": "delayedLoggers",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-002-t1",
+        "type": "hidden",
+        "testCode": "console.log(delayedLoggers(3).map(f => f()).join(','))",
+        "description": "每个闭包应捕获各自的 i",
+        "expectedOutput": "0,1,2"
+      },
+      {
+        "id": "CR2-JS-002-t2",
+        "type": "boundary",
+        "testCode": "console.log(delayedLoggers(0).length)",
+        "description": "n=0 边界",
+        "expectedOutput": "0"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "let",
+        "const i",
+        "forEach"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "closure",
+      "var-let",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "18c201ba7bf9a674"
   },
-  "tags": [
-   "javascript",
-   "type-coercion",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "9a57b0e21a8e0a36"
- },
- {
-  "id": "CR2-JS-002",
-  "dimension": "program",
-  "category": "closure_scope",
-  "difficulty": "easy",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。以下函数期望返回 [0,1,2]，实际返回 [3,3,3]。请找出并修复 bug：\n\n```javascript\nfunction delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 var 的作用域问题）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}",
-  "functionName": "delayedLoggers",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-JS-003",
+    "dimension": "program",
+    "category": "index_skip",
+    "difficulty": "medium",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。以下去重函数对 [1,2,2,2,3] 返回 [1,2,3,2] 之类的错误结果（连续重复项删不干净）。请找出并修复 bug：\n\n```javascript\nfunction removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 splice 后索引偏移）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}",
+    "functionName": "removeDuplicates",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-003-t1",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(removeDuplicates([1, 2, 2, 2, 3])))",
+        "description": "连续重复项",
+        "expectedOutput": "[1,2,3]"
+      },
+      {
+        "id": "CR2-JS-003-t2",
+        "type": "boundary",
+        "testCode": "console.log(JSON.stringify(removeDuplicates([])))",
+        "description": "空数组",
+        "expectedOutput": "[]"
+      },
+      {
+        "id": "CR2-JS-003-t3",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(removeDuplicates(['a', 'a', 'b', 'a'])))",
+        "description": "非连续重复",
+        "expectedOutput": "[\"a\",\"b\"]"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "Set",
+        "i--",
+        "filter"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "splice",
+      "index-shift",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "df8bb6730298ac74"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-002-t1",
-    "type": "hidden",
-    "testCode": "console.log(delayedLoggers(3).map(f => f()).join(','))",
-    "description": "每个闭包应捕获各自的 i",
-    "expectedOutput": "0,1,2"
-   },
-   {
-    "id": "CR2-JS-002-t2",
-    "type": "boundary",
-    "testCode": "console.log(delayedLoggers(0).length)",
-    "description": "n=0 边界",
-    "expectedOutput": "0"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "let",
-    "const i",
-    "forEach"
-   ]
+  {
+    "id": "CR2-JS-004",
+    "dimension": "program",
+    "category": "mutation_side_effect",
+    "difficulty": "medium",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。以下函数有个隐蔽副作用：调用后传入的数组被意外修改了。请找出并修复（函数不应修改输入）：\n\n```javascript\nfunction topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，说明 sort 的原地修改行为）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}",
+    "functionName": "topThree",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-004-t1",
+        "type": "hidden",
+        "testCode": "const arr = [3, 1, 2];\nconsole.log(JSON.stringify(topThree(arr)));\nconsole.log(JSON.stringify(arr));",
+        "description": "结果正确且输入数组不被修改",
+        "expectedOutput": "[3,2,1]\n[3,1,2]"
+      },
+      {
+        "id": "CR2-JS-004-t2",
+        "type": "boundary",
+        "testCode": "console.log(JSON.stringify(topThree([5])))",
+        "description": "少于 3 个元素",
+        "expectedOutput": "[5]"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "slice()",
+        "spread",
+        "[...scores]",
+        "toSorted"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "mutation",
+      "sort",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "64c98a8813db9003"
   },
-  "tags": [
-   "javascript",
-   "closure",
-   "var-let",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "18c201ba7bf9a674"
- },
- {
-  "id": "CR2-JS-003",
-  "dimension": "program",
-  "category": "index_skip",
-  "difficulty": "medium",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。以下去重函数对 [1,2,2,2,3] 返回 [1,2,3,2] 之类的错误结果（连续重复项删不干净）。请找出并修复 bug：\n\n```javascript\nfunction removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 splice 后索引偏移）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}",
-  "functionName": "removeDuplicates",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-JS-005",
+    "dimension": "program",
+    "category": "implementation",
+    "difficulty": "medium",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。请实现深度扁平化函数：\n\n```javascript\nfunction flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n  // 禁止使用 Array.prototype.flat\n  // 示例: flatten([1, [2, [3, [4]]], 5]) => [1, 2, 3, 4, 5]\n}\n```\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n}",
+    "functionName": "flatten",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-005-t1",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(flatten([1, [2, [3, [4]]], 5])))",
+        "description": "多层嵌套",
+        "expectedOutput": "[1,2,3,4,5]"
+      },
+      {
+        "id": "CR2-JS-005-t2",
+        "type": "boundary",
+        "testCode": "console.log(JSON.stringify(flatten([])))",
+        "description": "空数组",
+        "expectedOutput": "[]"
+      },
+      {
+        "id": "CR2-JS-005-t3",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(flatten([[[['deep']]]])))",
+        "description": "深层单元素",
+        "expectedOutput": "[\"deep\"]"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "isArray",
+        "reduce",
+        "concat",
+        "recursion"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "recursion",
+      "implement"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "79a883a96d13ce90"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-003-t1",
-    "type": "hidden",
-    "testCode": "console.log(JSON.stringify(removeDuplicates([1, 2, 2, 2, 3])))",
-    "description": "连续重复项",
-    "expectedOutput": "[1,2,3]"
-   },
-   {
-    "id": "CR2-JS-003-t2",
-    "type": "boundary",
-    "testCode": "console.log(JSON.stringify(removeDuplicates([])))",
-    "description": "空数组",
-    "expectedOutput": "[]"
-   },
-   {
-    "id": "CR2-JS-003-t3",
-    "type": "hidden",
-    "testCode": "console.log(JSON.stringify(removeDuplicates(['a', 'a', 'b', 'a'])))",
-    "description": "非连续重复",
-    "expectedOutput": "[\"a\",\"b\"]"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "Set",
-    "i--",
-    "filter"
-   ]
+  {
+    "id": "CR2-JS-006",
+    "dimension": "program",
+    "category": "implementation",
+    "difficulty": "hard",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。请实现支持循环引用的深拷贝：\n\n```javascript\nfunction deepClone(obj) {\n  // 深拷贝对象（处理嵌套对象与数组），必须正确处理循环引用\n  // 禁止使用 JSON.parse(JSON.stringify())\n}\n```\n\n输出要求：\n1. 实现思路（1-3 句，说明如何检测循环引用）\n2. 完整实现代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function deepClone(obj) {\n  // 深拷贝对象，支持循环引用\n}",
+    "functionName": "deepClone",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-006-t1",
+        "type": "hidden",
+        "testCode": "const a = { x: 1, nested: { y: 2 } };\na.self = a;\nconst b = deepClone(a);\nconsole.log(b.x, b.nested.y, b.self === b, b !== a);",
+        "description": "循环引用必须指向克隆后的自身",
+        "expectedOutput": "1 2 true true"
+      },
+      {
+        "id": "CR2-JS-006-t2",
+        "type": "hidden",
+        "testCode": "const a = { nested: { y: 2 } };\nconst b = deepClone(a);\nb.nested.y = 99;\nconsole.log(a.nested.y);",
+        "description": "嵌套对象独立",
+        "expectedOutput": "2"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function deepClone(obj) {\n  // 深拷贝对象，支持循环引用\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "WeakMap",
+        "Map",
+        "seen"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "deep-clone",
+      "circular-reference",
+      "implement"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "f0b02e42bfc735df"
   },
-  "tags": [
-   "javascript",
-   "splice",
-   "index-shift",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "df8bb6730298ac74"
- },
- {
-  "id": "CR2-JS-004",
-  "dimension": "program",
-  "category": "mutation_side_effect",
-  "difficulty": "medium",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。以下函数有个隐蔽副作用：调用后传入的数组被意外修改了。请找出并修复（函数不应修改输入）：\n\n```javascript\nfunction topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，说明 sort 的原地修改行为）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}",
-  "functionName": "topThree",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-JS-007",
+    "dimension": "program",
+    "category": "shared_reference",
+    "difficulty": "hard",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。以下工厂函数出现诡异问题：给一个用户添加权限后，所有用户都获得了同样的权限。请找出并修复 bug：\n\n```javascript\nfunction createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
+    "sourceCode": "function createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}",
+    "functionName": "createUsers",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-007-t1",
+        "type": "hidden",
+        "testCode": "const users = createUsers(['a', 'b']);\nusers[0].profile.permissions.push('admin');\nconsole.log(users[1].profile.permissions.length);",
+        "description": "用户之间的 profile 必须独立",
+        "expectedOutput": "0"
+      },
+      {
+        "id": "CR2-JS-007-t2",
+        "type": "hidden",
+        "testCode": "const users = createUsers(['a']);\nconsole.log(users[0].name, users[0].profile.role);",
+        "description": "默认值仍应正确",
+        "expectedOutput": "a user"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "role: 'user', permissions: []",
+        "structuredClone",
+        "map"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "shared-reference",
+      "factory",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "6ddb1c0aa2419cdc"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-004-t1",
-    "type": "hidden",
-    "testCode": "const arr = [3, 1, 2];\nconsole.log(JSON.stringify(topThree(arr)));\nconsole.log(JSON.stringify(arr));",
-    "description": "结果正确且输入数组不被修改",
-    "expectedOutput": "[3,2,1]\n[3,1,2]"
-   },
-   {
-    "id": "CR2-JS-004-t2",
-    "type": "boundary",
-    "testCode": "console.log(JSON.stringify(topThree([5])))",
-    "description": "少于 3 个元素",
-    "expectedOutput": "[5]"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "slice()",
-    "spread",
-    "[...scores]",
-    "toSorted"
-   ]
+  {
+    "id": "CR2-JS-008",
+    "dimension": "program",
+    "category": "correct_code_trap",
+    "difficulty": "hard",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 工程师。请审查以下价格格式化函数，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请明确说明，不要画蛇添足：\n\n```javascript\nfunction formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明该实现如何规避浮点货币问题）",
+    "sourceCode": "function formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}",
+    "functionName": "formatPrice",
+    "expectedVerdict": "no_bug",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-008-t1",
+        "type": "hidden",
+        "testCode": "console.log(formatPrice(1999), formatPrice(-5), formatPrice(100))",
+        "description": "行为验证（佐证代码正确）",
+        "expectedOutput": "$19.99 -$0.05 $1.00"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}",
+      "isCorrectCodeTrap": true,
+      "explanationKeywords": [
+        "整数",
+        "cents",
+        "浮点",
+        "float",
+        "padStart",
+        "integer"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "trap",
+      "correct-code",
+      "money"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "a868523e89f40c57"
   },
-  "tags": [
-   "javascript",
-   "mutation",
-   "sort",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "64c98a8813db9003"
- },
- {
-  "id": "CR2-JS-005",
-  "dimension": "program",
-  "category": "implementation",
-  "difficulty": "medium",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。请实现深度扁平化函数：\n\n```javascript\nfunction flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n  // 禁止使用 Array.prototype.flat\n  // 示例: flatten([1, [2, [3, [4]]], 5]) => [1, 2, 3, 4, 5]\n}\n```\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n}",
-  "functionName": "flatten",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-JS-009",
+    "dimension": "program",
+    "category": "security",
+    "difficulty": "adversarial",
+    "language": "javascript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 JavaScript 安全工程师。请审查以下评论渲染函数的安全问题并修复：\n\n```javascript\nfunction renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}\n```\n\n注意：userInput 来自不可信的用户提交内容。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型\n2. 攻击示例（说明攻击载荷）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，实现正确的 HTML 转义）",
+    "sourceCode": "function renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}",
+    "functionName": "renderComment",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-JS-009-t1",
+        "type": "hidden",
+        "testCode": "console.log(renderComment('<script>alert(1)</script>').includes('<script>'))",
+        "description": "修复后不得包含未转义的 script 标签",
+        "expectedOutput": "false"
+      },
+      {
+        "id": "CR2-JS-009-t2",
+        "type": "hidden",
+        "testCode": "console.log(renderComment('hello & \"world\"'))",
+        "description": "普通文本正确转义",
+        "expectedOutput": "<div class=\"comment\">hello &amp; &quot;world&quot;</div>"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "&lt;",
+        "&amp;",
+        "escape",
+        "replace"
+      ]
+    },
+    "tags": [
+      "javascript",
+      "security",
+      "xss",
+      "adversarial"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "6d99377e6f70c6f5"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-005-t1",
-    "type": "hidden",
-    "testCode": "console.log(JSON.stringify(flatten([1, [2, [3, [4]]], 5])))",
-    "description": "多层嵌套",
-    "expectedOutput": "[1,2,3,4,5]"
-   },
-   {
-    "id": "CR2-JS-005-t2",
-    "type": "boundary",
-    "testCode": "console.log(JSON.stringify(flatten([])))",
-    "description": "空数组",
-    "expectedOutput": "[]"
-   },
-   {
-    "id": "CR2-JS-005-t3",
-    "type": "hidden",
-    "testCode": "console.log(JSON.stringify(flatten([[[['deep']]]])))",
-    "description": "深层单元素",
-    "expectedOutput": "[\"deep\"]"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "isArray",
-    "reduce",
-    "concat",
-    "recursion"
-   ]
+  {
+    "id": "CR2-TS-001",
+    "dimension": "program",
+    "category": "type_safety",
+    "difficulty": "easy",
+    "language": "typescript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 TypeScript 工程师。以下函数声明返回 T，但空数组时实际返回 undefined，导致调用方在编译期毫无防备地崩溃。请找出并修复这个类型安全问题：\n\n```typescript\nfunction first<T>(items: T[]): T {\n  return items[0];\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```typescript 代码块中，使类型签名如实反映运行时行为）\n\n功能要求：空数组调用时必须抛出 Error（使返回类型 T 的承诺成立），非空数组返回首个元素。",
+    "sourceCode": "function first<T>(items: T[]): T {\n  return items[0];\n}",
+    "functionName": "first",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-TS-001-t1",
+        "type": "hidden",
+        "testCode": "console.log(first([42, 7]))",
+        "description": "常规：非空数组返回首个元素",
+        "expectedOutput": "42"
+      },
+      {
+        "id": "CR2-TS-001-t2",
+        "type": "boundary",
+        "testCode": "try { first([]); console.log('no-throw'); } catch (e) { console.log('throw'); }",
+        "description": "边界：空数组必须抛错而非静默返回 undefined（bug 必挂）",
+        "expectedOutput": "throw"
+      },
+      {
+        "id": "CR2-TS-001-t3",
+        "type": "boundary",
+        "testCode": "try { const v = first([]); console.log('returned:' + v); } catch (e) { console.log('throw'); }",
+        "description": "边界：空数组返回值不是合法元素",
+        "expectedOutput": "throw"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function first<T>(items: T[]): T {\n  return items[0];\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "T | undefined",
+        "throw",
+        "undefined"
+      ],
+      "hiddenTests": [
+        {
+          "code": "console.log(first([42, 7]))",
+          "description": "常规：非空数组返回首个元素"
+        },
+        {
+          "code": "try { first([]); console.log('no-throw'); } catch (e) { console.log('throw'); }",
+          "description": "边界：空数组必须抛错而非静默返回 undefined（bug 必挂）"
+        },
+        {
+          "code": "try { const v = first([]); console.log('returned:' + v); } catch (e) { console.log('throw'); }",
+          "description": "边界：空数组返回值不是合法元素"
+        }
+      ],
+      "referenceSolution": "function first<T>(items: T[]): T {\n  if (items.length === 0) {\n    throw new RangeError('empty array');\n  }\n  return items[0];\n}"
+    },
+    "tags": [
+      "typescript",
+      "type-safety",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "d2a9c5a0db2fffb1"
   },
-  "tags": [
-   "javascript",
-   "recursion",
-   "implement"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "79a883a96d13ce90"
- },
- {
-  "id": "CR2-JS-006",
-  "dimension": "program",
-  "category": "implementation",
-  "difficulty": "hard",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。请实现支持循环引用的深拷贝：\n\n```javascript\nfunction deepClone(obj) {\n  // 深拷贝对象（处理嵌套对象与数组），必须正确处理循环引用\n  // 禁止使用 JSON.parse(JSON.stringify())\n}\n```\n\n输出要求：\n1. 实现思路（1-3 句，说明如何检测循环引用）\n2. 完整实现代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function deepClone(obj) {\n  // 深拷贝对象，支持循环引用\n}",
-  "functionName": "deepClone",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-TS-002",
+    "dimension": "program",
+    "category": "null_handling",
+    "difficulty": "medium",
+    "language": "typescript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 TypeScript 工程师。以下函数在 strict 模式下编译报错，且运行时可能抛出 TypeError。请找出并修复：\n\n```typescript\ninterface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}\n```\n\n功能要求：address 缺失时返回 'unknown'。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```typescript 代码块中）",
+    "sourceCode": "interface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}",
+    "functionName": "getCity",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-TS-002-t1",
+        "type": "hidden",
+        "testCode": "console.log(getCity({ name: 'alice', address: { city: '上海' } }))",
+        "description": "常规：address 存在时返回 city",
+        "expectedOutput": "上海"
+      },
+      {
+        "id": "CR2-TS-002-t2",
+        "type": "boundary",
+        "testCode": "console.log(getCity({ name: 'bob' }))",
+        "description": "边界：address 缺失时返回 unknown 而非抛 TypeError（bug 必挂）",
+        "expectedOutput": "unknown"
+      },
+      {
+        "id": "CR2-TS-002-t3",
+        "type": "boundary",
+        "testCode": "console.log(getCity({ name: 'carol' }), getCity({ name: 'dave', address: { city: '北京' } }))",
+        "description": "边界：缺失/存在混合场景",
+        "expectedOutput": "unknown 北京"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "interface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "?.",
+        "??",
+        "unknown"
+      ],
+      "hiddenTests": [
+        {
+          "code": "console.log(getCity({ name: 'alice', address: { city: '上海' } }))",
+          "description": "常规：address 存在时返回 city"
+        },
+        {
+          "code": "console.log(getCity({ name: 'bob' }))",
+          "description": "边界：address 缺失时返回 unknown 而非抛 TypeError（bug 必挂）"
+        },
+        {
+          "code": "console.log(getCity({ name: 'carol' }), getCity({ name: 'dave', address: { city: '北京' } }))",
+          "description": "边界：缺失/存在混合场景"
+        }
+      ],
+      "referenceSolution": "interface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address?.city ?? 'unknown';\n}"
+    },
+    "tags": [
+      "typescript",
+      "optional-chaining",
+      "null-safety",
+      "fix"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "882a212e8ae8f555"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-006-t1",
-    "type": "hidden",
-    "testCode": "const a = { x: 1, nested: { y: 2 } };\na.self = a;\nconst b = deepClone(a);\nconsole.log(b.x, b.nested.y, b.self === b, b !== a);",
-    "description": "循环引用必须指向克隆后的自身",
-    "expectedOutput": "1 2 true true"
-   },
-   {
-    "id": "CR2-JS-006-t2",
-    "type": "hidden",
-    "testCode": "const a = { nested: { y: 2 } };\nconst b = deepClone(a);\nb.nested.y = 99;\nconsole.log(a.nested.y);",
-    "description": "嵌套对象独立",
-    "expectedOutput": "2"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function deepClone(obj) {\n  // 深拷贝对象，支持循环引用\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "WeakMap",
-    "Map",
-    "seen"
-   ]
+  {
+    "id": "CR2-TS-003",
+    "dimension": "program",
+    "category": "implementation",
+    "difficulty": "medium",
+    "language": "typescript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 TypeScript 工程师。请实现类型安全的整数解析函数：\n\n```typescript\ntype Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // 解析成功返回 { ok: true, value }\n  // 非整数（含 NaN、小数、空串）返回 { ok: false, error: '不是合法整数' }\n}\n```\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```typescript 代码块中）",
+    "sourceCode": "type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // TODO\n}",
+    "functionName": "safeParseInt",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-TS-003-t1",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(safeParseInt('42')))",
+        "description": "常规：合法整数解析成功",
+        "expectedOutput": "{\"ok\":true,\"value\":42}"
+      },
+      {
+        "id": "CR2-TS-003-t2",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(safeParseInt('  100  ')))",
+        "description": "边界：带首尾空白应 trim 后解析成功",
+        "expectedOutput": "{\"ok\":true,\"value\":100}"
+      },
+      {
+        "id": "CR2-TS-003-t3",
+        "type": "boundary",
+        "testCode": "console.log(JSON.stringify(safeParseInt('3.14')))",
+        "description": "边界：小数拒绝",
+        "expectedOutput": "{\"ok\":false,\"error\":\"不是合法整数\"}"
+      },
+      {
+        "id": "CR2-TS-003-t4",
+        "type": "boundary",
+        "testCode": "console.log(JSON.stringify(safeParseInt('abc')))",
+        "description": "边界：非数字拒绝",
+        "expectedOutput": "{\"ok\":false,\"error\":\"不是合法整数\"}"
+      },
+      {
+        "id": "CR2-TS-003-t5",
+        "type": "boundary",
+        "testCode": "console.log(JSON.stringify(safeParseInt('')))",
+        "description": "边界：空串拒绝（Number('')===0 陷阱）",
+        "expectedOutput": "{\"ok\":false,\"error\":\"不是合法整数\"}"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // TODO\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "Number.isInteger",
+        "ok:",
+        "isNaN",
+        "trim"
+      ],
+      "hiddenTests": [
+        {
+          "code": "console.log(JSON.stringify(safeParseInt('42')))",
+          "description": "常规：合法整数解析成功"
+        },
+        {
+          "code": "console.log(JSON.stringify(safeParseInt('  100  ')))",
+          "description": "边界：带首尾空白应 trim 后解析成功"
+        },
+        {
+          "code": "console.log(JSON.stringify(safeParseInt('3.14')))",
+          "description": "边界：小数拒绝"
+        },
+        {
+          "code": "console.log(JSON.stringify(safeParseInt('abc')))",
+          "description": "边界：非数字拒绝"
+        },
+        {
+          "code": "console.log(JSON.stringify(safeParseInt('')))",
+          "description": "边界：空串拒绝（Number('')===0 陷阱）"
+        }
+      ],
+      "referenceSolution": "type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  const t = s.trim();\n  const n = Number(t);\n  if (t === '' || !Number.isInteger(n)) {\n    return { ok: false, error: '不是合法整数' };\n  }\n  return { ok: true, value: n };\n}"
+    },
+    "tags": [
+      "typescript",
+      "result-type",
+      "implement",
+      "discriminated-union"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "a6bb329a08ad1473"
   },
-  "tags": [
-   "javascript",
-   "deep-clone",
-   "circular-reference",
-   "implement"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "f0b02e42bfc735df"
- },
- {
-  "id": "CR2-JS-007",
-  "dimension": "program",
-  "category": "shared_reference",
-  "difficulty": "hard",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。以下工厂函数出现诡异问题：给一个用户添加权限后，所有用户都获得了同样的权限。请找出并修复 bug：\n\n```javascript\nfunction createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，保持函数签名不变）",
-  "sourceCode": "function createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}",
-  "functionName": "createUsers",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
+  {
+    "id": "CR2-TS-004",
+    "dimension": "program",
+    "category": "correct_code_trap",
+    "difficulty": "hard",
+    "language": "typescript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 TypeScript 工程师。请审查以下可辨识联合的面积计算函数，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请明确说明穷举性是如何保证的：\n\n```typescript\ntype Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明类型收窄与穷举性检查机制）",
+    "sourceCode": "type Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}",
+    "functionName": "area",
+    "expectedVerdict": "no_bug",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "type Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}",
+      "isCorrectCodeTrap": true,
+      "explanationKeywords": [
+        "收窄",
+        "narrowing",
+        "穷举",
+        "exhaustive",
+        "never",
+        "discriminated"
+      ]
+    },
+    "tags": [
+      "typescript",
+      "trap",
+      "correct-code",
+      "discriminated-union"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "b403ca6b447fe706"
   },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-007-t1",
-    "type": "hidden",
-    "testCode": "const users = createUsers(['a', 'b']);\nusers[0].profile.permissions.push('admin');\nconsole.log(users[1].profile.permissions.length);",
-    "description": "用户之间的 profile 必须独立",
-    "expectedOutput": "0"
-   },
-   {
-    "id": "CR2-JS-007-t2",
-    "type": "hidden",
-    "testCode": "const users = createUsers(['a']);\nconsole.log(users[0].name, users[0].profile.role);",
-    "description": "默认值仍应正确",
-    "expectedOutput": "a user"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "role: 'user', permissions: []",
-    "structuredClone",
-    "map"
-   ]
-  },
-  "tags": [
-   "javascript",
-   "shared-reference",
-   "factory",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "6ddb1c0aa2419cdc"
- },
- {
-  "id": "CR2-JS-008",
-  "dimension": "program",
-  "category": "correct_code_trap",
-  "difficulty": "hard",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 工程师。请审查以下价格格式化函数，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请明确说明，不要画蛇添足：\n\n```javascript\nfunction formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明该实现如何规避浮点货币问题）",
-  "sourceCode": "function formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}",
-  "functionName": "formatPrice",
-  "expectedVerdict": "no_bug",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-008-t1",
-    "type": "hidden",
-    "testCode": "console.log(formatPrice(1999), formatPrice(-5), formatPrice(100))",
-    "description": "行为验证（佐证代码正确）",
-    "expectedOutput": "$19.99 -$0.05 $1.00"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}",
-   "isCorrectCodeTrap": true,
-   "explanationKeywords": [
-    "整数",
-    "cents",
-    "浮点",
-    "float",
-    "padStart",
-    "integer"
-   ]
-  },
-  "tags": [
-   "javascript",
-   "trap",
-   "correct-code",
-   "money"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "a868523e89f40c57"
- },
- {
-  "id": "CR2-JS-009",
-  "dimension": "program",
-  "category": "security",
-  "difficulty": "adversarial",
-  "language": "javascript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 JavaScript 安全工程师。请审查以下评论渲染函数的安全问题并修复：\n\n```javascript\nfunction renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}\n```\n\n注意：userInput 来自不可信的用户提交内容。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型\n2. 攻击示例（说明攻击载荷）\n3. 修复后的完整代码（包裹在 ```javascript 代码块中，实现正确的 HTML 转义）",
-  "sourceCode": "function renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}",
-  "functionName": "renderComment",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [
-   {
-    "id": "CR2-JS-009-t1",
-    "type": "hidden",
-    "testCode": "console.log(renderComment('<script>alert(1)</script>').includes('<script>'))",
-    "description": "修复后不得包含未转义的 script 标签",
-    "expectedOutput": "false"
-   },
-   {
-    "id": "CR2-JS-009-t2",
-    "type": "hidden",
-    "testCode": "console.log(renderComment('hello & \"world\"'))",
-    "description": "普通文本正确转义",
-    "expectedOutput": "<div class=\"comment\">hello &amp; &quot;world&quot;</div>"
-   }
-  ],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "&lt;",
-    "&amp;",
-    "escape",
-    "replace"
-   ]
-  },
-  "tags": [
-   "javascript",
-   "security",
-   "xss",
-   "adversarial"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "6d99377e6f70c6f5"
- },
- {
-  "id": "CR2-TS-001",
-  "dimension": "program",
-  "category": "type_safety",
-  "difficulty": "easy",
-  "language": "typescript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 TypeScript 工程师。以下函数声明返回 T，但空数组时实际返回 undefined，导致调用方在编译期毫无防备地崩溃。请找出并修复这个类型安全问题：\n\n```typescript\nfunction first<T>(items: T[]): T {\n  return items[0];\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```typescript 代码块中，使类型签名如实反映运行时行为）",
-  "sourceCode": "function first<T>(items: T[]): T {\n  return items[0];\n}",
-  "functionName": "first",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function first<T>(items: T[]): T {\n  return items[0];\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "T | undefined",
-    "throw",
-    "undefined"
-   ]
-  },
-  "tags": [
-   "typescript",
-   "type-safety",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "d2a9c5a0db2fffb1"
- },
- {
-  "id": "CR2-TS-002",
-  "dimension": "program",
-  "category": "null_handling",
-  "difficulty": "medium",
-  "language": "typescript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 TypeScript 工程师。以下函数在 strict 模式下编译报错，且运行时可能抛出 TypeError。请找出并修复：\n\n```typescript\ninterface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}\n```\n\n功能要求：address 缺失时返回 'unknown'。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```typescript 代码块中）",
-  "sourceCode": "interface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}",
-  "functionName": "getCity",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "interface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "?.",
-    "??",
-    "unknown"
-   ]
-  },
-  "tags": [
-   "typescript",
-   "optional-chaining",
-   "null-safety",
-   "fix"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "882a212e8ae8f555"
- },
- {
-  "id": "CR2-TS-003",
-  "dimension": "program",
-  "category": "implementation",
-  "difficulty": "medium",
-  "language": "typescript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 TypeScript 工程师。请实现类型安全的整数解析函数：\n\n```typescript\ntype Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // 解析成功返回 { ok: true, value }\n  // 非整数（含 NaN、小数、空串）返回 { ok: false, error: '不是合法整数' }\n}\n```\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```typescript 代码块中）",
-  "sourceCode": "type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // TODO\n}",
-  "functionName": "safeParseInt",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // TODO\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "Number.isInteger",
-    "ok:",
-    "isNaN",
-    "trim"
-   ]
-  },
-  "tags": [
-   "typescript",
-   "result-type",
-   "implement",
-   "discriminated-union"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "a6bb329a08ad1473"
- },
- {
-  "id": "CR2-TS-004",
-  "dimension": "program",
-  "category": "correct_code_trap",
-  "difficulty": "hard",
-  "language": "typescript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 TypeScript 工程师。请审查以下可辨识联合的面积计算函数，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请明确说明穷举性是如何保证的：\n\n```typescript\ntype Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明类型收窄与穷举性检查机制）",
-  "sourceCode": "type Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}",
-  "functionName": "area",
-  "expectedVerdict": "no_bug",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "type Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}",
-   "isCorrectCodeTrap": true,
-   "explanationKeywords": [
-    "收窄",
-    "narrowing",
-    "穷举",
-    "exhaustive",
-    "never",
-    "discriminated"
-   ]
-  },
-  "tags": [
-   "typescript",
-   "trap",
-   "correct-code",
-   "discriminated-union"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "b403ca6b447fe706"
- },
- {
-  "id": "CR2-TS-005",
-  "dimension": "program",
-  "category": "security",
-  "difficulty": "adversarial",
-  "language": "typescript",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "你是一名资深 TypeScript 安全工程师。请审查以下配置合并函数的安全问题并修复：\n\n```typescript\nfunction merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}\n```\n\n提示：考虑攻击者控制 source 时能做什么。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型\n2. 攻击示例（说明原型污染的攻击载荷与后果）\n3. 修复后的完整代码（包裹在 ```typescript 代码块中）",
-  "sourceCode": "function merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}",
-  "functionName": "merge",
-  "expectedVerdict": "fix",
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair"
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "",
-   "initialCode": "function merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "__proto__",
-    "hasOwnProperty",
-    "Object.keys",
-    "constructor"
-   ]
-  },
-  "tags": [
-   "typescript",
-   "security",
-   "prototype-pollution",
-   "adversarial"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "bfa0f6e89071dfec"
- }
+  {
+    "id": "CR2-TS-005",
+    "dimension": "program",
+    "category": "security",
+    "difficulty": "adversarial",
+    "language": "typescript",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "你是一名资深 TypeScript 安全工程师。请审查以下配置合并函数的安全问题并修复：\n\n```typescript\nfunction merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}\n```\n\n提示：考虑攻击者控制 source 时能做什么。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型\n2. 攻击示例（说明原型污染的攻击载荷与后果）\n3. 修复后的完整代码（包裹在 ```typescript 代码块中）",
+    "sourceCode": "function merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}",
+    "functionName": "merge",
+    "expectedVerdict": "fix",
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair"
+    },
+    "hiddenTests": [
+      {
+        "id": "CR2-TS-005-t1",
+        "type": "hidden",
+        "testCode": "console.log(JSON.stringify(merge({ a: 1 }, { b: 2 })))",
+        "description": "常规：普通键合并",
+        "expectedOutput": "{\"a\":1,\"b\":2}"
+      },
+      {
+        "id": "CR2-TS-005-t2",
+        "type": "boundary",
+        "testCode": "const t = merge({}, { __proto__: { isAdmin: true } }); console.log(t.isAdmin === undefined ? 'safe' : 'polluted');",
+        "description": "边界：for-in 枚举原型链键，__proto__ 字面量载荷不得污染（bug 必挂）",
+        "expectedOutput": "safe"
+      },
+      {
+        "id": "CR2-TS-005-t3",
+        "type": "boundary",
+        "testCode": "const t2 = merge({}, JSON.parse('{\"__proto__\": {\"polluted\": true}}')); console.log(t2.polluted === undefined ? 'safe' : 'polluted');",
+        "description": "边界：JSON 反序列化的自有 __proto__ 键不得改写原型（bug 必挂）",
+        "expectedOutput": "safe"
+      }
+    ],
+    "requirements": {
+      "functionName": "",
+      "initialCode": "function merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "__proto__",
+        "hasOwnProperty",
+        "Object.keys",
+        "constructor"
+      ],
+      "hiddenTests": [
+        {
+          "code": "console.log(JSON.stringify(merge({ a: 1 }, { b: 2 })))",
+          "description": "常规：普通键合并"
+        },
+        {
+          "code": "const t = merge({}, { __proto__: { isAdmin: true } }); console.log(t.isAdmin === undefined ? 'safe' : 'polluted');",
+          "description": "边界：for-in 枚举原型链键，__proto__ 字面量载荷不得污染（bug 必挂）"
+        },
+        {
+          "code": "const t2 = merge({}, JSON.parse('{\"__proto__\": {\"polluted\": true}}')); console.log(t2.polluted === undefined ? 'safe' : 'polluted');",
+          "description": "边界：JSON 反序列化的自有 __proto__ 键不得改写原型（bug 必挂）"
+        }
+      ],
+      "referenceSolution": "function merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key of Object.keys(source)) {\n    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {\n      continue;\n    }\n    target[key] = source[key];\n  }\n  return target;\n}"
+    },
+    "tags": [
+      "typescript",
+      "security",
+      "prototype-pollution",
+      "adversarial"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "bfa0f6e89071dfec"
+  }
 ]
