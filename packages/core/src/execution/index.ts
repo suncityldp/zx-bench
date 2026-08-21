@@ -16,6 +16,8 @@ export { buildPhpHarness, runPhpTestsInContainer } from './phpRunner.js';
 export type { PhpFixture, PhpRunResult } from './phpRunner.js';
 export { buildCsharpHarness, runCsharpTestsInContainer } from './csharpRunner.js';
 export { buildSqlHarness, runSqlInContainer } from './sqlRunner.js';
+export { buildBashHarness, runBashTestsInContainer } from './bashRunner.js';
+export type { BashFixture, BashRunResult } from './bashRunner.js';
 export type { SqlFixture, SqlRunResult } from './sqlRunner.js';
 export type { CsharpFixture, CsharpRunResult } from './csharpRunner.js';
 export type { RustFixture, RustRunResult } from './rustRunner.js';

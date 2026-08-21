@@ -20,6 +20,7 @@ import { runRustTestsInContainer, type RustFixture } from '../execution/rustRunn
 import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.js';
 import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
 import { runSqlInContainer, type SqlFixture } from '../execution/sqlRunner.js';
+import { runBashTestsInContainer, type BashFixture } from '../execution/bashRunner.js';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -477,10 +478,11 @@ export const codeRepairEvaluator: Evaluator = {
     const phpFixture = (lang === 'php' && reqObj.fixture) ? (reqObj.fixture as PhpFixture) : undefined;
     const csharpFixture = (lang === 'csharp' && reqObj.fixture) ? (reqObj.fixture as CsharpFixture) : undefined;
     const sqlFixture = (lang === 'sql' && reqObj.fixture) ? (reqObj.fixture as SqlFixture) : undefined;
+    const bashFixture = (lang === 'bash' && reqObj.fixture) ? (reqObj.fixture as BashFixture) : undefined;
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
       ? getPythonBin() != null
-      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null);
+      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null || bashFixture != null);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
     if (scenario.expectedVerdict === 'no_bug') {
@@ -573,7 +575,36 @@ export const codeRepairEvaluator: Evaluator = {
         ? scenario.hiddenTests
         : scenario.publicTests || [];
 
-      if (sqlFixture) {
+      if (bashFixture) {
+        // ===== Bash 容器执行路径（脚本断言，退出码判定） =====
+        const bashRes = runBashTestsInContainer(patch, tests, bashFixture);
+        const bashCompiled = !/syntax error|command not found/.test(bashRes.stderr);
+        axisScores.compilation = bashCompiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(bashCompiled
+          ? 'Bash container ran successfully'
+          : 'Bash container error: ' + bashRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+
+        if (tests.length > 0) {
+          const details = bashRes.tests.map((t) => ({
+            testId: t.name,
+            testType: 'hidden',
+            passed: t.passed,
+            stdout: '',
+            stderr: t.passed ? '' : 'assertion failed',
+            exitCode: t.passed ? 0 : 1,
+            duration: 0,
+            timedOut: bashRes.timedOut,
+          }));
+          const suiteResult = summarizeTestResults(details);
+          axisScores.test_pass = calculateTestScore(suiteResult);
+          axisEvidence.test_pass = 'verified';
+          evidence.push(`Bash container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+        } else {
+          axisEvidence.test_pass = 'unmeasured';
+          evidence.push('No Bash tests available for verification');
+        }
+      } else if (sqlFixture) {
         // ===== SQL 容器执行路径（建表 + 插数 + 查询 + 结果集/计划比对） =====
         const sqlRes = runSqlInContainer(patch, sqlFixture);
         const sqlCompiled = !/SQLITE_ERROR|SyntaxError/.test(sqlRes.stderr);

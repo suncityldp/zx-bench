@@ -20937,6 +20937,228 @@
   "maxReasoningTokens": null
  },
  {
+  "id": "CS-001",
+  "dimension": "program",
+  "category": "equals_hashcode",
+  "difficulty": "hard",
+  "language": "csharp",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "`Money` 重写了 `Equals`（金额 + 币种相同即逻辑相等），但**没有重写 `GetHashCode`**——`HashSet<Money>`/`Contains` 按默认引用哈希分桶后再调 Equals：等值实例被重复收纳、等值查询查不到。请补上与 Equals 一致的 `GetHashCode`，保持既有 Equals 语义与字段不变。\n\n```csharp\nclass Money\n{\n    public decimal Amount;\n    public string Currency;\n\n    public override bool Equals(object o)\n    {\n        return o is Money m && m.Amount == Amount && m.Currency == Currency;\n    }\n}\n```",
+  "sourceCode": "class Money\n{\n    public decimal Amount;\n    public string Currency;\n\n    public override bool Equals(object o)\n    {\n        return o is Money m && m.Amount == Amount && m.Currency == Currency;\n    }\n}",
+  "functionName": "Money",
+  "expectedVerdict": null,
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair",
+   "weights": {
+    "patch_extraction": 0.15,
+    "compilation": 0.1,
+    "test_pass": 0.25,
+    "static_signals": 0.25,
+    "patch_quality": 0.15,
+    "scope_discipline": 0.1
+   }
+  },
+  "hiddenTests": [
+   {
+    "id": "CS-001-hidden-1",
+    "type": "hidden",
+    "testCode": "var s0 = new HashSet<Money>(); s0.Add(new Money { Amount = 10m, Currency = \"USD\" }); Assert.Equal(1, s0.Count);",
+    "description": "常规：单元素集合计数",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CS-001-hidden-2",
+    "type": "hidden",
+    "testCode": "var s = new HashSet<Money>(); s.Add(new Money { Amount = 10m, Currency = \"USD\" }); s.Add(new Money { Amount = 10m, Currency = \"USD\" }); Assert.Equal(1, s.Count);",
+    "description": "边界：等值实例去重（bug 必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CS-001-hidden-3",
+    "type": "hidden",
+    "testCode": "var s2 = new HashSet<Money>(); s2.Add(new Money { Amount = 10m, Currency = \"USD\" }); Assert.True(s2.Contains(new Money { Amount = 10m, Currency = \"USD\" }));",
+    "description": "边界：等值查询命中（bug 必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CS-001-hidden-4",
+    "type": "hidden",
+    "testCode": "var s3 = new HashSet<Money>(); s3.Add(new Money { Amount = 10m, Currency = \"USD\" }); s3.Add(new Money { Amount = 20m, Currency = \"USD\" }); Assert.Equal(2, s3.Count);",
+    "description": "边界：不等值实例不合并",
+    "expectedExitCode": 0
+   }
+  ],
+  "requirements": {
+   "functionName": "Money",
+   "initialCode": "class Money\n{\n    public decimal Amount;\n    public string Currency;\n\n    public override bool Equals(object o)\n    {\n        return o is Money m && m.Amount == Amount && m.Currency == Currency;\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "GetHashCode",
+    "HashCode.Combine",
+    "Equals",
+    "哈希"
+   ],
+   "hiddenTests": [
+    {
+     "code": "var s0 = new HashSet<Money>(); s0.Add(new Money { Amount = 10m, Currency = \"USD\" }); Assert.Equal(1, s0.Count);",
+     "description": "常规：单元素集合计数"
+    },
+    {
+     "code": "var s = new HashSet<Money>(); s.Add(new Money { Amount = 10m, Currency = \"USD\" }); s.Add(new Money { Amount = 10m, Currency = \"USD\" }); Assert.Equal(1, s.Count);",
+     "description": "边界：等值实例去重（bug 必挂）"
+    },
+    {
+     "code": "var s2 = new HashSet<Money>(); s2.Add(new Money { Amount = 10m, Currency = \"USD\" }); Assert.True(s2.Contains(new Money { Amount = 10m, Currency = \"USD\" }));",
+     "description": "边界：等值查询命中（bug 必挂）"
+    },
+    {
+     "code": "var s3 = new HashSet<Money>(); s3.Add(new Money { Amount = 10m, Currency = \"USD\" }); s3.Add(new Money { Amount = 20m, Currency = \"USD\" }); Assert.Equal(2, s3.Count);",
+     "description": "边界：不等值实例不合并"
+    }
+   ],
+   "fixture": {
+    "language": "csharp",
+    "wrapInClass": false,
+    "usings": [],
+    "helpers": ""
+   },
+   "referenceSolution": "class Money\n{\n    public decimal Amount;\n    public string Currency;\n\n    public override bool Equals(object o)\n    {\n        return o is Money m && m.Amount == Amount && m.Currency == Currency;\n    }\n\n    public override int GetHashCode()\n    {\n        return System.HashCode.Combine(Amount, Currency);\n    }\n}"
+  },
+  "tags": [
+   "csharp",
+   "equals_hashcode",
+   "fix",
+   "hidden_test_verified",
+   "finance"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "cdb872969325cdab",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "PH-001",
+  "dimension": "program",
+  "category": "strpos_zero_falsy",
+  "difficulty": "hard",
+  "language": "php",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "`containsToken` 判断 `$needle` 是否出现在 `$haystack` 中。实现把 `strpos(...)` 的返回值直接当布尔用——当 needle 恰好出现在**开头（位置 0）**时，`strpos` 返回 `0` 被当作 falsy，函数错误地返回 false（首 token 匹配永远失败）。请修复（用 `!== false` 显式判断），保持函数签名不变。\n\n```php\nfunction containsToken(string $haystack, string $needle): bool {\n    return strpos($haystack, $needle) ? true : false;\n}\n```",
+  "sourceCode": "function containsToken(string $haystack, string $needle): bool {\n    return strpos($haystack, $needle) ? true : false;\n}",
+  "functionName": "containsToken",
+  "expectedVerdict": null,
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair",
+   "weights": {
+    "patch_extraction": 0.15,
+    "compilation": 0.1,
+    "test_pass": 0.25,
+    "static_signals": 0.25,
+    "patch_quality": 0.15,
+    "scope_discipline": 0.1
+   }
+  },
+  "hiddenTests": [
+   {
+    "id": "PH-001-hidden-1",
+    "type": "hidden",
+    "testCode": "assert(containsToken('Bearer abc123', 'abc123') === true);",
+    "description": "常规：needle 在中部命中",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "PH-001-hidden-2",
+    "type": "hidden",
+    "testCode": "assert(containsToken('abc123 extra', 'abc123') === true);",
+    "description": "边界：needle 位于开头（位置 0），bug 必挂",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "PH-001-hidden-3",
+    "type": "hidden",
+    "testCode": "assert(containsToken('你好world', '你好') === true);",
+    "description": "边界：多字节 needle 位于字节位置 0",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "PH-001-hidden-4",
+    "type": "hidden",
+    "testCode": "assert(containsToken('xyz789', 'abc') === false);",
+    "description": "边界：未命中返回 false",
+    "expectedExitCode": 0
+   }
+  ],
+  "requirements": {
+   "functionName": "containsToken",
+   "initialCode": "function containsToken(string $haystack, string $needle): bool {\n    return strpos($haystack, $needle) ? true : false;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "!== false",
+    "strpos",
+    "falsy",
+    "位置 0",
+    "mb_strpos"
+   ],
+   "hiddenTests": [
+    {
+     "code": "assert(containsToken('Bearer abc123', 'abc123') === true);",
+     "description": "常规：needle 在中部命中"
+    },
+    {
+     "code": "assert(containsToken('abc123 extra', 'abc123') === true);",
+     "description": "边界：needle 位于开头（位置 0），bug 必挂"
+    },
+    {
+     "code": "assert(containsToken('你好world', '你好') === true);",
+     "description": "边界：多字节 needle 位于字节位置 0"
+    },
+    {
+     "code": "assert(containsToken('xyz789', 'abc') === false);",
+     "description": "边界：未命中返回 false"
+    }
+   ],
+   "fixture": {
+    "language": "php",
+    "phpVersion": "8.2",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "function containsToken(string $haystack, string $needle): bool {\n    return strpos($haystack, $needle) !== false;\n}"
+  },
+  "tags": [
+   "php",
+   "strpos_zero_falsy",
+   "fix",
+   "hidden_test_verified"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "2a8c9d6b7cf295da",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
   "id": "PR-ELITE-001",
   "dimension": "program",
   "category": "class_state_machine",
@@ -21609,6 +21831,139 @@
   ],
   "scenarioVersion": "1.0.0",
   "scenarioHash": "936ed2e869cfb789",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "SH-001",
+  "dimension": "program",
+  "category": "octal_leading_zero",
+  "difficulty": "hard",
+  "language": "bash",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "`increment_version` 对版本号分段（如 `1.08.3` 中的 `08`）做 +1。bash 算术展开 `$((part + 1))` 会把**带前导零的字面量按八进制**解析：`08`/`09` 直接报 `value too great for base`（输出为空），`010` 更隐蔽——按八进制静默算成 9 而不是 11。请修复（用 `10#` 前缀强制十进制），保持函数接口（参数输入、stdout 输出）不变。\n\n```bash\nincrement_version() {\n    local part=\"$1\"\n    echo $((part + 1))\n}\n```",
+  "sourceCode": "increment_version() {\n    local part=\"$1\"\n    echo $((part + 1))\n}",
+  "functionName": "increment_version",
+  "expectedVerdict": null,
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair",
+   "weights": {
+    "patch_extraction": 0.15,
+    "compilation": 0.1,
+    "test_pass": 0.25,
+    "static_signals": 0.25,
+    "patch_quality": 0.15,
+    "scope_discipline": 0.1
+   }
+  },
+  "hiddenTests": [
+   {
+    "id": "SH-001-hidden-1",
+    "type": "hidden",
+    "testCode": "[[ \"$(increment_version 3)\" == \"4\" ]]",
+    "description": "常规：普通数字递增",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "SH-001-hidden-2",
+    "type": "hidden",
+    "testCode": "[[ \"$(increment_version 17)\" == \"18\" ]]",
+    "description": "常规：两位数字递增",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "SH-001-hidden-3",
+    "type": "hidden",
+    "testCode": "[[ \"$(increment_version 0)\" == \"1\" ]]",
+    "description": "边界：0 递增为 1",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "SH-001-hidden-4",
+    "type": "hidden",
+    "testCode": "[[ \"$(increment_version 08)\" == \"9\" ]]",
+    "description": "边界：前导零 08 应按十进制得 9（bug 直接报错输出为空，必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "SH-001-hidden-5",
+    "type": "hidden",
+    "testCode": "[[ \"$(increment_version 09)\" == \"10\" ]]",
+    "description": "边界：前导零 09 应得 10（bug 必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "SH-001-hidden-6",
+    "type": "hidden",
+    "testCode": "[[ \"$(increment_version 010)\" == \"11\" ]]",
+    "description": "边界：010 应得 11，而非八进制 8+1=9 的静默错误（bug 必挂）",
+    "expectedExitCode": 0
+   }
+  ],
+  "requirements": {
+   "functionName": "increment_version",
+   "initialCode": "increment_version() {\n    local part=\"$1\"\n    echo $((part + 1))\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "10#",
+    "八进制",
+    "octal",
+    "base",
+    "强制十进制"
+   ],
+   "hiddenTests": [
+    {
+     "code": "[[ \"$(increment_version 3)\" == \"4\" ]]",
+     "description": "常规：普通数字递增"
+    },
+    {
+     "code": "[[ \"$(increment_version 17)\" == \"18\" ]]",
+     "description": "常规：两位数字递增"
+    },
+    {
+     "code": "[[ \"$(increment_version 0)\" == \"1\" ]]",
+     "description": "边界：0 递增为 1"
+    },
+    {
+     "code": "[[ \"$(increment_version 08)\" == \"9\" ]]",
+     "description": "边界：前导零 08 应按十进制得 9（bug 直接报错输出为空，必挂）"
+    },
+    {
+     "code": "[[ \"$(increment_version 09)\" == \"10\" ]]",
+     "description": "边界：前导零 09 应得 10（bug 必挂）"
+    },
+    {
+     "code": "[[ \"$(increment_version 010)\" == \"11\" ]]",
+     "description": "边界：010 应得 11，而非八进制 8+1=9 的静默错误（bug 必挂）"
+    }
+   ],
+   "fixture": {
+    "language": "bash",
+    "image": "bash:5",
+    "setOptions": [],
+    "helpers": ""
+   },
+   "referenceSolution": "increment_version() {\n    local part=\"$1\"\n    echo $((10#$part + 1))\n}"
+  },
+  "tags": [
+   "bash",
+   "octal_leading_zero",
+   "fix",
+   "hidden_test_verified"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "e5f676cf3f73a923",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
