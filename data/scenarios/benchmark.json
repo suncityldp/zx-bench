@@ -15215,7 +15215,12 @@
      "code": "assertEquals(2.0, average(new int[]{1,2,3}), 1e-9);",
      "description": "整除平均"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": true,
+    "imports": []
+   }
   },
   "tags": [
    "java",
@@ -16698,7 +16703,14 @@
      "code": "assertEquals(new Money(1,\"USD\").hashCode(), new Money(1,\"USD\").hashCode());",
      "description": "相等对象 hashCode 相同"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": false,
+    "imports": [
+     "import java.util.*;"
+    ]
+   }
   },
   "tags": [
    "java",

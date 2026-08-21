@@ -31,6 +31,8 @@ export interface ContainerRunOptions {
   runAsNonRoot?: boolean;
   /** 容器内环境变量（如 GOCACHE/GOPATH 指向可写 tmpfs） */
   env?: Record<string, string>;
+  /** 额外 bind mount（host 路径 → 容器路径），用于挂载依赖 jar 等 */
+  mounts?: { src: string; dst: string; readonly?: boolean }[];
 }
 
 export interface ContainerRunResult {
@@ -79,7 +81,7 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
     image, command, files = [], workdir = '/workspace', timeoutMs = 10000,
     memoryMb = 128, cpuLimit = 1.0, pidsLimit = 64,
     networkDisabled = true, readOnly = true, runAsNonRoot = true,
-    env = {},
+    env = {}, mounts = [],
   } = options;
 
   const startedAt = Date.now();
@@ -112,6 +114,9 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
     ];
     if (runAsNonRoot) args.push('--user', '65534:65534');
     for (const [k, v] of Object.entries(env)) args.push('-e', k + '=' + v);
+    for (const m of mounts) {
+      args.push('--mount', 'type=bind,src=' + m.src.split('\\').join('/') + ',dst=' + m.dst + (m.readonly === false ? '' : ',readonly'));
+    }
     args.push(image, ...command);
 
     const res = spawnSync('docker', args, { encoding: 'utf8', timeout: timeoutMs + 5000, maxBuffer: 8 * 1024 * 1024 });
