@@ -9,7 +9,7 @@
 ## Highlights
 
 - **10 capability dimensions**: programming, reasoning & math, safety & authority, deep CLI tasks, data extraction, agent workflow, instruction following, tool/CLI workflow, hallucination resistance, structured output.
-- **516 evaluable benchmark questions** (519 total; 3 are quarantined for format/constraint defects and do not run): difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
+- **516 evaluable benchmark questions**: difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
 - **Real code execution**: JS/TS/Python run in a subprocess sandbox; Go/Java/C/C++/Rust/PHP/C#/Bash/SQL run in Docker containers with real compile + hidden-test execution (ASan for memory errors, JUnit for Java, race detector for concurrency, SQLite for queries). The test_pass axis is the actual test pass rate — no keyword guessing.
 - **no_bug traps**: some code is already correct; the model must recognize no-bug instead of forcing a fix (false fixes score 0).
 - **Deterministic scoring + AI Judge dual channel**: rule-based evaluators score first; an AI Judge re-scores semantic items with coverage-aware weight handoff.

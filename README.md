@@ -9,7 +9,7 @@
 ## 核心特性
 
 - **10 大能力维度**：编程、推理数学、安全权限、深度 CLI、数据抽取、智能体工作流、指令遵循、工具/CLI、幻觉抵抗、结构化输出。
-- **516 道可评测基准题**（题库共 519 道，其中 3 道因格式/约束缺陷已隔离，不参与评测）：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
+- **516 道可评测基准题**：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
 - **编程题真实执行**：JS/TS/Python 子进程沙箱；Go/Java/C/C++/Rust/PHP/C#/Bash/SQL 在 Docker 容器里**真实编译 + 运行隐藏测试**（ASan 检内存错误、JUnit 跑 Java、race detector 检并发、SQLite 跑查询），`test_pass` 轴 = 真实测试通过率——不再用关键词「猜」代码对不对。
 - **no_bug 陷阱题**：部分代码本身正确，模型须识别「无 bug」而非强行修改，误修会扣分。
 - **确定性评分 + AI Judge 双通道**：规则评分器先判，AI Judge 按维度权重补判语义项，覆盖率感知地「让渡」权重。
