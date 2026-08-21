@@ -126,16 +126,46 @@ composite score = Σ(dimension average x dimension weight) / Σ(dimension weight
 ## Pages
 
 1. **Dashboard** — global stats, dimension radar, distribution.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
 2. **EvalCreate** — configure a run (single or multi-model).
+
+![EvalCreate](docs/screenshots/eval-create.png)
+
 3. **EvalLive** — real-time progress, pause/resume/cancel, retry, fork.
+
 4. **EvalHistory** — list of runs.
+
+![EvalHistory](docs/screenshots/eval-history.png)
+
 5. **EvalDetail** — per-question detail, evidence, retry.
+
 6. **Report / ReportList** — scores, radar, ranking, evidence composition, AI report.
+
+![Reports](docs/screenshots/reports.png)
+![Report](docs/screenshots/report.png)
+![AI Report](docs/screenshots/report-ai.png)
+
 7. **Leaderboard** — per-model ranking (latest run / best-across-runs).
+
+![Leaderboard](docs/screenshots/leaderboard.png)
+
 8. **Scenarios** — question management.
+
+![Scenarios](docs/screenshots/scenarios.png)
+
 9. **CompareModels** — multi-model comparison report.
+
+![Compare](docs/screenshots/compare.png)
+
 10. **ModelValue** — score vs token scatter.
+
+![ModelValue](docs/screenshots/value.png)
+
 11. **ModelConfig** — model & judge configuration.
+
+![Settings](docs/screenshots/settings.png)
 
 ---
 

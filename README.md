@@ -137,8 +137,12 @@ node scripts/export-scenarios.mjs # 导出
 ### 1. 总览（Dashboard）
 评测系统主页：全局统计、维度雷达图、维度分布表。
 
+![总览](docs/screenshots/dashboard.png)
+
 ### 2. 创建评测（EvalCreate）
 配置评测参数，支持单模型与多模型并行，提交后跳转实时监控。
+
+![创建评测](docs/screenshots/eval-create.png)
 
 ### 3. 实时监控（EvalLive）
 评测运行中的实时视图，支持暂停/恢复/取消、fork 分叉维度、单题重试。
@@ -146,26 +150,42 @@ node scripts/export-scenarios.mjs # 导出
 ### 4. 评测历史（EvalHistory）
 所有评测记录列表，支持进入监控、恢复、详情、报告。
 
+![评测历史](docs/screenshots/eval-history.png)
+
 ### 5. 评测详情（EvalDetail）
 单次评测的逐题明细、证据折叠、单题重试。
 
 ### 6. 评测报告（Report / ReportList）
 总分、维度雷达、排名、分数分布、评分证据构成、AI 深度报告。
 
+![评测报告列表](docs/screenshots/reports.png)
+![单份评测报告](docs/screenshots/report.png)
+![AI 报告](docs/screenshots/report-ai.png)
+
 ### 7. 排行榜（Leaderboard）
 按模型聚合排名，支持「最新 run / 跨 run 最优」两种口径。
+
+![排行榜](docs/screenshots/leaderboard.png)
 
 ### 8. 题目管理（Scenarios）
 题库管理：查看/编辑/删除、从 Pack 导入（含 SSRF 与路径穿越防护）。
 
+![题目管理](docs/screenshots/scenarios.png)
+
 ### 9. 模型对比（CompareModels）
 多模型对比报告，逐维度分析差异。
+
+![模型对比](docs/screenshots/compare.png)
 
 ### 10. 模型性价比（ModelValue）
 综合分为 X 轴、输出 token 为 Y 轴的散点图。
 
+![模型性价比](docs/screenshots/value.png)
+
 ### 11. 系统设置（ModelConfig）
 模型配置中心：添加/编辑/删除被测模型与 AI Judge 模型。
+
+![系统设置](docs/screenshots/settings.png)
 
 ---
 
