@@ -19,6 +19,7 @@ import { runCTestsInContainer, type CFixture } from '../execution/cRunner.js';
 import { runRustTestsInContainer, type RustFixture } from '../execution/rustRunner.js';
 import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.js';
 import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
+import { runSqlInContainer, type SqlFixture } from '../execution/sqlRunner.js';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -475,10 +476,11 @@ export const codeRepairEvaluator: Evaluator = {
     const rustFixture = (lang === 'rust' && reqObj.fixture) ? (reqObj.fixture as RustFixture) : undefined;
     const phpFixture = (lang === 'php' && reqObj.fixture) ? (reqObj.fixture as PhpFixture) : undefined;
     const csharpFixture = (lang === 'csharp' && reqObj.fixture) ? (reqObj.fixture as CsharpFixture) : undefined;
+    const sqlFixture = (lang === 'sql' && reqObj.fixture) ? (reqObj.fixture as SqlFixture) : undefined;
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
       ? getPythonBin() != null
-      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null);
+      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
     if (scenario.expectedVerdict === 'no_bug') {
@@ -571,7 +573,22 @@ export const codeRepairEvaluator: Evaluator = {
         ? scenario.hiddenTests
         : scenario.publicTests || [];
 
-      if (phpFixture) {
+      if (sqlFixture) {
+        // ===== SQL 容器执行路径（建表 + 插数 + 查询 + 结果集/计划比对） =====
+        const sqlRes = runSqlInContainer(patch, sqlFixture);
+        const sqlCompiled = !/SQLITE_ERROR|SyntaxError/.test(sqlRes.stderr);
+        axisScores.compilation = sqlCompiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(sqlCompiled
+          ? 'SQL container ran successfully'
+          : 'SQL container error: ' + sqlRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+
+        axisScores.test_pass = sqlRes.passed ? 100 : 0;
+        axisEvidence.test_pass = 'verified';
+        evidence.push(sqlRes.passed
+          ? 'SQL result set matches expected'
+          : 'SQL result mismatch: actual=' + JSON.stringify(sqlRes.actual).slice(0, 200));
+      } else if (phpFixture) {
         // ===== PHP 容器执行路径（真实运行 + assert） =====
         const phpRes = runPhpTestsInContainer(patch, tests, phpFixture);
         const phpCompiled = !/Parse error|Fatal error:/.test(phpRes.stderr);

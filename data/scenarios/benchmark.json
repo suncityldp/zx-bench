@@ -17133,7 +17133,24 @@
     "GROUP BY o.customer_id",
     "distinct"
    ],
-   "hiddenTests": []
+   "hiddenTests": [],
+   "fixture": {
+    "language": "sql",
+    "dialect": "sqlite",
+    "schema": "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); CREATE TABLE order_items (id INTEGER PRIMARY KEY, order_id INTEGER, sku TEXT, qty INTEGER);",
+    "seed": "INSERT INTO orders VALUES (1,1,100.0),(2,1,50.0),(3,2,30.0); INSERT INTO order_items VALUES (1,1,'A',1),(2,1,'B',1),(3,2,'C',1),(4,3,'D',2);",
+    "expectedResult": [
+     {
+      "customer_id": 1,
+      "total": 150
+     },
+     {
+      "customer_id": 2,
+      "total": 30
+     }
+    ]
+   },
+   "referenceSolution": "SELECT customer_id, SUM(amount) AS total FROM orders GROUP BY customer_id;"
   },
   "tags": [
    "sql",
@@ -17142,7 +17159,7 @@
    "private_validation"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "6d414e6b6ea74e56",
+  "scenarioHash": "1ff48f49bc84c5d2",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -19416,7 +19433,29 @@
     "MAX(o.created_at)",
     "u.id"
    ],
-   "hiddenTests": []
+   "hiddenTests": [],
+   "fixture": {
+    "language": "sql",
+    "dialect": "sqlite",
+    "schema": "CREATE TABLE users (id INTEGER PRIMARY KEY); CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER, created_at TEXT);",
+    "seed": "INSERT INTO users VALUES (1),(2),(3); INSERT INTO orders VALUES (1,1,'2021-01-01'),(2,1,'2021-02-01'),(3,2,'2021-03-01');",
+    "expectedResult": [
+     {
+      "user_id": 1,
+      "last_order": "2021-02-01"
+     },
+     {
+      "user_id": 2,
+      "last_order": "2021-03-01"
+     },
+     {
+      "user_id": 3,
+      "last_order": null
+     }
+    ],
+    "forbidPlanPattern": "CORRELATED SCALAR SUBQUERY"
+   },
+   "referenceSolution": "SELECT u.id AS user_id, MAX(o.created_at) AS last_order FROM users u LEFT JOIN orders o ON o.user_id = u.id GROUP BY u.id;"
   },
   "tags": [
    "sql",
@@ -19426,7 +19465,7 @@
    "private_validation"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "41e985713c318f7e",
+  "scenarioHash": "a5faca7e987e2a94",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21315,9 +21354,9 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "判断下面 Rust 代码是否存在功能 Bug。如果存在，请输出修复后的代码；如果不存在，请输出 `NO_FIX_NEEDED` 并说明原因。\n\n```rust\nuse std::collections::HashMap;\n\nstruct Cache<'a, K, V> {\n    store: HashMap<&'a K, &'a V>,\n}\n\nimpl<'a, K: std::cmp::Eq + std::hash::Hash, V> Cache<'a, K, V> {\n    fn new() -> Self {\n        Cache {\n            store: HashMap::new(),\n        }\n    }\n\n    fn insert(&mut self, key: &'a K, value: &'a V) {\n        self.store.insert(key, value);\n    }\n\n    fn get(&self, key: &K) -> Option<&&'a V> {\n        self.store.get(key)\n    }\n}\n\nfn main() {\n    let key1 = String::from(\"hello\");\n    let val1 = String::from(\"world\");\n    let mut cache = Cache::new();\n    cache.insert(&key1, &val1);\n\n    match cache.get(&key1) {\n        Some(v) => println!(\"Found: {}\", v),\n        None => println!(\"Not found\"),\n    }\n}\n```\n\n**输出格式：仅 `NO_FIX_NEEDED` + 原因说明 或 修复后代码块。禁止输出分析过程。**\n",
-  "sourceCode": null,
+  "sourceCode": "use std::collections::HashMap;\n\nstruct Cache<'a, K, V> {\n    store: HashMap<&'a K, &'a V>,\n}\n\nimpl<'a, K: std::cmp::Eq + std::hash::Hash, V> Cache<'a, K, V> {\n    fn new() -> Self {\n        Cache {\n            store: HashMap::new(),\n        }\n    }\n\n    fn insert(&mut self, key: &'a K, value: &'a V) {\n        self.store.insert(key, value);\n    }\n\n    fn get(&self, key: &K) -> Option<&&'a V> {\n        self.store.get(key)\n    }\n}\n\nfn main() {\n    let key1 = String::from(\"hello\");\n    let val1 = String::from(\"world\");\n    let mut cache = Cache::new();\n    cache.insert(&key1, &val1);\n\n    match cache.get(&key1) {\n        Some(v) => println!(\"Found: {}\", v),\n        None => println!(\"Not found\"),\n    }\n}",
   "functionName": null,
-  "expectedVerdict": null,
+  "expectedVerdict": "no_bug",
   "grader": "code_repair",
   "graderVersion": "3.2.0",
   "scoring": {
@@ -21328,7 +21367,20 @@
     "scope_discipline": 0.1
    }
   },
-  "requirements": {},
+  "requirements": {
+   "functionName": "Cache",
+   "initialCode": "use std::collections::HashMap;\n\nstruct Cache<'a, K, V> {\n    store: HashMap<&'a K, &'a V>,\n}\n\nimpl<'a, K: std::cmp::Eq + std::hash::Hash, V> Cache<'a, K, V> {\n    fn new() -> Self {\n        Cache {\n            store: HashMap::new(),\n        }\n    }\n\n    fn insert(&mut self, key: &'a K, value: &'a V) {\n        self.store.insert(key, value);\n    }\n\n    fn get(&self, key: &K) -> Option<&&'a V> {\n        self.store.get(key)\n    }\n}\n\nfn main() {\n    let key1 = String::from(\"hello\");\n    let val1 = String::from(\"world\");\n    let mut cache = Cache::new();\n    cache.insert(&key1, &val1);\n\n    match cache.get(&key1) {\n        Some(v) => println!(\"Found: {}\", v),\n        None => println!(\"Not found\"),\n    }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确",
+    "lifetime",
+    "HashMap"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "rust",
    "correct-code",
@@ -21337,7 +21389,7 @@
    "borrow-checker"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "4df27e6741152418",
+  "scenarioHash": "d150be276db69529",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21436,9 +21488,9 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "判断下面 Go 代码是否存在功能 Bug。如果存在，请输出修复后的代码；如果不存在，请输出 `NO_FIX_NEEDED` 并说明原因。\n\n```go\npackage main\n\nimport (\n    \"fmt\"\n    \"os\"\n)\n\nfunc readConfig(path string) (map[string]string, error) {\n    file, err := os.Open(path)\n    if err != nil {\n        return nil, fmt.Errorf(\"opening config %s: %w\", path, err)\n    }\n    defer file.Close()\n\n    // Simulated config parsing\n    config := map[string]string{\n        \"host\": \"localhost\",\n        \"port\": \"8080\",\n    }\n    return config, nil\n}\n\nfunc main() {\n    cfg, err := readConfig(\"/etc/app/config.ini\")\n    if err != nil {\n        fmt.Fprintf(os.Stderr, \"Error: %v\\n\", err)\n        os.Exit(1)\n    }\n    fmt.Printf(\"Config: %+v\\n\", cfg)\n}\n```\n\n**输出格式：仅 `NO_FIX_NEEDED` + 原因说明 或 修复后代码块。禁止输出分析过程。**\n",
-  "sourceCode": null,
+  "sourceCode": "package main\n\nimport (\n    \"fmt\"\n    \"os\"\n)\n\nfunc readConfig(path string) (map[string]string, error) {\n    file, err := os.Open(path)\n    if err != nil {\n        return nil, fmt.Errorf(\"opening config %s: %w\", path, err)\n    }\n    defer file.Close()\n\n    // Simulated config parsing\n    config := map[string]string{\n        \"host\": \"localhost\",\n        \"port\": \"8080\",\n    }\n    return config, nil\n}\n\nfunc main() {\n    cfg, err := readConfig(\"/etc/app/config.ini\")\n    if err != nil {\n        fmt.Fprintf(os.Stderr, \"Error: %v\\n\", err)\n        os.Exit(1)\n    }\n    fmt.Printf(\"Config: %+v\\n\", cfg)\n}",
   "functionName": null,
-  "expectedVerdict": null,
+  "expectedVerdict": "no_bug",
   "grader": "code_repair",
   "graderVersion": "3.2.0",
   "scoring": {
@@ -21449,7 +21501,20 @@
     "scope_discipline": 0.1
    }
   },
-  "requirements": {},
+  "requirements": {
+   "functionName": "readConfig",
+   "initialCode": "package main\n\nimport (\n    \"fmt\"\n    \"os\"\n)\n\nfunc readConfig(path string) (map[string]string, error) {\n    file, err := os.Open(path)\n    if err != nil {\n        return nil, fmt.Errorf(\"opening config %s: %w\", path, err)\n    }\n    defer file.Close()\n\n    // Simulated config parsing\n    config := map[string]string{\n        \"host\": \"localhost\",\n        \"port\": \"8080\",\n    }\n    return config, nil\n}\n\nfunc main() {\n    cfg, err := readConfig(\"/etc/app/config.ini\")\n    if err != nil {\n        fmt.Fprintf(os.Stderr, \"Error: %v\\n\", err)\n        os.Exit(1)\n    }\n    fmt.Printf(\"Config: %+v\\n\", cfg)\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确",
+    "defer",
+    "os.Open"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "go",
    "correct-code",
@@ -21458,7 +21523,7 @@
    "error-wrapping"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "25d1de18ed768af2",
+  "scenarioHash": "936ed2e869cfb789",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
