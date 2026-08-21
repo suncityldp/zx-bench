@@ -15778,7 +15778,36 @@
     "scope_discipline": 0.1
    }
   },
-  "hiddenTests": [],
+  "hiddenTests": [
+   {
+    "id": "CP-L2-CS-001-hidden-1",
+    "type": "hidden",
+    "testCode": "double[] a = new double[]{19.99, 5.01, 25.00}; Assert.Equal(50m, (decimal)Sum(a));",
+    "description": "常规：精确金额合计",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-CS-001-hidden-2",
+    "type": "hidden",
+    "testCode": "double[] b = new double[1000]; for (int i = 0; i < 1000; i++) b[i] = 0.1; Assert.Equal(100m, (decimal)Sum(b));",
+    "description": "边界：1000 次 0.1 累加，double 误差在 15 位有效数字转换后仍可见（bug 必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-CS-001-hidden-3",
+    "type": "hidden",
+    "testCode": "double[] c = new double[1000]; for (int i = 0; i < 1000; i++) c[i] = -0.1; Assert.Equal(-100m, (decimal)Sum(c));",
+    "description": "边界：负金额误差累积",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-CS-001-hidden-4",
+    "type": "hidden",
+    "testCode": "Assert.Equal(0m, (decimal)Sum(new double[]{}));",
+    "description": "边界：空数组合计为 0",
+    "expectedExitCode": 0
+   }
+  ],
   "requirements": {
    "functionName": "Sum",
    "initialCode": "public static double Sum(double[] prices) {\n    double t = 0;\n    foreach (var p in prices) t += p;\n    return t;\n}",
@@ -15787,7 +15816,31 @@
     "decimal",
     "0.1m"
    ],
-   "hiddenTests": []
+   "hiddenTests": [
+    {
+     "code": "double[] a = new double[]{19.99, 5.01, 25.00}; Assert.Equal(50m, (decimal)Sum(a));",
+     "description": "常规：精确金额合计"
+    },
+    {
+     "code": "double[] b = new double[1000]; for (int i = 0; i < 1000; i++) b[i] = 0.1; Assert.Equal(100m, (decimal)Sum(b));",
+     "description": "边界：1000 次 0.1 累加，double 误差在 15 位有效数字转换后仍可见（bug 必挂）"
+    },
+    {
+     "code": "double[] c = new double[1000]; for (int i = 0; i < 1000; i++) c[i] = -0.1; Assert.Equal(-100m, (decimal)Sum(c));",
+     "description": "边界：负金额误差累积"
+    },
+    {
+     "code": "Assert.Equal(0m, (decimal)Sum(new double[]{}));",
+     "description": "边界：空数组合计为 0"
+    }
+   ],
+   "fixture": {
+    "language": "csharp",
+    "wrapInClass": true,
+    "usings": [],
+    "helpers": ""
+   },
+   "referenceSolution": "public static decimal Sum(double[] prices) {\n    decimal t = 0m;\n    foreach (var p in prices) t += (decimal)p;\n    return Math.Round(t, 2);\n}"
   },
   "tags": [
    "csharp",
@@ -15796,7 +15849,7 @@
    "private_validation"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "8497f6f09eafb194",
+  "scenarioHash": "9f4f19beafd83fe4",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -16428,7 +16481,29 @@
     "scope_discipline": 0.1
    }
   },
-  "hiddenTests": [],
+  "hiddenTests": [
+   {
+    "id": "CP-L2-JV-002-hidden-1",
+    "type": "hidden",
+    "testCode": "try { assertEquals(\"hello\", readFirstLine(FdUtil.writeTemp(\"hello\\nworld\"))); } catch (Exception e) { throw new RuntimeException(e); }",
+    "description": "常规：正常读取文件首行",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-JV-002-hidden-2",
+    "type": "hidden",
+    "testCode": "try { assertNull(readFirstLine(FdUtil.writeTemp(\"\"))); } catch (Exception e) { throw new RuntimeException(e); }",
+    "description": "边界：空文件返回 null",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-JV-002-hidden-3",
+    "type": "hidden",
+    "testCode": "int before = FdUtil.countFds(); for (int i = 0; i < 300; i++) { try { readFirstLine(\"/proc/self/mem\"); } catch (Exception ignored) {} } assertTrue(\"fd leak: +\" + (FdUtil.countFds() - before), FdUtil.countFds() - before <= 10);",
+    "description": "边界：读取抛异常（/proc/self/mem 可 open 但 read 抛 IOException）时不得泄漏 fd（bug 必挂）",
+    "expectedExitCode": 0
+   }
+  ],
   "requirements": {
    "functionName": "readFirstLine",
    "initialCode": "static String readFirstLine(String path) throws IOException {\n    BufferedReader r = new BufferedReader(new FileReader(path));\n    String line = r.readLine();\n    r.close();\n    return line;\n}",
@@ -16438,7 +16513,29 @@
     "try-with-resources",
     "AutoCloseable"
    ],
-   "hiddenTests": []
+   "hiddenTests": [
+    {
+     "code": "try { assertEquals(\"hello\", readFirstLine(FdUtil.writeTemp(\"hello\\nworld\"))); } catch (Exception e) { throw new RuntimeException(e); }",
+     "description": "常规：正常读取文件首行"
+    },
+    {
+     "code": "try { assertNull(readFirstLine(FdUtil.writeTemp(\"\"))); } catch (Exception e) { throw new RuntimeException(e); }",
+     "description": "边界：空文件返回 null"
+    },
+    {
+     "code": "int before = FdUtil.countFds(); for (int i = 0; i < 300; i++) { try { readFirstLine(\"/proc/self/mem\"); } catch (Exception ignored) {} } assertTrue(\"fd leak: +\" + (FdUtil.countFds() - before), FdUtil.countFds() - before <= 10);",
+     "description": "边界：读取抛异常（/proc/self/mem 可 open 但 read 抛 IOException）时不得泄漏 fd（bug 必挂）"
+    }
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": true,
+    "imports": [
+     "import java.io.*;"
+    ],
+    "helpers": "class FdUtil {\n    static int countFds() {\n        String[] fds = new java.io.File(\"/proc/self/fd\").list();\n        return fds == null ? -1 : fds.length;\n    }\n    static String writeTemp(String content) throws Exception {\n        java.nio.file.Path p = java.nio.file.Files.createTempFile(\"hidden\", \".txt\");\n        java.nio.file.Files.write(p, content.getBytes(java.nio.charset.StandardCharsets.UTF_8));\n        return p.toString();\n    }\n}"
+   },
+   "referenceSolution": "static String readFirstLine(String path) throws IOException {\n    try (BufferedReader r = new BufferedReader(new FileReader(path))) {\n        return r.readLine();\n    }\n}"
   },
   "tags": [
    "java",
@@ -16447,7 +16544,7 @@
    "private_validation"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "c30612eab72391ee",
+  "scenarioHash": "158ad303f0d6ab9c",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -16484,7 +16581,36 @@
     "scope_discipline": 0.1
    }
   },
-  "hiddenTests": [],
+  "hiddenTests": [
+   {
+    "id": "CP-L2-PHP-001-hidden-1",
+    "type": "hidden",
+    "testCode": "assert(checkToken('abc123', 'abc123') === true);",
+    "description": "常规：相同 token 通过",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-PHP-001-hidden-2",
+    "type": "hidden",
+    "testCode": "assert(checkToken('abc123', 'xyz789') === false);",
+    "description": "常规：不同 token 拒绝",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-PHP-001-hidden-3",
+    "type": "hidden",
+    "testCode": "assert(checkToken('0e123', '0e456') === false);",
+    "description": "边界：科学计数法松比较陷阱（0e123 == 0e456 为 true，bug 必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L2-PHP-001-hidden-4",
+    "type": "hidden",
+    "testCode": "assert(checkToken('1e1', '10') === false);",
+    "description": "边界：数值字符串松比较陷阱（1e1 == 10 为 true）",
+    "expectedExitCode": 0
+   }
+  ],
   "requirements": {
    "functionName": "checkToken",
    "initialCode": "function checkToken(string $provided, string $expected): bool {\n    return $provided == $expected;\n}",
@@ -16494,7 +16620,31 @@
     "===",
     "timing"
    ],
-   "hiddenTests": []
+   "hiddenTests": [
+    {
+     "code": "assert(checkToken('abc123', 'abc123') === true);",
+     "description": "常规：相同 token 通过"
+    },
+    {
+     "code": "assert(checkToken('abc123', 'xyz789') === false);",
+     "description": "常规：不同 token 拒绝"
+    },
+    {
+     "code": "assert(checkToken('0e123', '0e456') === false);",
+     "description": "边界：科学计数法松比较陷阱（0e123 == 0e456 为 true，bug 必挂）"
+    },
+    {
+     "code": "assert(checkToken('1e1', '10') === false);",
+     "description": "边界：数值字符串松比较陷阱（1e1 == 10 为 true）"
+    }
+   ],
+   "fixture": {
+    "language": "php",
+    "phpVersion": "8.2",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "function checkToken(string $provided, string $expected): bool {\n    return hash_equals($expected, $provided);\n}"
   },
   "tags": [
    "php",
@@ -16502,7 +16652,7 @@
    "fix"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "70f9db24cd0f5c1f",
+  "scenarioHash": "c12d44aa15b5a381",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -18981,7 +19131,29 @@
     "scope_discipline": 0.1
    }
   },
-  "hiddenTests": [],
+  "hiddenTests": [
+   {
+    "id": "CP-L3-CONC-JV-001-hidden-1",
+    "type": "hidden",
+    "testCode": "Cache c = new Cache(); int[] calls = {0}; java.util.function.Supplier<Integer> s = () -> { calls[0]++; return 42; }; c.getOrCompute(\"a\", s); c.getOrCompute(\"a\", s); assertTrue(\"calls=\" + calls[0], calls[0] == 1 && c.getOrCompute(\"a\", s) == 42);",
+    "description": "常规：单线程重复取值命中缓存，supplier 只计算一次",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L3-CONC-JV-001-hidden-2",
+    "type": "hidden",
+    "testCode": "Cache c1 = new Cache(); int[] calls1 = {0}; java.util.function.Supplier<Integer> s1 = () -> { calls1[0]++; try { Thread.sleep(20); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } return 7; }; java.util.concurrent.CyclicBarrier b1 = new java.util.concurrent.CyclicBarrier(8); Thread[] ts1 = new Thread[8]; for (int i = 0; i < 8; i++) { ts1[i] = new Thread(() -> { try { b1.await(); c1.getOrCompute(\"k\", s1); } catch (Exception ignored) {} }); ts1[i].start(); } for (Thread t : ts1) { try { t.join(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } } assertTrue(\"supplier calls=\" + calls1[0], calls1[0] == 1);",
+    "description": "边界：8 线程 CyclicBarrier 同步并发取同一 key，supplier 只允许计算一次（bug 必挂）",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CP-L3-CONC-JV-001-hidden-3",
+    "type": "hidden",
+    "testCode": "Cache c2 = new Cache(); java.util.function.Supplier<Integer> s2 = () -> 99; java.util.concurrent.CyclicBarrier b2 = new java.util.concurrent.CyclicBarrier(4); Thread[] ts2 = new Thread[4]; for (int i = 0; i < 4; i++) { ts2[i] = new Thread(() -> { try { b2.await(); c2.getOrCompute(\"x\", s2); } catch (Exception ignored) {} }); ts2[i].start(); } for (Thread t : ts2) { try { t.join(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } } assertEquals(99, c2.getOrCompute(\"x\", s2));",
+    "description": "边界：并发写入后取值一致",
+    "expectedExitCode": 0
+   }
+  ],
   "requirements": {
    "functionName": "Cache.getOrCompute",
    "initialCode": "class Cache {\n    private Map<String,Integer> m = new HashMap<>();\n    int getOrCompute(String k, java.util.function.Supplier<Integer> f) {\n        if (m.containsKey(k)) return m.get(k);\n        int v = f.get();\n        m.put(k, v);\n        return v;\n    }\n}",
@@ -18990,7 +19162,30 @@
     "ConcurrentHashMap",
     "computeIfAbsent"
    ],
-   "hiddenTests": []
+   "hiddenTests": [
+    {
+     "code": "Cache c = new Cache(); int[] calls = {0}; java.util.function.Supplier<Integer> s = () -> { calls[0]++; return 42; }; c.getOrCompute(\"a\", s); c.getOrCompute(\"a\", s); assertTrue(\"calls=\" + calls[0], calls[0] == 1 && c.getOrCompute(\"a\", s) == 42);",
+     "description": "常规：单线程重复取值命中缓存，supplier 只计算一次"
+    },
+    {
+     "code": "Cache c1 = new Cache(); int[] calls1 = {0}; java.util.function.Supplier<Integer> s1 = () -> { calls1[0]++; try { Thread.sleep(20); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } return 7; }; java.util.concurrent.CyclicBarrier b1 = new java.util.concurrent.CyclicBarrier(8); Thread[] ts1 = new Thread[8]; for (int i = 0; i < 8; i++) { ts1[i] = new Thread(() -> { try { b1.await(); c1.getOrCompute(\"k\", s1); } catch (Exception ignored) {} }); ts1[i].start(); } for (Thread t : ts1) { try { t.join(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } } assertTrue(\"supplier calls=\" + calls1[0], calls1[0] == 1);",
+     "description": "边界：8 线程 CyclicBarrier 同步并发取同一 key，supplier 只允许计算一次（bug 必挂）"
+    },
+    {
+     "code": "Cache c2 = new Cache(); java.util.function.Supplier<Integer> s2 = () -> 99; java.util.concurrent.CyclicBarrier b2 = new java.util.concurrent.CyclicBarrier(4); Thread[] ts2 = new Thread[4]; for (int i = 0; i < 4; i++) { ts2[i] = new Thread(() -> { try { b2.await(); c2.getOrCompute(\"x\", s2); } catch (Exception ignored) {} }); ts2[i].start(); } for (Thread t : ts2) { try { t.join(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } } assertEquals(99, c2.getOrCompute(\"x\", s2));",
+     "description": "边界：并发写入后取值一致"
+    }
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": false,
+    "imports": [
+     "import java.util.*;",
+     "import java.util.concurrent.*;"
+    ],
+    "helpers": ""
+   },
+   "referenceSolution": "class Cache {\n    private final Map<String,Integer> m = new ConcurrentHashMap<>();\n    int getOrCompute(String k, java.util.function.Supplier<Integer> f) {\n        return m.computeIfAbsent(k, x -> f.get());\n    }\n}"
   },
   "tags": [
    "java",
@@ -19000,7 +19195,7 @@
    "private_validation"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "863bcaaa39481ecd",
+  "scenarioHash": "f89bd7925c84c827",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
