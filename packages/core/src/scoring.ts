@@ -35,6 +35,10 @@ export function computeWeightedTotal(dimAvgs: Map<string, number>): number {
   let totalWeight = 0;
   for (const [dim, avg] of dimAvgs) {
     const w = DIMENSION_WEIGHTS[dim] ?? 0;
+    if (w === 0 && avg != null) {
+      // 未注册维度（如 CR2 pack 的 code_repair）会被静默计为 0 权重——显式告警，避免分数被无声吞掉
+      console.warn(`[scoring] unknown dimension "${dim}" has no DIMENSION_WEIGHTS entry and is excluded from weighted total`);
+    }
     weightedSum += avg * w;
     totalWeight += w;
   }

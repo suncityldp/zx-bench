@@ -142,8 +142,14 @@ export function buildJudgeUserPrompt(input: JudgeInput): string {
   }
 
   // 期望答案 — 支持 string[] 和 Record<string, unknown> 两种格式
-  if (input.requirements.length > 0) {
-    sections.push(`### Requirements:\n${input.requirements.map((r) => `- ${r}`).join('\n')}`);
+  // 类型声明是 string[]，但 tool/agent/data_extraction 等维度 requirements 实际是对象，
+  // 直接 .map() 会抛错导致 Judge 失败降级；这里按运行时形态分别处理
+  if (Array.isArray(input.requirements)) {
+    if (input.requirements.length > 0) {
+      sections.push(`### Requirements:\n${input.requirements.map((r) => `- ${r}`).join('\n')}`);
+    }
+  } else if (input.requirements && typeof input.requirements === 'object') {
+    sections.push(`### Requirements:\n\`\`\`json\n${JSON.stringify(input.requirements, null, 2)}\n\`\`\``);
   }
 
   // 期望答案（数据抽取等维度）

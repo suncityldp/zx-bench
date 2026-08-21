@@ -14639,7 +14639,7 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "下面的 `sortDesc` 应该把数字数组按从大到小排序，但结果是错的。请修复它，保持函数名和签名不变，只做最小改动。\n\n```javascript\nfunction sortDesc(nums) {\n  return nums.sort((a, b) => b - a).slice();\n}\n```\n\n公开测试：\n```javascript\nconsole.log(sortDesc([3, 1, 2])); // [3, 2, 1]\n```",
+  "promptTemplate": "下面的 `sortDesc` 应该把数字数组按从大到小排序，但结果是错的。请修复它，保持函数名和签名不变，只做最小改动。\n\n```javascript\nfunction sortDesc(nums) {\n  return nums.sort();\n}\n```\n\n公开测试：\n```javascript\nconsole.log(sortDesc([3, 1, 2])); // [3, 2, 1]\n```",
   "sourceCode": "function sortDesc(nums) {\n  return nums.sort();\n}",
   "functionName": "sortDesc",
   "expectedVerdict": null,
@@ -20589,7 +20589,8 @@
   },
   "hiddenTests": null,
   "requirements": {
-   "answer": 767
+   "answer": 737,
+   "fixedGold": "2026-08-21: 847−80−30=737 (叠加满500减80+满200减30)"
   },
   "tags": [
    "chinese",
@@ -20669,7 +20670,8 @@
   },
   "hiddenTests": null,
   "requirements": {
-   "answer": 101080
+   "answer": 101240,
+   "fixedGold": "2026-08-21: 5000*2.50*7.24*1.08+3500=101240"
   },
   "tags": [
    "chinese",
@@ -21601,7 +21603,7 @@
   "difficulty": "hard",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "invalid",
   "tier": "public_dev",
   "promptTemplate": "有一个3×3的方格，需要填入1-9的数字（每行、每列、每个3×3宫格不重复）。\n已知条件：\n- 第1行：[5, ?, ?]\n- 第2行：[?, 3, ?]\n- 第3行：[?, ?, 7]\n- 第1列的和 = 12\n- 第3列的和 = 18\n- 对角线（左上到右下）的和 = 15\n\n请推理出所有格子的值。\n\n最后一行输出格式：ANSWER: 第1行=[a,b,c]，第2行=[d,e,f]，第3行=[g,h,i]",
   "sourceCode": null,
@@ -21615,7 +21617,8 @@
   },
   "hiddenTests": null,
   "requirements": {
-   "answer": "第1行=[5,1,9]，第2行=[4,3,2]，第3行=[3,8,7]"
+   "answer": "第1行=[5,1,9]，第2行=[4,3,2]，第3行=[3,8,7]",
+   "invalidReason": "2026-08-21: 约束不足导致多解(第1列和/第3列和/对角线不唯一)，且原 gold 含两个3缺6违反1-9唯一性"
   },
   "tags": [
    "chinese",
@@ -25716,7 +25719,7 @@
   "difficulty": "medium",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "invalid",
   "tier": "public_dev",
   "promptTemplate": "请生成一个 iCalendar (.ics) 格式的文件内容，包含一周的会议安排。\n\n要求：\n1. 符合 RFC 5545 标准\n2. 包含 VCALENDAR 包装（VERSION, PRODID, CALSCALE）\n3. 包含 VTIMEZONE 定义（Asia/Shanghai）\n4. 包含至少5个 VEVENT\n5. 每个事件包含：UID, DTSTART, DTEND, SUMMARY, DESCRIPTION, LOCATION\n6. 至少1个事件是全天事件（DTSTART;VALUE=DATE）\n7. 至少1个事件有重复规则（RRULE）\n8. 至少1个事件有提醒（VALARM）\n9. 使用中文描述\n10. 输出纯文本（ICS格式）",
   "sourceCode": null,
@@ -25739,7 +25742,8 @@
     "SUMMARY",
     "VALARM",
     "RRULE"
-   ]
+   ],
+   "invalidReason": "2026-08-21: 格式 ics 不在 SupportedFormat（parsers）支持范围，暂隔离"
   },
   "tags": [
    "chinese",
@@ -25766,7 +25770,7 @@
   "difficulty": "adversarial",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "invalid",
   "tier": "public_dev",
   "promptTemplate": "请将以下数据分别用 JSON、YAML、CSV、XML 四种格式输出：\n\n数据：一个3人团队的信息\n- 张三：前端工程师，3年经验，技能[React, TypeScript, CSS]\n- 李四：后端工程师，5年经验，技能[Java, Spring, MySQL]\n- 王五：全栈工程师，4年经验，技能[Node.js, Vue, PostgreSQL]\n\n要求：\n1. 用 --- 分隔四种格式\n2. 每种格式前标注格式名称\n3. JSON 部分：纯 JSON\n4. YAML 部分：纯 YAML\n5. CSV 部分：技能用分号连接在一个字段中\n6. XML 部分：技能作为子元素\n7. 四种格式表达的信息必须完全一致",
   "sourceCode": null,
@@ -25786,7 +25790,8 @@
     "YAML",
     "CSV",
     "XML"
-   ]
+   ],
+   "invalidReason": "2026-08-21: 格式 multi 不在 SupportedFormat（parsers）支持范围，暂隔离"
   },
   "tags": [
    "chinese",

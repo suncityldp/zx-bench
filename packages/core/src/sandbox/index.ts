@@ -176,6 +176,17 @@ export function runInSandbox(code: string, options: SandboxOptions = {}): Promis
       if (!resolved) {
         resolved = true;
         try { child.kill('SIGKILL'); } catch { /* ignore */ }
+        // 关键：超时后必须直接 resolve，不能依赖 exit handler（否则 exit 事件里
+        // 因 resolved 已为 true 提前 return，Promise 永不 resolve → 评测卡死）
+        resolve({
+          success: false,
+          stdout: stdoutLines.join('\n'),
+          stderr: stderrLines.join('\n'),
+          exitCode: 124,
+          duration: Date.now() - startedAt,
+          timedOut: true,
+          oomKilled: false,
+        });
       }
     }, timeout + 1000); // 比 worker 内部超时多 1s 缓冲
 
