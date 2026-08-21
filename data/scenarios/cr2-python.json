@@ -1,370 +1,695 @@
 [
-  {
-    "id": "CR2-PY-001",
-    "dimension": "code_repair",
-    "category": "off_by_one",
-    "difficulty": "easy",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。请审查以下代码，找出并修复其中的 bug：\n\n```python\ndef binary_search(arr, target):\n    left, right = 0, len(arr) - 2\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n```\n\n功能要求：在升序数组中查找 target，返回下标；不存在返回 -1。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中，保持函数签名不变）",
-    "sourceCode": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 2\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1",
-    "functionName": "binary_search",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-001-t1", "type": "static", "testCode": "assert binary_search([1,3,5,7,9], 9) == 4", "description": "查找最后一个元素", "expectedOutput": "4" },
-      { "id": "CR2-PY-001-t2", "type": "static", "testCode": "assert binary_search([1,3,5,7,9], 1) == 0", "description": "查找第一个元素", "expectedOutput": "0" },
-      { "id": "CR2-PY-001-t3", "type": "static", "testCode": "assert binary_search([], 5) == -1", "description": "空数组边界", "expectedOutput": "-1" }
-    ],
-    "requirements": ["len(arr) - 1"],
-    "tags": ["python", "binary-search", "fix", "boundary"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+ {
+  "id": "CR2-PY-001",
+  "dimension": "program",
+  "category": "off_by_one",
+  "difficulty": "easy",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。请审查以下代码，找出并修复其中的 bug：\n\n```python\ndef binary_search(arr, target):\n    left, right = 0, len(arr) - 2\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n```\n\n功能要求：在升序数组中查找 target，返回下标；不存在返回 -1。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中，保持函数签名不变）",
+  "sourceCode": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 2\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1",
+  "functionName": "binary_search",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-002",
-    "dimension": "code_repair",
-    "category": "mutable_default",
-    "difficulty": "easy",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下购物车函数在生产环境中出现诡异问题：不同用户的购物车互相串数据。请找出并修复 bug：\n\n```python\ndef add_item(item, cart=[]):\n    cart.append(item)\n    return cart\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，说明为什么不同调用会串数据）\n3. 修复后的完整代码（包裹在 ```python 代码块中，保持函数签名兼容）",
-    "sourceCode": "def add_item(item, cart=[]):\n    cart.append(item)\n    return cart",
-    "functionName": "add_item",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-002-t1", "type": "static", "testCode": "assert add_item('a') == ['a'] and add_item('b') == ['b']", "description": "连续两次默认参数调用不应累积", "expectedOutput": "pass" },
-      { "id": "CR2-PY-002-t2", "type": "static", "testCode": "c = ['x']; add_item('y', c); assert c == ['x', 'y']", "description": "显式传入的列表仍应正常追加", "expectedOutput": "pass" }
-    ],
-    "requirements": ["cart is None", "None"],
-    "tags": ["python", "mutable-default", "fix", "common-pitfall"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-001-t1",
+    "type": "static",
+    "testCode": "assert binary_search([1,3,5,7,9], 9) == 4",
+    "description": "查找最后一个元素",
+    "expectedOutput": "4"
+   },
+   {
+    "id": "CR2-PY-001-t2",
+    "type": "static",
+    "testCode": "assert binary_search([1,3,5,7,9], 1) == 0",
+    "description": "查找第一个元素",
+    "expectedOutput": "0"
+   },
+   {
+    "id": "CR2-PY-001-t3",
+    "type": "static",
+    "testCode": "assert binary_search([], 5) == -1",
+    "description": "空数组边界",
+    "expectedOutput": "-1"
+   }
+  ],
+  "requirements": [
+   "len(arr) - 1"
+  ],
+  "tags": [
+   "python",
+   "binary-search",
+   "fix",
+   "boundary"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "5853735b4a6b1835"
+ },
+ {
+  "id": "CR2-PY-002",
+  "dimension": "program",
+  "category": "mutable_default",
+  "difficulty": "easy",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下购物车函数在生产环境中出现诡异问题：不同用户的购物车互相串数据。请找出并修复 bug：\n\n```python\ndef add_item(item, cart=[]):\n    cart.append(item)\n    return cart\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，说明为什么不同调用会串数据）\n3. 修复后的完整代码（包裹在 ```python 代码块中，保持函数签名兼容）",
+  "sourceCode": "def add_item(item, cart=[]):\n    cart.append(item)\n    return cart",
+  "functionName": "add_item",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-003",
-    "dimension": "code_repair",
-    "category": "integer_division",
-    "difficulty": "easy",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下统计函数总是返回 0，请找出并修复 bug：\n\n```python\ndef success_rate(success, total):\n    return (success // total) * 100\n```\n\n功能要求：返回成功百分比（0-100 的浮点数），如 success=3, total=4 应返回 75.0。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def success_rate(success, total):\n    return (success // total) * 100",
-    "functionName": "success_rate",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-003-t1", "type": "static", "testCode": "assert success_rate(3, 4) == 75.0", "description": "常规百分比", "expectedOutput": "75.0" },
-      { "id": "CR2-PY-003-t2", "type": "static", "testCode": "assert success_rate(1, 3) > 33.0", "description": "非整除场景", "expectedOutput": "33.33" }
-    ],
-    "requirements": ["success / total"],
-    "tags": ["python", "integer-division", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-002-t1",
+    "type": "static",
+    "testCode": "assert add_item('a') == ['a'] and add_item('b') == ['b']",
+    "description": "连续两次默认参数调用不应累积",
+    "expectedOutput": "pass"
+   },
+   {
+    "id": "CR2-PY-002-t2",
+    "type": "static",
+    "testCode": "c = ['x']; add_item('y', c); assert c == ['x', 'y']",
+    "description": "显式传入的列表仍应正常追加",
+    "expectedOutput": "pass"
+   }
+  ],
+  "requirements": [
+   "cart is None",
+   "None"
+  ],
+  "tags": [
+   "python",
+   "mutable-default",
+   "fix",
+   "common-pitfall"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "7d13f2686067ec7e"
+ },
+ {
+  "id": "CR2-PY-003",
+  "dimension": "program",
+  "category": "integer_division",
+  "difficulty": "easy",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下统计函数总是返回 0，请找出并修复 bug：\n\n```python\ndef success_rate(success, total):\n    return (success // total) * 100\n```\n\n功能要求：返回成功百分比（0-100 的浮点数），如 success=3, total=4 应返回 75.0。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def success_rate(success, total):\n    return (success // total) * 100",
+  "functionName": "success_rate",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-004",
-    "dimension": "code_repair",
-    "category": "closure_binding",
-    "difficulty": "medium",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下工厂函数生成的乘法器全部表现异常：make_multipliers(5)[2](10) 期望返回 20，实际返回 40。请找出并修复 bug：\n\n```python\ndef make_multipliers(n):\n    return [lambda x: x * i for i in range(n)]\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释闭包变量绑定时机）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def make_multipliers(n):\n    return [lambda x: x * i for i in range(n)]",
-    "functionName": "make_multipliers",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-004-t1", "type": "static", "testCode": "ms = make_multipliers(5); assert [m(10) for m in ms] == [0, 10, 20, 30, 40]", "description": "每个乘法器应捕获各自的 i", "expectedOutput": "pass" }
-    ],
-    "requirements": ["i=i", "default argument"],
-    "tags": ["python", "closure", "late-binding", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-003-t1",
+    "type": "static",
+    "testCode": "assert success_rate(3, 4) == 75.0",
+    "description": "常规百分比",
+    "expectedOutput": "75.0"
+   },
+   {
+    "id": "CR2-PY-003-t2",
+    "type": "static",
+    "testCode": "assert success_rate(1, 3) > 33.0",
+    "description": "非整除场景",
+    "expectedOutput": "33.33"
+   }
+  ],
+  "requirements": [
+   "success / total"
+  ],
+  "tags": [
+   "python",
+   "integer-division",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "775605569c85d396"
+ },
+ {
+  "id": "CR2-PY-004",
+  "dimension": "program",
+  "category": "closure_binding",
+  "difficulty": "medium",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下工厂函数生成的乘法器全部表现异常：make_multipliers(5)[2](10) 期望返回 20，实际返回 40。请找出并修复 bug：\n\n```python\ndef make_multipliers(n):\n    return [lambda x: x * i for i in range(n)]\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释闭包变量绑定时机）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def make_multipliers(n):\n    return [lambda x: x * i for i in range(n)]",
+  "functionName": "make_multipliers",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-005",
-    "dimension": "code_repair",
-    "category": "shared_reference",
-    "difficulty": "medium",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下棋盘初始化函数出现诡异现象：修改任意一行的格子，所有行都跟着变。请找出并修复 bug：\n\n```python\ndef create_board(size):\n    return [[0] * size] * size\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def create_board(size):\n    return [[0] * size] * size",
-    "functionName": "create_board",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-005-t1", "type": "static", "testCode": "b = create_board(3); b[0][0] = 1; assert b[1][0] == 0", "description": "各行必须是独立对象", "expectedOutput": "pass" },
-      { "id": "CR2-PY-005-t2", "type": "static", "testCode": "b = create_board(3); assert b == [[0,0,0],[0,0,0],[0,0,0]]", "description": "初始值正确", "expectedOutput": "pass" }
-    ],
-    "requirements": ["for _ in range", "comprehension"],
-    "tags": ["python", "shallow-copy", "shared-reference", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-004-t1",
+    "type": "static",
+    "testCode": "ms = make_multipliers(5); assert [m(10) for m in ms] == [0, 10, 20, 30, 40]",
+    "description": "每个乘法器应捕获各自的 i",
+    "expectedOutput": "pass"
+   }
+  ],
+  "requirements": [
+   "i=i",
+   "default argument"
+  ],
+  "tags": [
+   "python",
+   "closure",
+   "late-binding",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "9015b15804b7b3c9"
+ },
+ {
+  "id": "CR2-PY-005",
+  "dimension": "program",
+  "category": "shared_reference",
+  "difficulty": "medium",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下棋盘初始化函数出现诡异现象：修改任意一行的格子，所有行都跟着变。请找出并修复 bug：\n\n```python\ndef create_board(size):\n    return [[0] * size] * size\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def create_board(size):\n    return [[0] * size] * size",
+  "functionName": "create_board",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-006",
-    "dimension": "code_repair",
-    "category": "float_comparison",
-    "difficulty": "medium",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下对账函数在金额 [0.1, 0.2] 对账 0.3 时返回 False，请找出并修复 bug：\n\n```python\ndef total_equals(prices, expected):\n    total = sum(prices)\n    return total == expected\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释浮点表示误差）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def total_equals(prices, expected):\n    total = sum(prices)\n    return total == expected",
-    "functionName": "total_equals",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-006-t1", "type": "static", "testCode": "assert total_equals([0.1, 0.2], 0.3) is True", "description": "浮点误差容错", "expectedOutput": "True" },
-      { "id": "CR2-PY-006-t2", "type": "static", "testCode": "assert total_equals([1.0, 2.0], 4.0) is False", "description": "明显不等仍应返回 False", "expectedOutput": "False" }
-    ],
-    "requirements": ["isclose", "abs("],
-    "tags": ["python", "float", "precision", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-005-t1",
+    "type": "static",
+    "testCode": "b = create_board(3); b[0][0] = 1; assert b[1][0] == 0",
+    "description": "各行必须是独立对象",
+    "expectedOutput": "pass"
+   },
+   {
+    "id": "CR2-PY-005-t2",
+    "type": "static",
+    "testCode": "b = create_board(3); assert b == [[0,0,0],[0,0,0],[0,0,0]]",
+    "description": "初始值正确",
+    "expectedOutput": "pass"
+   }
+  ],
+  "requirements": [
+   "for _ in range",
+   "comprehension"
+  ],
+  "tags": [
+   "python",
+   "shallow-copy",
+   "shared-reference",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "dcb12bb1a5a092ed"
+ },
+ {
+  "id": "CR2-PY-006",
+  "dimension": "program",
+  "category": "float_comparison",
+  "difficulty": "medium",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下对账函数在金额 [0.1, 0.2] 对账 0.3 时返回 False，请找出并修复 bug：\n\n```python\ndef total_equals(prices, expected):\n    total = sum(prices)\n    return total == expected\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释浮点表示误差）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def total_equals(prices, expected):\n    total = sum(prices)\n    return total == expected",
+  "functionName": "total_equals",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-007",
-    "dimension": "code_repair",
-    "category": "exception_handling",
-    "difficulty": "medium",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下日志解析函数遇到一行脏数据后就提前返回，丢失了后面的合法数据。请找出并修复 bug：\n\n```python\ndef parse_scores(lines):\n    scores = []\n    for line in lines:\n        try:\n            scores.append(int(line.strip()))\n        except ValueError:\n            return scores\n    return scores\n```\n\n功能要求：跳过无法解析的行，继续解析后续行。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def parse_scores(lines):\n    scores = []\n    for line in lines:\n        try:\n            scores.append(int(line.strip()))\n        except ValueError:\n            return scores\n    return scores",
-    "functionName": "parse_scores",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-007-t1", "type": "static", "testCode": "assert parse_scores(['1', 'bad', '3']) == [1, 3]", "description": "脏数据后继续解析", "expectedOutput": "[1, 3]" },
-      { "id": "CR2-PY-007-t2", "type": "static", "testCode": "assert parse_scores([]) == []", "description": "空输入边界", "expectedOutput": "[]" }
-    ],
-    "requirements": ["continue"],
-    "tags": ["python", "exception", "control-flow", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-006-t1",
+    "type": "static",
+    "testCode": "assert total_equals([0.1, 0.2], 0.3) is True",
+    "description": "浮点误差容错",
+    "expectedOutput": "True"
+   },
+   {
+    "id": "CR2-PY-006-t2",
+    "type": "static",
+    "testCode": "assert total_equals([1.0, 2.0], 4.0) is False",
+    "description": "明显不等仍应返回 False",
+    "expectedOutput": "False"
+   }
+  ],
+  "requirements": [
+   "isclose",
+   "abs("
+  ],
+  "tags": [
+   "python",
+   "float",
+   "precision",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "6791fcfbe357706d"
+ },
+ {
+  "id": "CR2-PY-007",
+  "dimension": "program",
+  "category": "exception_handling",
+  "difficulty": "medium",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下日志解析函数遇到一行脏数据后就提前返回，丢失了后面的合法数据。请找出并修复 bug：\n\n```python\ndef parse_scores(lines):\n    scores = []\n    for line in lines:\n        try:\n            scores.append(int(line.strip()))\n        except ValueError:\n            return scores\n    return scores\n```\n\n功能要求：跳过无法解析的行，继续解析后续行。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def parse_scores(lines):\n    scores = []\n    for line in lines:\n        try:\n            scores.append(int(line.strip()))\n        except ValueError:\n            return scores\n    return scores",
+  "functionName": "parse_scores",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-008",
-    "dimension": "code_repair",
-    "category": "implementation",
-    "difficulty": "medium",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。请实现一个 LRU 缓存：\n\n```python\nclass LRUCache:\n    def __init__(self, capacity):\n        raise NotImplementedError\n\n    def get(self, key):\n        \"\"\"key 存在则返回值并标记为最近使用，否则返回 -1\"\"\"\n        raise NotImplementedError\n\n    def put(self, key, value):\n        \"\"\"插入/更新键值对；超出容量时淘汰最久未使用的键\"\"\"\n        raise NotImplementedError\n```\n\n要求：get/put 平均时间复杂度 O(1)。\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```python 代码块中，保持类名与方法签名不变）",
-    "sourceCode": "class LRUCache:\n    def __init__(self, capacity):\n        raise NotImplementedError\n\n    def get(self, key):\n        raise NotImplementedError\n\n    def put(self, key, value):\n        raise NotImplementedError",
-    "functionName": "LRUCache",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-008-t1", "type": "static", "testCode": "c = LRUCache(2); c.put(1, 1); c.put(2, 2); assert c.get(1) == 1", "description": "基本读写", "expectedOutput": "1" },
-      { "id": "CR2-PY-008-t2", "type": "static", "testCode": "c = LRUCache(2); c.put(1, 1); c.put(2, 2); c.get(1); c.put(3, 3); assert c.get(2) == -1", "description": "get 提升使用后，淘汰的应是 key 2", "expectedOutput": "-1" },
-      { "id": "CR2-PY-008-t3", "type": "static", "testCode": "c = LRUCache(2); c.put(1, 1); c.put(1, 10); assert c.get(1) == 10", "description": "更新已有键", "expectedOutput": "10" }
-    ],
-    "requirements": ["OrderedDict", "move_to_end", "dict"],
-    "tags": ["python", "lru", "implement", "data-structure"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-007-t1",
+    "type": "static",
+    "testCode": "assert parse_scores(['1', 'bad', '3']) == [1, 3]",
+    "description": "脏数据后继续解析",
+    "expectedOutput": "[1, 3]"
+   },
+   {
+    "id": "CR2-PY-007-t2",
+    "type": "static",
+    "testCode": "assert parse_scores([]) == []",
+    "description": "空输入边界",
+    "expectedOutput": "[]"
+   }
+  ],
+  "requirements": [
+   "continue"
+  ],
+  "tags": [
+   "python",
+   "exception",
+   "control-flow",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "331f0ede304ec6f4"
+ },
+ {
+  "id": "CR2-PY-008",
+  "dimension": "program",
+  "category": "implementation",
+  "difficulty": "medium",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。请实现一个 LRU 缓存：\n\n```python\nclass LRUCache:\n    def __init__(self, capacity):\n        raise NotImplementedError\n\n    def get(self, key):\n        \"\"\"key 存在则返回值并标记为最近使用，否则返回 -1\"\"\"\n        raise NotImplementedError\n\n    def put(self, key, value):\n        \"\"\"插入/更新键值对；超出容量时淘汰最久未使用的键\"\"\"\n        raise NotImplementedError\n```\n\n要求：get/put 平均时间复杂度 O(1)。\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```python 代码块中，保持类名与方法签名不变）",
+  "sourceCode": "class LRUCache:\n    def __init__(self, capacity):\n        raise NotImplementedError\n\n    def get(self, key):\n        raise NotImplementedError\n\n    def put(self, key, value):\n        raise NotImplementedError",
+  "functionName": "LRUCache",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-009",
-    "dimension": "code_repair",
-    "category": "implementation",
-    "difficulty": "medium",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。请实现令牌桶限流器：\n\n```python\nclass TokenBucket:\n    def __init__(self, capacity, refill_rate):\n        \"\"\"capacity: 桶容量；refill_rate: 每秒补充令牌数\"\"\"\n        raise NotImplementedError\n\n    def allow(self, now):\n        \"\"\"now 为秒级时间戳。先按经过时间补充令牌（不超过容量），\n        有令牌则消耗 1 个并返回 True，否则返回 False\"\"\"\n        raise NotImplementedError\n```\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```python 代码块中，保持类名与方法签名不变）",
-    "sourceCode": "class TokenBucket:\n    def __init__(self, capacity, refill_rate):\n        raise NotImplementedError\n\n    def allow(self, now):\n        raise NotImplementedError",
-    "functionName": "TokenBucket",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-009-t1", "type": "static", "testCode": "b = TokenBucket(2, 1); assert b.allow(0) and b.allow(0) and not b.allow(0)", "description": "瞬间突发不超过容量", "expectedOutput": "pass" },
-      { "id": "CR2-PY-009-t2", "type": "static", "testCode": "b = TokenBucket(2, 1); b.allow(0); b.allow(0); assert b.allow(1)", "description": "1 秒后补充 1 个令牌", "expectedOutput": "True" },
-      { "id": "CR2-PY-009-t3", "type": "static", "testCode": "b = TokenBucket(2, 1); assert b.allow(100)", "description": "长时间空闲后令牌不超过容量", "expectedOutput": "True" }
-    ],
-    "requirements": ["min(", "refill"],
-    "tags": ["python", "rate-limiter", "implement", "system-design"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-008-t1",
+    "type": "static",
+    "testCode": "c = LRUCache(2); c.put(1, 1); c.put(2, 2); assert c.get(1) == 1",
+    "description": "基本读写",
+    "expectedOutput": "1"
+   },
+   {
+    "id": "CR2-PY-008-t2",
+    "type": "static",
+    "testCode": "c = LRUCache(2); c.put(1, 1); c.put(2, 2); c.get(1); c.put(3, 3); assert c.get(2) == -1",
+    "description": "get 提升使用后，淘汰的应是 key 2",
+    "expectedOutput": "-1"
+   },
+   {
+    "id": "CR2-PY-008-t3",
+    "type": "static",
+    "testCode": "c = LRUCache(2); c.put(1, 1); c.put(1, 10); assert c.get(1) == 10",
+    "description": "更新已有键",
+    "expectedOutput": "10"
+   }
+  ],
+  "requirements": [
+   "OrderedDict",
+   "move_to_end",
+   "dict"
+  ],
+  "tags": [
+   "python",
+   "lru",
+   "implement",
+   "data-structure"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "008fbeba37662ab1"
+ },
+ {
+  "id": "CR2-PY-009",
+  "dimension": "program",
+  "category": "implementation",
+  "difficulty": "medium",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。请实现令牌桶限流器：\n\n```python\nclass TokenBucket:\n    def __init__(self, capacity, refill_rate):\n        \"\"\"capacity: 桶容量；refill_rate: 每秒补充令牌数\"\"\"\n        raise NotImplementedError\n\n    def allow(self, now):\n        \"\"\"now 为秒级时间戳。先按经过时间补充令牌（不超过容量），\n        有令牌则消耗 1 个并返回 True，否则返回 False\"\"\"\n        raise NotImplementedError\n```\n\n输出要求：\n1. 实现思路（1-3 句）\n2. 完整实现代码（包裹在 ```python 代码块中，保持类名与方法签名不变）",
+  "sourceCode": "class TokenBucket:\n    def __init__(self, capacity, refill_rate):\n        raise NotImplementedError\n\n    def allow(self, now):\n        raise NotImplementedError",
+  "functionName": "TokenBucket",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-010",
-    "dimension": "code_repair",
-    "category": "iterator_exhaustion",
-    "difficulty": "hard",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下统计函数调用 stats([1,2,3]) 时抛出 ValueError: max() arg is an empty sequence。请找出并修复 bug：\n\n```python\ndef stats(numbers):\n    it = iter(numbers)\n    total = sum(it)\n    peak = max(it)\n    return total, peak\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释迭代器状态）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def stats(numbers):\n    it = iter(numbers)\n    total = sum(it)\n    peak = max(it)\n    return total, peak",
-    "functionName": "stats",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-010-t1", "type": "static", "testCode": "assert stats([1, 2, 3]) == (6, 3)", "description": "总和与最大值都应基于完整数据", "expectedOutput": "(6, 3)" }
-    ],
-    "requirements": ["sum(numbers)", "max(numbers)"],
-    "tags": ["python", "iterator", "exhaustion", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-009-t1",
+    "type": "static",
+    "testCode": "b = TokenBucket(2, 1); assert b.allow(0) and b.allow(0) and not b.allow(0)",
+    "description": "瞬间突发不超过容量",
+    "expectedOutput": "pass"
+   },
+   {
+    "id": "CR2-PY-009-t2",
+    "type": "static",
+    "testCode": "b = TokenBucket(2, 1); b.allow(0); b.allow(0); assert b.allow(1)",
+    "description": "1 秒后补充 1 个令牌",
+    "expectedOutput": "True"
+   },
+   {
+    "id": "CR2-PY-009-t3",
+    "type": "static",
+    "testCode": "b = TokenBucket(2, 1); assert b.allow(100)",
+    "description": "长时间空闲后令牌不超过容量",
+    "expectedOutput": "True"
+   }
+  ],
+  "requirements": [
+   "min(",
+   "refill"
+  ],
+  "tags": [
+   "python",
+   "rate-limiter",
+   "implement",
+   "system-design"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "8ef0570166c5c859"
+ },
+ {
+  "id": "CR2-PY-010",
+  "dimension": "program",
+  "category": "iterator_exhaustion",
+  "difficulty": "hard",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下统计函数调用 stats([1,2,3]) 时抛出 ValueError: max() arg is an empty sequence。请找出并修复 bug：\n\n```python\ndef stats(numbers):\n    it = iter(numbers)\n    total = sum(it)\n    peak = max(it)\n    return total, peak\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释迭代器状态）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def stats(numbers):\n    it = iter(numbers)\n    total = sum(it)\n    peak = max(it)\n    return total, peak",
+  "functionName": "stats",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-011",
-    "dimension": "code_repair",
-    "category": "mutation_during_iteration",
-    "difficulty": "hard",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下过滤函数对输入 [1, -2, -3, 4] 返回 [1, -3, 4]，负数没有删干净。请找出并修复 bug：\n\n```python\ndef remove_negatives(nums):\n    for x in nums:\n        if x < 0:\n            nums.remove(x)\n    return nums\n```\n\n功能要求：移除所有负数，返回剩余元素（允许返回新列表）。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释迭代中修改序列的后果）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
-    "sourceCode": "def remove_negatives(nums):\n    for x in nums:\n        if x < 0:\n            nums.remove(x)\n    return nums",
-    "functionName": "remove_negatives",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-011-t1", "type": "static", "testCode": "assert remove_negatives([1, -2, -3, 4]) == [1, 4]", "description": "连续负数必须全部移除", "expectedOutput": "[1, 4]" },
-      { "id": "CR2-PY-011-t2", "type": "static", "testCode": "assert remove_negatives([-1, -2, -3]) == []", "description": "全负数边界", "expectedOutput": "[]" }
-    ],
-    "requirements": ["copy", "comprehension", "filter", "nums[:]"],
-    "tags": ["python", "mutation", "iteration", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-010-t1",
+    "type": "static",
+    "testCode": "assert stats([1, 2, 3]) == (6, 3)",
+    "description": "总和与最大值都应基于完整数据",
+    "expectedOutput": "(6, 3)"
+   }
+  ],
+  "requirements": [
+   "sum(numbers)",
+   "max(numbers)"
+  ],
+  "tags": [
+   "python",
+   "iterator",
+   "exhaustion",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "02a1fe588a728c2b"
+ },
+ {
+  "id": "CR2-PY-011",
+  "dimension": "program",
+  "category": "mutation_during_iteration",
+  "difficulty": "hard",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下过滤函数对输入 [1, -2, -3, 4] 返回 [1, -3, 4]，负数没有删干净。请找出并修复 bug：\n\n```python\ndef remove_negatives(nums):\n    for x in nums:\n        if x < 0:\n            nums.remove(x)\n    return nums\n```\n\n功能要求：移除所有负数，返回剩余元素（允许返回新列表）。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释迭代中修改序列的后果）\n3. 修复后的完整代码（包裹在 ```python 代码块中）",
+  "sourceCode": "def remove_negatives(nums):\n    for x in nums:\n        if x < 0:\n            nums.remove(x)\n    return nums",
+  "functionName": "remove_negatives",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-012",
-    "dimension": "code_repair",
-    "category": "correct_code_trap",
-    "difficulty": "hard",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。请审查以下线程安全计数器，判断是否存在 bug。注意：不是所有代码都有 bug，如果代码正确，请明确说明理由，不要画蛇添足地\"优化\"：\n\n```python\nimport threading\n\nclass SafeCounter:\n    def __init__(self):\n        self._value = 0\n        self._lock = threading.Lock()\n\n    def increment(self, n=1):\n        with self._lock:\n            current = self._value\n            self._value = current + n\n            return self._value\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明并发安全性的关键点）",
-    "sourceCode": "import threading\n\nclass SafeCounter:\n    def __init__(self):\n        self._value = 0\n        self._lock = threading.Lock()\n\n    def increment(self, n=1):\n        with self._lock:\n            current = self._value\n            self._value = current + n\n            return self._value",
-    "functionName": "SafeCounter",
-    "expectedVerdict": "no_bug",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["lock", "锁", "原子", "线程", "thread", "critical section", "临界区"],
-    "tags": ["python", "concurrency", "trap", "correct-code"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-011-t1",
+    "type": "static",
+    "testCode": "assert remove_negatives([1, -2, -3, 4]) == [1, 4]",
+    "description": "连续负数必须全部移除",
+    "expectedOutput": "[1, 4]"
+   },
+   {
+    "id": "CR2-PY-011-t2",
+    "type": "static",
+    "testCode": "assert remove_negatives([-1, -2, -3]) == []",
+    "description": "全负数边界",
+    "expectedOutput": "[]"
+   }
+  ],
+  "requirements": [
+   "copy",
+   "comprehension",
+   "filter",
+   "nums[:]"
+  ],
+  "tags": [
+   "python",
+   "mutation",
+   "iteration",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "8749cb425d9832a1"
+ },
+ {
+  "id": "CR2-PY-012",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "hard",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。请审查以下线程安全计数器，判断是否存在 bug。注意：不是所有代码都有 bug，如果代码正确，请明确说明理由，不要画蛇添足地\"优化\"：\n\n```python\nimport threading\n\nclass SafeCounter:\n    def __init__(self):\n        self._value = 0\n        self._lock = threading.Lock()\n\n    def increment(self, n=1):\n        with self._lock:\n            current = self._value\n            self._value = current + n\n            return self._value\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明并发安全性的关键点）",
+  "sourceCode": "import threading\n\nclass SafeCounter:\n    def __init__(self):\n        self._value = 0\n        self._lock = threading.Lock()\n\n    def increment(self, n=1):\n        with self._lock:\n            current = self._value\n            self._value = current + n\n            return self._value",
+  "functionName": "SafeCounter",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-013",
-    "dimension": "code_repair",
-    "category": "performance",
-    "difficulty": "hard",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。以下函数在 10 万元素规模下超时。请优化到 O(n) 时间复杂度：\n\n```python\ndef two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []\n```\n\n功能要求：返回和为 target 的两个元素下标 [i, j]（i < j），不存在返回 []。\n\n输出要求：\n1. 优化思路（1-3 句，说明复杂度变化）\n2. 优化后的完整代码（包裹在 ```python 代码块中，保持函数签名不变）",
-    "sourceCode": "def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []",
-    "functionName": "two_sum",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-013-t1", "type": "static", "testCode": "assert two_sum([2, 7, 11, 15], 9) == [0, 1]", "description": "常规用例", "expectedOutput": "[0, 1]" },
-      { "id": "CR2-PY-013-t2", "type": "static", "testCode": "assert two_sum([1, 2, 3], 100) == []", "description": "无解边界", "expectedOutput": "[]" },
-      { "id": "CR2-PY-013-t3", "type": "static", "testCode": "import time; t=time.time(); two_sum(list(range(100000)), 199997); assert time.time()-t < 1.0", "description": "O(n) 性能验证", "expectedOutput": "pass" }
-    ],
-    "requirements": ["dict", "{}", "in seen", "enumerate"],
-    "tags": ["python", "performance", "hash-map", "optimize"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [],
+  "requirements": [
+   "lock",
+   "锁",
+   "原子",
+   "线程",
+   "thread",
+   "critical section",
+   "临界区"
+  ],
+  "tags": [
+   "python",
+   "concurrency",
+   "trap",
+   "correct-code"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "c54fea2bbff10d16"
+ },
+ {
+  "id": "CR2-PY-013",
+  "dimension": "program",
+  "category": "performance",
+  "difficulty": "hard",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。以下函数在 10 万元素规模下超时。请优化到 O(n) 时间复杂度：\n\n```python\ndef two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []\n```\n\n功能要求：返回和为 target 的两个元素下标 [i, j]（i < j），不存在返回 []。\n\n输出要求：\n1. 优化思路（1-3 句，说明复杂度变化）\n2. 优化后的完整代码（包裹在 ```python 代码块中，保持函数签名不变）",
+  "sourceCode": "def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []",
+  "functionName": "two_sum",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-014",
-    "dimension": "code_repair",
-    "category": "security",
-    "difficulty": "adversarial",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 安全工程师。请审查以下查询函数的安全问题并修复：\n\n```python\ndef get_user(db_cursor, username):\n    query = \"SELECT * FROM users WHERE name = '\" + username + \"'\"\n    db_cursor.execute(query)\n    return db_cursor.fetchall()\n```\n\n注意：攻击者可以控制 username 参数。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型\n2. 攻击示例（说明攻击者如何利用）\n3. 修复后的完整代码（包裹在 ```python 代码块中，使用参数化查询）",
-    "sourceCode": "def get_user(db_cursor, username):\n    query = \"SELECT * FROM users WHERE name = '\" + username + \"'\"\n    db_cursor.execute(query)\n    return db_cursor.fetchall()",
-    "functionName": "get_user",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-PY-014-t1", "type": "static", "testCode": "assert \"' OR '1'='1\" not in get_user.__doc__ or True", "description": "修复必须使用参数化查询，禁止字符串拼接", "expectedOutput": "parameterized" }
-    ],
-    "requirements": ["%s", "?", "参数化", "parameterized", "placeholder"],
-    "tags": ["python", "security", "sql-injection", "adversarial"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-013-t1",
+    "type": "static",
+    "testCode": "assert two_sum([2, 7, 11, 15], 9) == [0, 1]",
+    "description": "常规用例",
+    "expectedOutput": "[0, 1]"
+   },
+   {
+    "id": "CR2-PY-013-t2",
+    "type": "static",
+    "testCode": "assert two_sum([1, 2, 3], 100) == []",
+    "description": "无解边界",
+    "expectedOutput": "[]"
+   },
+   {
+    "id": "CR2-PY-013-t3",
+    "type": "static",
+    "testCode": "import time; t=time.time(); two_sum(list(range(100000)), 199997); assert time.time()-t < 1.0",
+    "description": "O(n) 性能验证",
+    "expectedOutput": "pass"
+   }
+  ],
+  "requirements": [
+   "dict",
+   "{}",
+   "in seen",
+   "enumerate"
+  ],
+  "tags": [
+   "python",
+   "performance",
+   "hash-map",
+   "optimize"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "fe6fc01f4c39c624"
+ },
+ {
+  "id": "CR2-PY-014",
+  "dimension": "program",
+  "category": "security",
+  "difficulty": "adversarial",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 安全工程师。请审查以下查询函数的安全问题并修复：\n\n```python\ndef get_user(db_cursor, username):\n    query = \"SELECT * FROM users WHERE name = '\" + username + \"'\"\n    db_cursor.execute(query)\n    return db_cursor.fetchall()\n```\n\n注意：攻击者可以控制 username 参数。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型\n2. 攻击示例（说明攻击者如何利用）\n3. 修复后的完整代码（包裹在 ```python 代码块中，使用参数化查询）",
+  "sourceCode": "def get_user(db_cursor, username):\n    query = \"SELECT * FROM users WHERE name = '\" + username + \"'\"\n    db_cursor.execute(query)\n    return db_cursor.fetchall()",
+  "functionName": "get_user",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-PY-015",
-    "dimension": "code_repair",
-    "category": "correct_code_trap",
-    "difficulty": "adversarial",
-    "language": "python",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Python 工程师。请审查以下配置合并函数，判断是否存在 bug。注意：这段代码可能完全正确，如果是，请明确说明它规避了哪些常见陷阱，不要无中生有地\"修复\"：\n\n```python\nimport copy\n\ndef merge_config(base, overrides=None):\n    result = copy.deepcopy(base)\n    if overrides is not None:\n        result.update(overrides)\n    return result\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（逐点说明该写法规避的陷阱）",
-    "sourceCode": "import copy\n\ndef merge_config(base, overrides=None):\n    result = copy.deepcopy(base)\n    if overrides is not None:\n        result.update(overrides)\n    return result",
-    "functionName": "merge_config",
-    "expectedVerdict": "no_bug",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["deepcopy", "None", "可变默认", "mutable default", "深拷贝", "is not None"],
-    "tags": ["python", "trap", "correct-code", "defensive"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
-  }
+  "hiddenTests": [
+   {
+    "id": "CR2-PY-014-t1",
+    "type": "static",
+    "testCode": "assert \"' OR '1'='1\" not in get_user.__doc__ or True",
+    "description": "修复必须使用参数化查询，禁止字符串拼接",
+    "expectedOutput": "parameterized"
+   }
+  ],
+  "requirements": [
+   "%s",
+   "?",
+   "参数化",
+   "parameterized",
+   "placeholder"
+  ],
+  "tags": [
+   "python",
+   "security",
+   "sql-injection",
+   "adversarial"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "269d3b3fea89c44e"
+ },
+ {
+  "id": "CR2-PY-015",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "adversarial",
+  "language": "python",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Python 工程师。请审查以下配置合并函数，判断是否存在 bug。注意：这段代码可能完全正确，如果是，请明确说明它规避了哪些常见陷阱，不要无中生有地\"修复\"：\n\n```python\nimport copy\n\ndef merge_config(base, overrides=None):\n    result = copy.deepcopy(base)\n    if overrides is not None:\n        result.update(overrides)\n    return result\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（逐点说明该写法规避的陷阱）",
+  "sourceCode": "import copy\n\ndef merge_config(base, overrides=None):\n    result = copy.deepcopy(base)\n    if overrides is not None:\n        result.update(overrides)\n    return result",
+  "functionName": "merge_config",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [],
+  "requirements": [
+   "deepcopy",
+   "None",
+   "可变默认",
+   "mutable default",
+   "深拷贝",
+   "is not None"
+  ],
+  "tags": [
+   "python",
+   "trap",
+   "correct-code",
+   "defensive"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "c78cd4353caf302c"
+ }
 ]

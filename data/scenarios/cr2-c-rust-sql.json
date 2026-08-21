@@ -1,209 +1,353 @@
 [
-  {
-    "id": "CR2-CC-001",
-    "dimension": "code_repair",
-    "category": "signed_unsigned",
-    "difficulty": "medium",
-    "language": "c",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 C 工程师。以下反向遍历函数在空数组时崩溃（越界访问）。请找出并修复 bug：\n\n```c\n#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}\n```\n\n提示：size_t 是无符号类型。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无符号回绕）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保持函数签名不变）",
-    "sourceCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}",
-    "functionName": "print_reverse",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-CC-001-t1", "type": "static", "testCode": "// print_reverse(NULL, 0) 不得崩溃", "description": "空数组边界", "expectedOutput": "safe" },
-      { "id": "CR2-CC-001-t2", "type": "static", "testCode": "// 非空数组完整逆序遍历恰好 len 次", "description": "正常遍历不重不漏", "expectedOutput": "pass" }
-    ],
-    "requirements": ["i < len", "i-- > 0", "ssize_t", "len > 0"],
-    "tags": ["c", "unsigned", "wraparound", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+ {
+  "id": "CR2-CC-001",
+  "dimension": "program",
+  "category": "signed_unsigned",
+  "difficulty": "medium",
+  "language": "c",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C 工程师。以下反向遍历函数在空数组时崩溃（越界访问）。请找出并修复 bug：\n\n```c\n#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}\n```\n\n提示：size_t 是无符号类型。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无符号回绕）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保持函数签名不变）",
+  "sourceCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}",
+  "functionName": "print_reverse",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-CC-002",
-    "dimension": "code_repair",
-    "category": "buffer_overflow",
-    "difficulty": "medium",
-    "language": "c",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 C 安全工程师。以下函数存在严重内存安全问题，请找出并修复：\n\n```c\n#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}\n```\n\n注意：src 来自外部输入，长度不可信。\n\n输出要求：\n1. 结论（有 bug / 无 bug）及问题类型\n2. 风险分析（1-3 句，说明溢出后果）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保证 dest 永不越界且总是以 NUL 结尾）",
-    "sourceCode": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}",
-    "functionName": "copy_name",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-CC-002-t1", "type": "static", "testCode": "// src 长度 1000 时 dest 不得越界", "description": "超长输入安全截断", "expectedOutput": "truncated" },
-      { "id": "CR2-CC-002-t2", "type": "static", "testCode": "// 任意输入后 dest[15] 检查与 strlen(dest) <= 15", "description": "NUL 结尾保证", "expectedOutput": "pass" }
-    ],
-    "requirements": ["strncpy", "snprintf", "strcpy_s", "15"],
-    "tags": ["c", "buffer-overflow", "strcpy", "security", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-CC-001-t1",
+    "type": "static",
+    "testCode": "// print_reverse(NULL, 0) 不得崩溃",
+    "description": "空数组边界",
+    "expectedOutput": "safe"
+   },
+   {
+    "id": "CR2-CC-001-t2",
+    "type": "static",
+    "testCode": "// 非空数组完整逆序遍历恰好 len 次",
+    "description": "正常遍历不重不漏",
+    "expectedOutput": "pass"
+   }
+  ],
+  "requirements": [
+   "i < len",
+   "i-- > 0",
+   "ssize_t",
+   "len > 0"
+  ],
+  "tags": [
+   "c",
+   "unsigned",
+   "wraparound",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "14b6a380c80ff212"
+ },
+ {
+  "id": "CR2-CC-002",
+  "dimension": "program",
+  "category": "buffer_overflow",
+  "difficulty": "medium",
+  "language": "c",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C 安全工程师。以下函数存在严重内存安全问题，请找出并修复：\n\n```c\n#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}\n```\n\n注意：src 来自外部输入，长度不可信。\n\n输出要求：\n1. 结论（有 bug / 无 bug）及问题类型\n2. 风险分析（1-3 句，说明溢出后果）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保证 dest 永不越界且总是以 NUL 结尾）",
+  "sourceCode": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}",
+  "functionName": "copy_name",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-CC-003",
-    "dimension": "code_repair",
-    "category": "dangling_pointer",
-    "difficulty": "hard",
-    "language": "c",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 C 工程师。以下函数返回后调用方读到乱码甚至崩溃。请找出并修复 bug：\n\n```c\n#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释栈上局部变量的生命周期）\n3. 修复后的完整代码（包裹在 ```c 代码块中，说明调用方的内存责任）",
-    "sourceCode": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}",
-    "functionName": "make_greeting",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-CC-003-t1", "type": "static", "testCode": "// 返回的指针在函数返回后仍有效", "description": "修复悬垂指针", "expectedOutput": "Hello, world" }
-    ],
-    "requirements": ["malloc", "snprintf", "free"],
-    "tags": ["c", "dangling-pointer", "stack-lifetime", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-CC-002-t1",
+    "type": "static",
+    "testCode": "// src 长度 1000 时 dest 不得越界",
+    "description": "超长输入安全截断",
+    "expectedOutput": "truncated"
+   },
+   {
+    "id": "CR2-CC-002-t2",
+    "type": "static",
+    "testCode": "// 任意输入后 dest[15] 检查与 strlen(dest) <= 15",
+    "description": "NUL 结尾保证",
+    "expectedOutput": "pass"
+   }
+  ],
+  "requirements": [
+   "strncpy",
+   "snprintf",
+   "strcpy_s",
+   "15"
+  ],
+  "tags": [
+   "c",
+   "buffer-overflow",
+   "strcpy",
+   "security",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "8997b5cc8830eead"
+ },
+ {
+  "id": "CR2-CC-003",
+  "dimension": "program",
+  "category": "dangling_pointer",
+  "difficulty": "hard",
+  "language": "c",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C 工程师。以下函数返回后调用方读到乱码甚至崩溃。请找出并修复 bug：\n\n```c\n#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释栈上局部变量的生命周期）\n3. 修复后的完整代码（包裹在 ```c 代码块中，说明调用方的内存责任）",
+  "sourceCode": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}",
+  "functionName": "make_greeting",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-CC-004",
-    "dimension": "code_repair",
-    "category": "correct_code_trap",
-    "difficulty": "hard",
-    "language": "cpp",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 C++ 工程师。请审查以下资源管理类，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明异常发生时资源为什么不会泄漏：\n\n```cpp\n#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明 RAII 与 unique_ptr 的析构保证）",
-    "sourceCode": "#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};",
-    "functionName": "Report",
-    "expectedVerdict": "no_bug",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["RAII", "析构", "unique_ptr", "destructor", "异常安全"],
-    "tags": ["cpp", "trap", "correct-code", "raii"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-CC-003-t1",
+    "type": "static",
+    "testCode": "// 返回的指针在函数返回后仍有效",
+    "description": "修复悬垂指针",
+    "expectedOutput": "Hello, world"
+   }
+  ],
+  "requirements": [
+   "malloc",
+   "snprintf",
+   "free"
+  ],
+  "tags": [
+   "c",
+   "dangling-pointer",
+   "stack-lifetime",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "fb93fad4375e74f3"
+ },
+ {
+  "id": "CR2-CC-004",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "hard",
+  "language": "cpp",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C++ 工程师。请审查以下资源管理类，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明异常发生时资源为什么不会泄漏：\n\n```cpp\n#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明 RAII 与 unique_ptr 的析构保证）",
+  "sourceCode": "#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};",
+  "functionName": "Report",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-RS-001",
-    "dimension": "code_repair",
-    "category": "borrow_checker",
-    "difficulty": "hard",
-    "language": "rust",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Rust 工程师。以下代码编译失败（E0502：cannot borrow `v` as mutable because it is also borrowed as immutable）。请修复：\n\n```rust\nfn normalize(v: &mut Vec<i32>) {\n    let first = &v[0];\n    for x in v.iter_mut() {\n        *x -= first;\n    }\n}\n```\n\n功能要求：每个元素减去第一个元素的值（第一个元素变为 0）。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释借用规则冲突）\n3. 修复后的完整代码（包裹在 ```rust 代码块中，保持函数签名不变）",
-    "sourceCode": "fn normalize(v: &mut Vec<i32>) {\n    let first = &v[0];\n    for x in v.iter_mut() {\n        *x -= first;\n    }\n}",
-    "functionName": "normalize",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-RS-001-t1", "type": "static", "testCode": "let mut v = vec![10, 15, 20]; normalize(&mut v); assert_eq!(v, vec![0, 5, 10]);", "description": "语义正确且通过编译", "expectedOutput": "[0, 5, 10]" }
-    ],
-    "requirements": ["let first = v[0]", "v[0]", "copy"],
-    "tags": ["rust", "borrow-checker", "lifetime", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [],
+  "requirements": [
+   "RAII",
+   "析构",
+   "unique_ptr",
+   "destructor",
+   "异常安全"
+  ],
+  "tags": [
+   "cpp",
+   "trap",
+   "correct-code",
+   "raii"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "3cf775dcae7fc7a8"
+ },
+ {
+  "id": "CR2-RS-001",
+  "dimension": "program",
+  "category": "borrow_checker",
+  "difficulty": "hard",
+  "language": "rust",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Rust 工程师。以下代码编译失败（E0502：cannot borrow `v` as mutable because it is also borrowed as immutable）。请修复：\n\n```rust\nfn normalize(v: &mut Vec<i32>) {\n    let first = &v[0];\n    for x in v.iter_mut() {\n        *x -= first;\n    }\n}\n```\n\n功能要求：每个元素减去第一个元素的值（第一个元素变为 0）。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释借用规则冲突）\n3. 修复后的完整代码（包裹在 ```rust 代码块中，保持函数签名不变）",
+  "sourceCode": "fn normalize(v: &mut Vec<i32>) {\n    let first = &v[0];\n    for x in v.iter_mut() {\n        *x -= first;\n    }\n}",
+  "functionName": "normalize",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-RS-002",
-    "dimension": "code_repair",
-    "category": "correct_code_trap",
-    "difficulty": "hard",
-    "language": "rust",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Rust 工程师。请审查以下多线程计数器，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明所有权与锁是如何保证安全的：\n\n```rust\nuse std::sync::{Arc, Mutex};\nuse std::thread;\n\nfn count() -> i32 {\n    let counter = Arc::new(Mutex::new(0));\n    let mut handles = vec![];\n\n    for _ in 0..10 {\n        let c = Arc::clone(&counter);\n        let h = thread::spawn(move || {\n            let mut num = c.lock().unwrap();\n            *num += 1;\n        });\n        handles.push(h);\n    }\n\n    for h in handles {\n        h.join().unwrap();\n    }\n\n    *counter.lock().unwrap()\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明 Arc、Mutex、move 闭包各自的作用）",
-    "sourceCode": "use std::sync::{Arc, Mutex};\nuse std::thread;\n\nfn count() -> i32 {\n    let counter = Arc::new(Mutex::new(0));\n    let mut handles = vec![];\n\n    for _ in 0..10 {\n        let c = Arc::clone(&counter);\n        let h = thread::spawn(move || {\n            let mut num = c.lock().unwrap();\n            *num += 1;\n        });\n        handles.push(h);\n    }\n\n    for h in handles {\n        h.join().unwrap();\n    }\n\n    *counter.lock().unwrap()\n}",
-    "functionName": "count",
-    "expectedVerdict": "no_bug",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["Arc", "Mutex", "clone", "引用计数", "join", "锁"],
-    "tags": ["rust", "trap", "correct-code", "concurrency"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-RS-001-t1",
+    "type": "static",
+    "testCode": "let mut v = vec![10, 15, 20]; normalize(&mut v); assert_eq!(v, vec![0, 5, 10]);",
+    "description": "语义正确且通过编译",
+    "expectedOutput": "[0, 5, 10]"
+   }
+  ],
+  "requirements": [
+   "let first = v[0]",
+   "v[0]",
+   "copy"
+  ],
+  "tags": [
+   "rust",
+   "borrow-checker",
+   "lifetime",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "5a7735af4a0e4659"
+ },
+ {
+  "id": "CR2-RS-002",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "hard",
+  "language": "rust",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Rust 工程师。请审查以下多线程计数器，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明所有权与锁是如何保证安全的：\n\n```rust\nuse std::sync::{Arc, Mutex};\nuse std::thread;\n\nfn count() -> i32 {\n    let counter = Arc::new(Mutex::new(0));\n    let mut handles = vec![];\n\n    for _ in 0..10 {\n        let c = Arc::clone(&counter);\n        let h = thread::spawn(move || {\n            let mut num = c.lock().unwrap();\n            *num += 1;\n        });\n        handles.push(h);\n    }\n\n    for h in handles {\n        h.join().unwrap();\n    }\n\n    *counter.lock().unwrap()\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明 Arc、Mutex、move 闭包各自的作用）",
+  "sourceCode": "use std::sync::{Arc, Mutex};\nuse std::thread;\n\nfn count() -> i32 {\n    let counter = Arc::new(Mutex::new(0));\n    let mut handles = vec![];\n\n    for _ in 0..10 {\n        let c = Arc::clone(&counter);\n        let h = thread::spawn(move || {\n            let mut num = c.lock().unwrap();\n            *num += 1;\n        });\n        handles.push(h);\n    }\n\n    for h in handles {\n        h.join().unwrap();\n    }\n\n    *counter.lock().unwrap()\n}",
+  "functionName": "count",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-SQ-001",
-    "dimension": "code_repair",
-    "category": "join_fanout",
-    "difficulty": "medium",
-    "language": "sql",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深数据工程师。以下报表 SQL 统计\"每个客户的订单总额\"，但财务发现金额被成倍放大。请找出并修复：\n\n```sql\n-- customers(id, name)\n-- orders(id, customer_id, amount)\n-- payments(id, order_id, paid_amount)  一个订单可有多笔支付\nSELECT c.id, c.name, SUM(o.amount) AS total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nJOIN payments p ON p.order_id = o.id\nGROUP BY c.id, c.name;\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 JOIN 扇出/fan-out）\n3. 修复后的完整 SQL（包裹在 ```sql 代码块中，结果仍为每客户一行）",
-    "sourceCode": "SELECT c.id, c.name, SUM(o.amount) AS total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nJOIN payments p ON p.order_id = o.id\nGROUP BY c.id, c.name;",
-    "functionName": "query",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["DISTINCT", "子查询", "subquery", "GROUP BY o.id"],
-    "tags": ["sql", "join", "fan-out", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [],
+  "requirements": [
+   "Arc",
+   "Mutex",
+   "clone",
+   "引用计数",
+   "join",
+   "锁"
+  ],
+  "tags": [
+   "rust",
+   "trap",
+   "correct-code",
+   "concurrency"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "05b6665076c047f2"
+ },
+ {
+  "id": "CR2-SQ-001",
+  "dimension": "program",
+  "category": "join_fanout",
+  "difficulty": "medium",
+  "language": "sql",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深数据工程师。以下报表 SQL 统计\"每个客户的订单总额\"，但财务发现金额被成倍放大。请找出并修复：\n\n```sql\n-- customers(id, name)\n-- orders(id, customer_id, amount)\n-- payments(id, order_id, paid_amount)  一个订单可有多笔支付\nSELECT c.id, c.name, SUM(o.amount) AS total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nJOIN payments p ON p.order_id = o.id\nGROUP BY c.id, c.name;\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 JOIN 扇出/fan-out）\n3. 修复后的完整 SQL（包裹在 ```sql 代码块中，结果仍为每客户一行）",
+  "sourceCode": "SELECT c.id, c.name, SUM(o.amount) AS total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nJOIN payments p ON p.order_id = o.id\nGROUP BY c.id, c.name;",
+  "functionName": "query",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-SQ-002",
-    "dimension": "code_repair",
-    "category": "null_semantics",
-    "difficulty": "medium",
-    "language": "sql",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深数据工程师。以下查询\"找出没有下过单的客户\"在某天突然返回空结果（此前一直正常），排查发现 orders.customer_id 列新出现了 NULL 值。请找出并修复：\n\n```sql\n-- customers(id, name)\n-- orders(id, customer_id)  customer_id 可能为 NULL（匿名订单）\nSELECT *\nFROM customers\nWHERE id NOT IN (SELECT customer_id FROM orders);\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 NOT IN 遇到 NULL 的三值逻辑）\n3. 修复后的完整 SQL（包裹在 ```sql 代码块中）",
-    "sourceCode": "SELECT *\nFROM customers\nWHERE id NOT IN (SELECT customer_id FROM orders);",
-    "functionName": "query",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["NOT EXISTS", "IS NOT NULL", "LEFT JOIN"],
-    "tags": ["sql", "null", "three-valued-logic", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [],
+  "requirements": [
+   "DISTINCT",
+   "子查询",
+   "subquery",
+   "GROUP BY o.id"
+  ],
+  "tags": [
+   "sql",
+   "join",
+   "fan-out",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "7bb02be8aadab6b4"
+ },
+ {
+  "id": "CR2-SQ-002",
+  "dimension": "program",
+  "category": "null_semantics",
+  "difficulty": "medium",
+  "language": "sql",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深数据工程师。以下查询\"找出没有下过单的客户\"在某天突然返回空结果（此前一直正常），排查发现 orders.customer_id 列新出现了 NULL 值。请找出并修复：\n\n```sql\n-- customers(id, name)\n-- orders(id, customer_id)  customer_id 可能为 NULL（匿名订单）\nSELECT *\nFROM customers\nWHERE id NOT IN (SELECT customer_id FROM orders);\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 NOT IN 遇到 NULL 的三值逻辑）\n3. 修复后的完整 SQL（包裹在 ```sql 代码块中）",
+  "sourceCode": "SELECT *\nFROM customers\nWHERE id NOT IN (SELECT customer_id FROM orders);",
+  "functionName": "query",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-SQ-003",
-    "dimension": "code_repair",
-    "category": "implementation",
-    "difficulty": "hard",
-    "language": "sql",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深数据工程师。请编写 SQL 实现 Top-N 查询：\n\n```sql\n-- employees(id, name, dept, salary)\n-- 要求：查询每个部门薪资最高的前 3 名员工\n-- 输出列：dept, name, salary\n-- 并列薪资都算入（例如并列第 3 的都输出）\n```\n\n输出要求：\n1. 思路说明（1-3 句，说明窗口函数选择：RANK/DENSE_RANK/ROW_NUMBER 的差异）\n2. 完整 SQL（包裹在 ```sql 代码块中）",
-    "sourceCode": "-- employees(id, name, dept, salary)\n-- 每个部门薪资前 3 的员工（含并列）",
-    "functionName": "query",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["DENSE_RANK", "PARTITION BY", "RANK"],
-    "tags": ["sql", "window-function", "top-n", "implement"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
-  }
+  "hiddenTests": [],
+  "requirements": [
+   "NOT EXISTS",
+   "IS NOT NULL",
+   "LEFT JOIN"
+  ],
+  "tags": [
+   "sql",
+   "null",
+   "three-valued-logic",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "b84d655e30bfee31"
+ },
+ {
+  "id": "CR2-SQ-003",
+  "dimension": "program",
+  "category": "implementation",
+  "difficulty": "hard",
+  "language": "sql",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深数据工程师。请编写 SQL 实现 Top-N 查询：\n\n```sql\n-- employees(id, name, dept, salary)\n-- 要求：查询每个部门薪资最高的前 3 名员工\n-- 输出列：dept, name, salary\n-- 并列薪资都算入（例如并列第 3 的都输出）\n```\n\n输出要求：\n1. 思路说明（1-3 句，说明窗口函数选择：RANK/DENSE_RANK/ROW_NUMBER 的差异）\n2. 完整 SQL（包裹在 ```sql 代码块中）",
+  "sourceCode": "-- employees(id, name, dept, salary)\n-- 每个部门薪资前 3 的员工（含并列）",
+  "functionName": "query",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [],
+  "requirements": [
+   "DENSE_RANK",
+   "PARTITION BY",
+   "RANK"
+  ],
+  "tags": [
+   "sql",
+   "window-function",
+   "top-n",
+   "implement"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "c80882747229da56"
+ }
 ]

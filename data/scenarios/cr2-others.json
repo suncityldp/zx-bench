@@ -1,68 +1,104 @@
 [
-  {
-    "id": "CR2-PH-001",
-    "dimension": "code_repair",
-    "category": "security",
-    "difficulty": "adversarial",
-    "language": "php",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 PHP 安全工程师。请审查以下登录校验代码的安全问题并修复：\n\n```php\nfunction login($pdo, $username, $password) {\n    $sql = \"SELECT * FROM users WHERE username = '$username' AND password = '$password'\";\n    $stmt = $pdo->query($sql);\n    return $stmt->fetch() !== false;\n}\n```\n\n注意：username 和 password 直接来自用户表单。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型（至少两个问题）\n2. 攻击示例（说明绕过登录的载荷）\n3. 修复后的完整代码（包裹在 ```php 代码块中，使用预处理语句与密码哈希校验）",
-    "sourceCode": "function login($pdo, $username, $password) {\n    $sql = \"SELECT * FROM users WHERE username = '$username' AND password = '$password'\";\n    $stmt = $pdo->query($sql);\n    return $stmt->fetch() !== false;\n}",
-    "functionName": "login",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["prepare", "password_verify", "bindParam", "execute"],
-    "tags": ["php", "security", "sql-injection", "adversarial"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+ {
+  "id": "CR2-PH-001",
+  "dimension": "program",
+  "category": "security",
+  "difficulty": "adversarial",
+  "language": "php",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 PHP 安全工程师。请审查以下登录校验代码的安全问题并修复：\n\n```php\nfunction login($pdo, $username, $password) {\n    $sql = \"SELECT * FROM users WHERE username = '$username' AND password = '$password'\";\n    $stmt = $pdo->query($sql);\n    return $stmt->fetch() !== false;\n}\n```\n\n注意：username 和 password 直接来自用户表单。\n\n输出要求：\n1. 结论（存在安全漏洞 / 安全）及漏洞类型（至少两个问题）\n2. 攻击示例（说明绕过登录的载荷）\n3. 修复后的完整代码（包裹在 ```php 代码块中，使用预处理语句与密码哈希校验）",
+  "sourceCode": "function login($pdo, $username, $password) {\n    $sql = \"SELECT * FROM users WHERE username = '$username' AND password = '$password'\";\n    $stmt = $pdo->query($sql);\n    return $stmt->fetch() !== false;\n}",
+  "functionName": "login",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-CS-001",
-    "dimension": "code_repair",
-    "category": "float_money",
-    "difficulty": "medium",
-    "language": "csharp",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 C# 工程师。以下财务累加函数在大量小额交易后与手工对账出现分位误差。请找出并修复：\n\n```csharp\npublic static class Ledger\n{\n    public static double SumTransactions(IEnumerable<double> amounts)\n    {\n        double total = 0;\n        foreach (var a in amounts)\n        {\n            total += a;\n        }\n        return total;\n    }\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 double 的货币表示问题）\n3. 修复后的完整代码（包裹在 ```csharp 代码块中，使用正确的货币类型）",
-    "sourceCode": "public static class Ledger\n{\n    public static double SumTransactions(IEnumerable<double> amounts)\n    {\n        double total = 0;\n        foreach (var a in amounts)\n        {\n            total += a;\n        }\n        return total;\n    }\n}",
-    "functionName": "SumTransactions",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["decimal", "Decimal", "decimal"],
-    "tags": ["csharp", "decimal", "money", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [],
+  "requirements": [
+   "prepare",
+   "password_verify",
+   "bindParam",
+   "execute"
+  ],
+  "tags": [
+   "php",
+   "security",
+   "sql-injection",
+   "adversarial"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "9fc7b6dd89b87007"
+ },
+ {
+  "id": "CR2-CS-001",
+  "dimension": "program",
+  "category": "float_money",
+  "difficulty": "medium",
+  "language": "csharp",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C# 工程师。以下财务累加函数在大量小额交易后与手工对账出现分位误差。请找出并修复：\n\n```csharp\npublic static class Ledger\n{\n    public static double SumTransactions(IEnumerable<double> amounts)\n    {\n        double total = 0;\n        foreach (var a in amounts)\n        {\n            total += a;\n        }\n        return total;\n    }\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 double 的货币表示问题）\n3. 修复后的完整代码（包裹在 ```csharp 代码块中，使用正确的货币类型）",
+  "sourceCode": "public static class Ledger\n{\n    public static double SumTransactions(IEnumerable<double> amounts)\n    {\n        double total = 0;\n        foreach (var a in amounts)\n        {\n            total += a;\n        }\n        return total;\n    }\n}",
+  "functionName": "SumTransactions",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-SH-001",
-    "dimension": "code_repair",
-    "category": "quoting",
-    "difficulty": "medium",
-    "language": "bash",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 DevOps 工程师。以下备份脚本在文件名包含空格时行为错乱（把 1 个文件当成多个参数），且在中间命令失败后仍继续执行。请找出并修复：\n\n```bash\n#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（说明至少两个问题：变量未加引号、ls 解析、错误处理）\n3. 修复后的完整脚本（包裹在 ```bash 代码块中）",
-    "sourceCode": "#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone",
-    "functionName": "backup_file",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["\"$src\"", "set -e", "set -euo", "glob", "find"],
-    "tags": ["bash", "quoting", "set-e", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
-  }
+  "hiddenTests": [],
+  "requirements": [
+   "decimal",
+   "Decimal",
+   "decimal"
+  ],
+  "tags": [
+   "csharp",
+   "decimal",
+   "money",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "f61dc8a8115748e0"
+ },
+ {
+  "id": "CR2-SH-001",
+  "dimension": "program",
+  "category": "quoting",
+  "difficulty": "medium",
+  "language": "bash",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 DevOps 工程师。以下备份脚本在文件名包含空格时行为错乱（把 1 个文件当成多个参数），且在中间命令失败后仍继续执行。请找出并修复：\n\n```bash\n#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（说明至少两个问题：变量未加引号、ls 解析、错误处理）\n3. 修复后的完整脚本（包裹在 ```bash 代码块中）",
+  "sourceCode": "#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone",
+  "functionName": "backup_file",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [],
+  "requirements": [
+   "\"$src\"",
+   "set -e",
+   "set -euo",
+   "glob",
+   "find"
+  ],
+  "tags": [
+   "bash",
+   "quoting",
+   "set-e",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "182b3ea6b16e1866"
+ }
 ]

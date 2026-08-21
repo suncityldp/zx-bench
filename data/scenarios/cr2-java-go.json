@@ -1,215 +1,365 @@
 [
-  {
-    "id": "CR2-JV-001",
-    "dimension": "code_repair",
-    "category": "integer_division",
-    "difficulty": "easy",
-    "language": "java",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Java 工程师。以下计算平均分的函数总是返回 0。请找出并修复 bug：\n\n```java\npublic class ScoreUtil {\n    public static double average(int total, int count) {\n        return total / count;\n    }\n}\n```\n\n功能要求：返回精确的平均值（double），如 average(7, 2) 应返回 3.5。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释整数除法的截断）\n3. 修复后的完整代码（包裹在 ```java 代码块中，保持方法签名不变）",
-    "sourceCode": "public class ScoreUtil {\n    public static double average(int total, int count) {\n        return total / count;\n    }\n}",
-    "functionName": "average",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-JV-001-t1", "type": "static", "testCode": "assertEquals(3.5, ScoreUtil.average(7, 2), 1e-9);", "description": "非整除场景", "expectedOutput": "3.5" },
-      { "id": "CR2-JV-001-t2", "type": "static", "testCode": "assertEquals(4.0, ScoreUtil.average(8, 2), 1e-9);", "description": "整除场景", "expectedOutput": "4.0" }
-    ],
-    "requirements": ["(double)", "1.0 *"],
-    "tags": ["java", "integer-division", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+ {
+  "id": "CR2-JV-001",
+  "dimension": "program",
+  "category": "integer_division",
+  "difficulty": "easy",
+  "language": "java",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Java 工程师。以下计算平均分的函数总是返回 0。请找出并修复 bug：\n\n```java\npublic class ScoreUtil {\n    public static double average(int total, int count) {\n        return total / count;\n    }\n}\n```\n\n功能要求：返回精确的平均值（double），如 average(7, 2) 应返回 3.5。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释整数除法的截断）\n3. 修复后的完整代码（包裹在 ```java 代码块中，保持方法签名不变）",
+  "sourceCode": "public class ScoreUtil {\n    public static double average(int total, int count) {\n        return total / count;\n    }\n}",
+  "functionName": "average",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-JV-002",
-    "dimension": "code_repair",
-    "category": "concurrent_modification",
-    "difficulty": "medium",
-    "language": "java",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Java 工程师。以下方法运行时抛出 ConcurrentModificationException。请找出并修复 bug：\n\n```java\nimport java.util.List;\n\npublic class ListCleaner {\n    public static void removeNegatives(List<Integer> nums) {\n        for (Integer n : nums) {\n            if (n < 0) {\n                nums.remove(n);\n            }\n        }\n    }\n}\n```\n\n功能要求：移除列表中所有负数。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 fail-fast 迭代器机制）\n3. 修复后的完整代码（包裹在 ```java 代码块中，保持方法签名不变）",
-    "sourceCode": "import java.util.List;\n\npublic class ListCleaner {\n    public static void removeNegatives(List<Integer> nums) {\n        for (Integer n : nums) {\n            if (n < 0) {\n                nums.remove(n);\n            }\n        }\n    }\n}",
-    "functionName": "removeNegatives",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-JV-002-t1", "type": "static", "testCode": "List<Integer> l = new ArrayList<>(Arrays.asList(1, -2, -3, 4));\nListCleaner.removeNegatives(l);\nassertEquals(Arrays.asList(1, 4), l);", "description": "连续负数全部移除且不抛异常", "expectedOutput": "[1, 4]" }
-    ],
-    "requirements": ["removeIf", "Iterator", "iterator.remove"],
-    "tags": ["java", "concurrent-modification", "iterator", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-JV-001-t1",
+    "type": "static",
+    "testCode": "assertEquals(3.5, ScoreUtil.average(7, 2), 1e-9);",
+    "description": "非整除场景",
+    "expectedOutput": "3.5"
+   },
+   {
+    "id": "CR2-JV-001-t2",
+    "type": "static",
+    "testCode": "assertEquals(4.0, ScoreUtil.average(8, 2), 1e-9);",
+    "description": "整除场景",
+    "expectedOutput": "4.0"
+   }
+  ],
+  "requirements": [
+   "(double)",
+   "1.0 *"
+  ],
+  "tags": [
+   "java",
+   "integer-division",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "4106cc48bad568c2"
+ },
+ {
+  "id": "CR2-JV-002",
+  "dimension": "program",
+  "category": "concurrent_modification",
+  "difficulty": "medium",
+  "language": "java",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Java 工程师。以下方法运行时抛出 ConcurrentModificationException。请找出并修复 bug：\n\n```java\nimport java.util.List;\n\npublic class ListCleaner {\n    public static void removeNegatives(List<Integer> nums) {\n        for (Integer n : nums) {\n            if (n < 0) {\n                nums.remove(n);\n            }\n        }\n    }\n}\n```\n\n功能要求：移除列表中所有负数。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 fail-fast 迭代器机制）\n3. 修复后的完整代码（包裹在 ```java 代码块中，保持方法签名不变）",
+  "sourceCode": "import java.util.List;\n\npublic class ListCleaner {\n    public static void removeNegatives(List<Integer> nums) {\n        for (Integer n : nums) {\n            if (n < 0) {\n                nums.remove(n);\n            }\n        }\n    }\n}",
+  "functionName": "removeNegatives",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-JV-003",
-    "dimension": "code_repair",
-    "category": "equals_hashcode",
-    "difficulty": "medium",
-    "language": "java",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Java 工程师。以下 Money 类用作 HashMap 的键时行为异常：两个逻辑相等的 Money 对象算出不同的桶，导致查不到已放入的值。请找出并修复 bug：\n\n```java\nimport java.util.Objects;\n\npublic class Money {\n    private final String currency;\n    private final long amount;\n\n    public Money(String currency, long amount) {\n        this.currency = currency;\n        this.amount = amount;\n    }\n\n    @Override\n    public boolean equals(Object o) {\n        if (!(o instanceof Money)) return false;\n        Money m = (Money) o;\n        return amount == m.amount && Objects.equals(currency, m.currency);\n    }\n    // 注意：未重写 hashCode\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 equals/hashCode 契约）\n3. 修复后的完整代码（包裹在 ```java 代码块中）",
-    "sourceCode": "import java.util.Objects;\n\npublic class Money {\n    private final String currency;\n    private final long amount;\n\n    public Money(String currency, long amount) {\n        this.currency = currency;\n        this.amount = amount;\n    }\n\n    @Override\n    public boolean equals(Object o) {\n        if (!(o instanceof Money)) return false;\n        Money m = (Money) o;\n        return amount == m.amount && Objects.equals(currency, m.currency);\n    }\n}",
-    "functionName": "Money",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-JV-003-t1", "type": "static", "testCode": "Map<Money, String> map = new HashMap<>();\nmap.put(new Money(\"CNY\", 100), \"a\");\nassertEquals(\"a\", map.get(new Money(\"CNY\", 100)));", "description": "逻辑相等的键必须能命中", "expectedOutput": "a" }
-    ],
-    "requirements": ["hashCode", "Objects.hash"],
-    "tags": ["java", "equals-hashcode", "hashmap", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-JV-002-t1",
+    "type": "static",
+    "testCode": "List<Integer> l = new ArrayList<>(Arrays.asList(1, -2, -3, 4));\nListCleaner.removeNegatives(l);\nassertEquals(Arrays.asList(1, 4), l);",
+    "description": "连续负数全部移除且不抛异常",
+    "expectedOutput": "[1, 4]"
+   }
+  ],
+  "requirements": [
+   "removeIf",
+   "Iterator",
+   "iterator.remove"
+  ],
+  "tags": [
+   "java",
+   "concurrent-modification",
+   "iterator",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "3fec1510ec81a2b1"
+ },
+ {
+  "id": "CR2-JV-003",
+  "dimension": "program",
+  "category": "equals_hashcode",
+  "difficulty": "medium",
+  "language": "java",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Java 工程师。以下 Money 类用作 HashMap 的键时行为异常：两个逻辑相等的 Money 对象算出不同的桶，导致查不到已放入的值。请找出并修复 bug：\n\n```java\nimport java.util.Objects;\n\npublic class Money {\n    private final String currency;\n    private final long amount;\n\n    public Money(String currency, long amount) {\n        this.currency = currency;\n        this.amount = amount;\n    }\n\n    @Override\n    public boolean equals(Object o) {\n        if (!(o instanceof Money)) return false;\n        Money m = (Money) o;\n        return amount == m.amount && Objects.equals(currency, m.currency);\n    }\n    // 注意：未重写 hashCode\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 equals/hashCode 契约）\n3. 修复后的完整代码（包裹在 ```java 代码块中）",
+  "sourceCode": "import java.util.Objects;\n\npublic class Money {\n    private final String currency;\n    private final long amount;\n\n    public Money(String currency, long amount) {\n        this.currency = currency;\n        this.amount = amount;\n    }\n\n    @Override\n    public boolean equals(Object o) {\n        if (!(o instanceof Money)) return false;\n        Money m = (Money) o;\n        return amount == m.amount && Objects.equals(currency, m.currency);\n    }\n}",
+  "functionName": "Money",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-JV-004",
-    "dimension": "code_repair",
-    "category": "race_condition",
-    "difficulty": "hard",
-    "language": "java",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Java 工程师。以下计数器在多线程压测下结果总是小于预期的 100000。请找出并修复 bug：\n\n```java\npublic class Counter {\n    private int count = 0;\n\n    public void increment() {\n        count++;\n    }\n\n    public int getCount() {\n        return count;\n    }\n}\n```\n\n场景：10 个线程各自调用 increment() 10000 次。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 count++ 的原子性）\n3. 修复后的完整代码（包裹在 ```java 代码块中，给出至少一种线程安全实现）",
-    "sourceCode": "public class Counter {\n    private int count = 0;\n\n    public void increment() {\n        count++;\n    }\n\n    public int getCount() {\n        return count;\n    }\n}",
-    "functionName": "Counter",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-JV-004-t1", "type": "static", "testCode": "// 10 线程 x 10000 次后 getCount() == 100000", "description": "并发累加不丢失", "expectedOutput": "100000" }
-    ],
-    "requirements": ["AtomicInteger", "synchronized", "incrementAndGet"],
-    "tags": ["java", "concurrency", "race-condition", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-JV-003-t1",
+    "type": "static",
+    "testCode": "Map<Money, String> map = new HashMap<>();\nmap.put(new Money(\"CNY\", 100), \"a\");\nassertEquals(\"a\", map.get(new Money(\"CNY\", 100)));",
+    "description": "逻辑相等的键必须能命中",
+    "expectedOutput": "a"
+   }
+  ],
+  "requirements": [
+   "hashCode",
+   "Objects.hash"
+  ],
+  "tags": [
+   "java",
+   "equals-hashcode",
+   "hashmap",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "d8c19e36c5d0d43a"
+ },
+ {
+  "id": "CR2-JV-004",
+  "dimension": "program",
+  "category": "race_condition",
+  "difficulty": "hard",
+  "language": "java",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Java 工程师。以下计数器在多线程压测下结果总是小于预期的 100000。请找出并修复 bug：\n\n```java\npublic class Counter {\n    private int count = 0;\n\n    public void increment() {\n        count++;\n    }\n\n    public int getCount() {\n        return count;\n    }\n}\n```\n\n场景：10 个线程各自调用 increment() 10000 次。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释 count++ 的原子性）\n3. 修复后的完整代码（包裹在 ```java 代码块中，给出至少一种线程安全实现）",
+  "sourceCode": "public class Counter {\n    private int count = 0;\n\n    public void increment() {\n        count++;\n    }\n\n    public int getCount() {\n        return count;\n    }\n}",
+  "functionName": "Counter",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-JV-005",
-    "dimension": "code_repair",
-    "category": "correct_code_trap",
-    "difficulty": "hard",
-    "language": "java",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Java 工程师。请审查以下金额累加实现，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请明确说明它为什么正确，不要画蛇添足：\n\n```java\nimport java.math.BigDecimal;\n\npublic class PriceAccumulator {\n    private BigDecimal total = BigDecimal.ZERO;\n\n    public void add(String price) {\n        total = total.add(new BigDecimal(price));\n    }\n\n    public String getTotal() {\n        return total.toPlainString();\n    }\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明为什么这里不用 double，以及 String 构造的意义）",
-    "sourceCode": "import java.math.BigDecimal;\n\npublic class PriceAccumulator {\n    private BigDecimal total = BigDecimal.ZERO;\n\n    public void add(String price) {\n        total = total.add(new BigDecimal(price));\n    }\n\n    public String getTotal() {\n        return total.toPlainString();\n    }\n}",
-    "functionName": "PriceAccumulator",
-    "expectedVerdict": "no_bug",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["BigDecimal", "double", "不可变", "immutable", "精度", "String"],
-    "tags": ["java", "trap", "correct-code", "bigdecimal"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-JV-004-t1",
+    "type": "static",
+    "testCode": "// 10 线程 x 10000 次后 getCount() == 100000",
+    "description": "并发累加不丢失",
+    "expectedOutput": "100000"
+   }
+  ],
+  "requirements": [
+   "AtomicInteger",
+   "synchronized",
+   "incrementAndGet"
+  ],
+  "tags": [
+   "java",
+   "concurrency",
+   "race-condition",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "c607579b1e00c751"
+ },
+ {
+  "id": "CR2-JV-005",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "hard",
+  "language": "java",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Java 工程师。请审查以下金额累加实现，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请明确说明它为什么正确，不要画蛇添足：\n\n```java\nimport java.math.BigDecimal;\n\npublic class PriceAccumulator {\n    private BigDecimal total = BigDecimal.ZERO;\n\n    public void add(String price) {\n        total = total.add(new BigDecimal(price));\n    }\n\n    public String getTotal() {\n        return total.toPlainString();\n    }\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明为什么这里不用 double，以及 String 构造的意义）",
+  "sourceCode": "import java.math.BigDecimal;\n\npublic class PriceAccumulator {\n    private BigDecimal total = BigDecimal.ZERO;\n\n    public void add(String price) {\n        total = total.add(new BigDecimal(price));\n    }\n\n    public String getTotal() {\n        return total.toPlainString();\n    }\n}",
+  "functionName": "PriceAccumulator",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-GO-001",
-    "dimension": "code_repair",
-    "category": "goroutine_capture",
-    "difficulty": "medium",
-    "language": "go",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Go 工程师（Go 1.21 环境）。以下程序期望输出 0 1 2（顺序不限），实际经常输出 3 3 3。请找出并修复 bug：\n\n```go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tvar wg sync.WaitGroup\n\tfor i := 0; i < 3; i++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfmt.Println(i)\n\t\t}()\n\t}\n\twg.Wait()\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释循环变量捕获；可说明 Go 1.22 前后的语义差异）\n3. 修复后的完整代码（包裹在 ```go 代码块中，兼容 Go 1.21）",
-    "sourceCode": "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tvar wg sync.WaitGroup\n\tfor i := 0; i < 3; i++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfmt.Println(i)\n\t\t}()\n\t}\n\twg.Wait()\n}",
-    "functionName": "main",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-GO-001-t1", "type": "static", "testCode": "// 输出应为 0 1 2 的某个排列", "description": "每个 goroutine 打印各自的 i", "expectedOutput": "0 1 2" }
-    ],
-    "requirements": ["go func(i int)", "i := i", "j :="],
-    "tags": ["go", "goroutine", "loop-capture", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [],
+  "requirements": [
+   "BigDecimal",
+   "double",
+   "不可变",
+   "immutable",
+   "精度",
+   "String"
+  ],
+  "tags": [
+   "java",
+   "trap",
+   "correct-code",
+   "bigdecimal"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "8b0bd52fb5cfd679"
+ },
+ {
+  "id": "CR2-GO-001",
+  "dimension": "program",
+  "category": "goroutine_capture",
+  "difficulty": "medium",
+  "language": "go",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Go 工程师（Go 1.21 环境）。以下程序期望输出 0 1 2（顺序不限），实际经常输出 3 3 3。请找出并修复 bug：\n\n```go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tvar wg sync.WaitGroup\n\tfor i := 0; i < 3; i++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfmt.Println(i)\n\t\t}()\n\t}\n\twg.Wait()\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释循环变量捕获；可说明 Go 1.22 前后的语义差异）\n3. 修复后的完整代码（包裹在 ```go 代码块中，兼容 Go 1.21）",
+  "sourceCode": "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tvar wg sync.WaitGroup\n\tfor i := 0; i < 3; i++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfmt.Println(i)\n\t\t}()\n\t}\n\twg.Wait()\n}",
+  "functionName": "main",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-GO-002",
-    "dimension": "code_repair",
-    "category": "slice_aliasing",
-    "difficulty": "medium",
-    "language": "go",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Go 工程师。以下函数出现诡异问题：向返回值追加元素后，传入的原切片底层数据也被污染。请找出并修复 bug：\n\n```go\nfunc CopyPrefix(items []int, n int) []int {\n\treturn items[:n]\n}\n```\n\n功能要求：返回前 n 个元素的独立副本，对返回值的 append 不得影响 items。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释切片共享底层数组与 cap 的影响）\n3. 修复后的完整代码（包裹在 ```go 代码块中，保持函数签名不变）",
-    "sourceCode": "func CopyPrefix(items []int, n int) []int {\n\treturn items[:n]\n}",
-    "functionName": "CopyPrefix",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-GO-002-t1", "type": "static", "testCode": "src := []int{1, 2, 3, 4}\np := CopyPrefix(src, 2)\np = append(p, 99)\n// src 必须保持 [1, 2, 3, 4]", "description": "append 不污染原切片", "expectedOutput": "[1 2 3 4]" }
-    ],
-    "requirements": ["make(", "copy(", "append([]int", "items[:n:n]"],
-    "tags": ["go", "slice", "aliasing", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-GO-001-t1",
+    "type": "static",
+    "testCode": "// 输出应为 0 1 2 的某个排列",
+    "description": "每个 goroutine 打印各自的 i",
+    "expectedOutput": "0 1 2"
+   }
+  ],
+  "requirements": [
+   "go func(i int)",
+   "i := i",
+   "j :="
+  ],
+  "tags": [
+   "go",
+   "goroutine",
+   "loop-capture",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "9e7e4ca92b9cab48"
+ },
+ {
+  "id": "CR2-GO-002",
+  "dimension": "program",
+  "category": "slice_aliasing",
+  "difficulty": "medium",
+  "language": "go",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Go 工程师。以下函数出现诡异问题：向返回值追加元素后，传入的原切片底层数据也被污染。请找出并修复 bug：\n\n```go\nfunc CopyPrefix(items []int, n int) []int {\n\treturn items[:n]\n}\n```\n\n功能要求：返回前 n 个元素的独立副本，对返回值的 append 不得影响 items。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释切片共享底层数组与 cap 的影响）\n3. 修复后的完整代码（包裹在 ```go 代码块中，保持函数签名不变）",
+  "sourceCode": "func CopyPrefix(items []int, n int) []int {\n\treturn items[:n]\n}",
+  "functionName": "CopyPrefix",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-GO-003",
-    "dimension": "code_repair",
-    "category": "deadlock",
-    "difficulty": "hard",
-    "language": "go",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Go 工程师。以下程序运行时报 fatal error: all goroutines are asleep - deadlock!。请找出并修复：\n\n```go\npackage main\n\nimport \"fmt\"\n\nfunc main() {\n\tch := make(chan int)\n\tch <- 42\n\tfmt.Println(<-ch)\n}\n```\n\n功能要求：通过 channel 传递 42 并打印。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无缓冲 channel 的同步语义）\n3. 修复后的完整代码（包裹在 ```go 代码块中，任一种正确方式均可）",
-    "sourceCode": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tch := make(chan int)\n\tch <- 42\n\tfmt.Println(<-ch)\n}",
-    "functionName": "main",
-    "expectedVerdict": "fix",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [
-      { "id": "CR2-GO-003-t1", "type": "static", "testCode": "// 程序应输出 42 且不死锁", "description": "发送与接收正确配对", "expectedOutput": "42" }
-    ],
-    "requirements": ["make(chan int, 1)", "go func", "go func()"],
-    "tags": ["go", "channel", "deadlock", "fix"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
+  "hiddenTests": [
+   {
+    "id": "CR2-GO-002-t1",
+    "type": "static",
+    "testCode": "src := []int{1, 2, 3, 4}\np := CopyPrefix(src, 2)\np = append(p, 99)\n// src 必须保持 [1, 2, 3, 4]",
+    "description": "append 不污染原切片",
+    "expectedOutput": "[1 2 3 4]"
+   }
+  ],
+  "requirements": [
+   "make(",
+   "copy(",
+   "append([]int",
+   "items[:n:n]"
+  ],
+  "tags": [
+   "go",
+   "slice",
+   "aliasing",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "9b709075fa9b0be2"
+ },
+ {
+  "id": "CR2-GO-003",
+  "dimension": "program",
+  "category": "deadlock",
+  "difficulty": "hard",
+  "language": "go",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Go 工程师。以下程序运行时报 fatal error: all goroutines are asleep - deadlock!。请找出并修复：\n\n```go\npackage main\n\nimport \"fmt\"\n\nfunc main() {\n\tch := make(chan int)\n\tch <- 42\n\tfmt.Println(<-ch)\n}\n```\n\n功能要求：通过 channel 传递 42 并打印。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无缓冲 channel 的同步语义）\n3. 修复后的完整代码（包裹在 ```go 代码块中，任一种正确方式均可）",
+  "sourceCode": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tch := make(chan int)\n\tch <- 42\n\tfmt.Println(<-ch)\n}",
+  "functionName": "main",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
   },
-  {
-    "id": "CR2-GO-004",
-    "dimension": "code_repair",
-    "category": "correct_code_trap",
-    "difficulty": "hard",
-    "language": "go",
-    "locale": "zh-CN",
-    "status": "valid",
-    "tier": "public_dev",
-    "promptTemplate": "你是一名资深 Go 工程师。请审查以下错误包装代码，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明 errors.Is 为什么能穿透包装链：\n\n```go\npackage store\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n)\n\nvar ErrNotFound = errors.New(\"record not found\")\n\nfunc Load(id string) (string, error) {\n\tif id == \"\" {\n\t\treturn \"\", fmt.Errorf(\"load %q: %w\", id, ErrNotFound)\n\t}\n\treturn \"data\", nil\n}\n\n// 调用方\nfunc Exists(id string) bool {\n\t_, err := Load(id)\n\treturn !errors.Is(err, ErrNotFound)\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（解释 %w 与 errors.Is 的解包机制）",
-    "sourceCode": "package store\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n)\n\nvar ErrNotFound = errors.New(\"record not found\")\n\nfunc Load(id string) (string, error) {\n\tif id == \"\" {\n\t\treturn \"\", fmt.Errorf(\"load %q: %w\", id, ErrNotFound)\n\t}\n\treturn \"data\", nil\n}\n\nfunc Exists(id string) bool {\n\t_, err := Load(id)\n\treturn !errors.Is(err, ErrNotFound)\n}",
-    "functionName": "Load",
-    "expectedVerdict": "no_bug",
-    "grader": "code_repair_v3",
-    "graderVersion": "3.0.0",
-    "scoring": { "type": "code_repair" },
-    "hiddenTests": [],
-    "requirements": ["%w", "errors.Is", "Unwrap", "包装", "wrap"],
-    "tags": ["go", "trap", "correct-code", "error-wrapping"],
-    "scenarioVersion": "1.0.0",
-    "scenarioHash": ""
-  }
+  "hiddenTests": [
+   {
+    "id": "CR2-GO-003-t1",
+    "type": "static",
+    "testCode": "// 程序应输出 42 且不死锁",
+    "description": "发送与接收正确配对",
+    "expectedOutput": "42"
+   }
+  ],
+  "requirements": [
+   "make(chan int, 1)",
+   "go func",
+   "go func()"
+  ],
+  "tags": [
+   "go",
+   "channel",
+   "deadlock",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "aa68ec485694312a"
+ },
+ {
+  "id": "CR2-GO-004",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "hard",
+  "language": "go",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 Go 工程师。请审查以下错误包装代码，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明 errors.Is 为什么能穿透包装链：\n\n```go\npackage store\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n)\n\nvar ErrNotFound = errors.New(\"record not found\")\n\nfunc Load(id string) (string, error) {\n\tif id == \"\" {\n\t\treturn \"\", fmt.Errorf(\"load %q: %w\", id, ErrNotFound)\n\t}\n\treturn \"data\", nil\n}\n\n// 调用方\nfunc Exists(id string) bool {\n\t_, err := Load(id)\n\treturn !errors.Is(err, ErrNotFound)\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（解释 %w 与 errors.Is 的解包机制）",
+  "sourceCode": "package store\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n)\n\nvar ErrNotFound = errors.New(\"record not found\")\n\nfunc Load(id string) (string, error) {\n\tif id == \"\" {\n\t\treturn \"\", fmt.Errorf(\"load %q: %w\", id, ErrNotFound)\n\t}\n\treturn \"data\", nil\n}\n\nfunc Exists(id string) bool {\n\t_, err := Load(id)\n\treturn !errors.Is(err, ErrNotFound)\n}",
+  "functionName": "Load",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [],
+  "requirements": [
+   "%w",
+   "errors.Is",
+   "Unwrap",
+   "包装",
+   "wrap"
+  ],
+  "tags": [
+   "go",
+   "trap",
+   "correct-code",
+   "error-wrapping"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "9d17ac8fc92a2f8f"
+ }
 ]

@@ -68,3 +68,7 @@ export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, computeWeightedTotal, getJudgeWe
 // 场景契约（Phase 1）
 export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScenario, canonicalizeScenario, hashScenario, hashScenarioShort, checkScenarioEligibility, partitionByEligibility } from './contracts/index.js';
 export type { GraderContract } from './contracts/index.js';
+
+// 容器执行后端（Phase 2）
+export { runInContainer, isDockerAvailable, getImageDigest, CONTAINER_IMAGES } from './execution/index.js';
+export type { ContainerRunOptions, ContainerRunResult, ContainerFile } from './execution/index.js';
