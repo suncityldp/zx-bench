@@ -1,88 +1,118 @@
-# 补测试任务单（4 题）
+# 补测试任务单（CR2 剩余 7 题）
 
-> 按 `docs/fixture-spec.md` 规范补全以下 4 题的 hiddenTests + fixture + referenceSolution。
-> 输出格式完全对照已入库的 9 题范例：`data/scenarios/benchmark-hard-phpcsjv.json`（每题含 `requirements.fixture` + `requirements.referenceSolution`）。
+> 按 `docs/fixture-spec.md` 规范补全以下 7 题的 hiddenTests + fixture + referenceSolution。
+> 输出格式对照已入库范例（查 benchmark.json 或 cr2-*.json 里已带 fixture 的题）。
 > **验收门**：bug 版本（sourceCode）至少 1 个测试 fail；referenceSolution 全部测试 pass。
 
 ---
 
-## 1. CP-L2-CS-001（C# · float_money）
+## TypeScript 4 题（host 沙箱执行，fixture 可不写，只需 hiddenTests + referenceSolution）
 
-**sourceCode（bug）**：
+### CR2-TS-001（type_safety）
+```typescript
+function first<T>(items: T[]): T {
+  return items[0];
+}
+```
+- bug：空数组返回 undefined，但签名是 T（类型不诚实）。
+- 修复方向：返回 `T | undefined` 或空数组 throw。keywords：`T | undefined`、`throw`、`undefined`。
+- 测试建议：空数组 + 非空数组（≥2 个）。
+
+### CR2-TS-002（null_handling）
+```typescript
+interface User { name: string; address?: { city: string }; }
+function getCity(user: User): string {
+  return user.address.city;
+}
+```
+- bug：address 可选，`user.address.city` 在 address 缺失时抛 TypeError。
+- 修复方向：可选链 + 空值合并 `user.address?.city ?? 'Unknown'`。keywords：`?.`、`??`。
+- 测试建议：address 存在 / address 缺失 / user 为 null（≥3 个）。
+
+### CR2-TS-003（implementation，实现题）
+```typescript
+type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
+function safeParseInt(s: string): Result<number, string> {
+  // TODO
+}
+```
+- 这是**实现题**（无 bug 代码，模型要实现 safeParseInt）。
+- 修复方向：`Number.isInteger` 校验、`trim` 空白、非法返回 `{ ok: false, error }`。
+- 测试建议：合法整数 / 带空白 / 非数字 / 小数（≥4 个）。
+
+### CR2-TS-005（security）
+```typescript
+function merge(target: Record<string, unknown>, source: Record<string, unknown>) {
+  for (const key in source) {
+    target[key] = source[key];
+  }
+  return target;
+}
+```
+- bug：`__proto__`/`constructor` 键可污染原型链。
+- 修复方向：`hasOwnProperty` 检查 / `Object.keys` 白名单。keywords：`__proto__`、`hasOwnProperty`。
+- 测试建议：普通合并 + 恶意 `__proto__` 键不得污染原型（≥2 个）。
+
+---
+
+## PHP 1 题
+
+### CR2-PH-001（security，SQL 注入）
+```php
+function login($pdo, $username, $password) {
+    $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
+    $stmt = $pdo->query($sql);
+    return $stmt->fetch() !== false;
+}
+```
+- bug：字符串拼接 SQL，可注入（`' OR '1'='1`）。
+- 修复方向：`prepare` + `bindParam` + `password_verify`。keywords：`prepare`、`bindParam`、`password_verify`。
+- fixture：`{"language":"php","phpVersion":"8.2","includes":[],"helpers":""}`（helpers 提供内存 PDO 桩）。
+- 测试建议：正常登录 + 注入 payload 不得绕过（≥2 个）。
+
+---
+
+## C# 1 题
+
+### CR2-CS-001（float_money）
 ```csharp
-public static double Sum(double[] prices) {
-    double t = 0;
-    foreach (var p in prices) t += p;
-    return t;
-}
-```
-
-- bug：用 double 累加金额，0.1+0.2 等产生浮点误差。
-- 修复方向（explanationKeywords）：`decimal`、`0.1m`（改用 decimal 累加）。
-- fixture：`{"language":"csharp","wrapInClass":true,"usings":[],"helpers":""}`。
-- 测试建议：`Assert.Equal(0.3m, (decimal)Sum(new double[]{0.1, 0.2}))` 类精度断言（≥3 个，含常规/边界/负数）。
-
----
-
-## 2. CP-L2-JV-002（Java · resource_leak）
-
-**sourceCode（bug）**：
-```java
-static String readFirstLine(String path) throws IOException {
-    BufferedReader r = new BufferedReader(new FileReader(path));
-    String line = r.readLine();
-    r.close();
-    return line;
-}
-```
-
-- bug：`readLine()` 抛异常时 `r.close()` 不执行 → 资源泄漏。
-- 修复方向（explanationKeywords）：`try (BufferedReader`、try-with-resources、AutoCloseable。
-- fixture：`{"language":"java","wrapInClass":true,"imports":["import java.io.*;"]}`。
-- 测试建议：helpers 提供临时文件路径；测试正常读取 + 用反射/标志验证 close 被调用（≥2 个）。
-
----
-
-## 3. CP-L3-CONC-JV-001（Java · check_then_act）
-
-**sourceCode（bug）**：
-```java
-class Cache {
-    private Map<String,Integer> m = new HashMap<>();
-    int getOrCompute(String k, java.util.function.Supplier<Integer> f) {
-        if (m.containsKey(k)) return m.get(k);
-        int v = f.get();
-        m.put(k, v);
-        return v;
+public static class Ledger {
+    public static double SumTransactions(IEnumerable<double> amounts) {
+        double total = 0;
+        foreach (var a in amounts) total += a;
+        return total;
     }
 }
 ```
-
-- bug：check-then-act 非原子，并发下 `f` 可能被重复计算、结果不一致。
-- 修复方向（explanationKeywords）：`ConcurrentHashMap`、`computeIfAbsent`。
-- fixture：`{"language":"java","wrapInClass":false,"imports":["import java.util.*;","import java.util.concurrent.*;"]}`。
-- 测试建议：并发调用 count `f.get()` 次数应恰为 1（≥2 个：单线程命中缓存 + 并发去重）。
+- bug：double 累加精度误差（可参照 CP-L3-SEM-CS-001 用 1000 次 0.1 累加）。
+- 修复方向：`decimal`。keywords：`decimal`。
+- fixture：`{"language":"csharp","wrapInClass":false,"usings":[],"helpers":""}`。
+- 测试建议：常规合计 + 1000 次 0.1 累加暴露误差 + 空集（≥3 个）。
 
 ---
 
-## 4. CP-L2-PHP-001（PHP · loose_comparison）
+## Bash 1 题
 
-**sourceCode（bug）**：
-```php
-function checkToken(string $provided, string $expected): bool {
-    return $provided == $expected;
+### CR2-SH-001（quoting）
+```bash
+backup_file() {
+    local src=$1
+    local dest=$2
+    cp $src $dest
+    chmod 644 $dest
 }
 ```
-
-- bug：`==` 松比较，`"0e123" == "0e456"` 这类科学计数法字符串被误判相等。
-- 修复方向（explanationKeywords）：`hash_equals`、`===`、timing（用 `===` 或 `hash_equals` 且常数时间）。
-- fixture：`{"language":"php","phpVersion":"8.2","includes":[],"helpers":""}`。
-- 测试建议：正常相等 / 正常不等 / `"0e123" vs "0e456"` 必须 false（≥3 个）。
+- bug：`$src`/`$dest` 未加引号，含空格/特殊字符路径会分词错误（cp 参数错乱）。
+- 修复方向：`"$src"`、`"$dest"`，可加 `set -e`。keywords：`"$src"`、`set -e`。
+- fixture：`{"language":"bash","image":"bash:5","setOptions":[],"helpers":""}`。
+- 断言风格：`[[ "$(backup_file ...)" == "..." ]]`（或检查副作用）。
+- 测试建议：无空格路径 + 含空格路径（bug 必挂）（≥2 个）。
 
 ---
 
 ## 提交格式
 
-产出一个 JSON 数组（每元素一个完整 scenario，字段对齐 benchmark.json 条目），
-包含 `hiddenTests`（数组，元素 `{id, type:'hidden', testCode, description, expectedExitCode:0}`）、
-`requirements.fixture`、`requirements.referenceSolution`，并更新 `requirements.hiddenTests`（code 版）。
+产出一个 JSON 数组（每元素一个完整 scenario，字段对齐 cr2-*.json 条目），包含：
+- `hiddenTests`：数组，元素 `{id, type:'hidden', testCode, description, expectedExitCode:0}`。
+- `requirements.fixture` + `requirements.referenceSolution`。
+- 同步更新 `requirements.hiddenTests`（code 版）。
