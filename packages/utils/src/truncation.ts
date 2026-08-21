@@ -56,7 +56,8 @@ export function buildOutputMetadata(
 ): OutputMetadata {
   const { truncated, reasons } = detectTruncation(content, finishReason, maxTokens, outputTokens);
   const containsCodeBlock = /```[\s\S]*?```/.test(content);
-  const containsFinalConclusion = /(?:最终|结论|判定|verdict|conclusion|final)/i.test(content);
+  // ANSWER: 行（CLI 实地调查题等题面要求的一行式结论）也视为最终结论
+  const containsFinalConclusion = /(?:最终|结论|判定|verdict|conclusion|final|^answer\s*[:：])/im.test(content);
 
   return {
     finishReason,
