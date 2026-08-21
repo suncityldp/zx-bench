@@ -2,14 +2,14 @@
 
 [中文文档](README.md) · English
 
-> Run any large language model (local GGUF / Ollama / OpenAI-compatible API) through **519 benchmark questions** across 10 dimensions on a single machine — producing reproducible composite scores, dimension radar, leaderboards, AI deep-dive reports and cost-effectiveness analysis. Programming questions are **actually compiled and executed with hidden tests inside Docker containers**, so scores reflect real code behavior, not text similarity.
+> Run any large language model (local GGUF / Ollama / OpenAI-compatible API) through **516 benchmark questions** across 10 dimensions on a single machine — producing reproducible composite scores, dimension radar, leaderboards, AI deep-dive reports and cost-effectiveness analysis. Programming questions are **actually compiled and executed with hidden tests inside Docker containers**, so scores reflect real code behavior, not text similarity.
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
 ## Highlights
 
 - **10 capability dimensions**: programming, reasoning & math, safety & authority, deep CLI tasks, data extraction, agent workflow, instruction following, tool/CLI workflow, hallucination resistance, structured output.
-- **519 public benchmark questions**: difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
+- **516 evaluable benchmark questions** (519 total; 3 are quarantined for format/constraint defects and do not run): difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
 - **Real code execution**: JS/TS/Python run in a subprocess sandbox; Go/Java/C/C++/Rust/PHP/C#/Bash/SQL run in Docker containers with real compile + hidden-test execution (ASan for memory errors, JUnit for Java, race detector for concurrency, SQLite for queries). The test_pass axis is the actual test pass rate — no keyword guessing.
 - **no_bug traps**: some code is already correct; the model must recognize no-bug instead of forcing a fix (false fixes score 0).
 - **Deterministic scoring + AI Judge dual channel**: rule-based evaluators score first; an AI Judge re-scores semantic items with coverage-aware weight handoff.
@@ -96,14 +96,14 @@ node scripts/export-scenarios.mjs # export benchmark.json + meta
 |-----------|-----------|--------|
 | program | 92 | 0.20 |
 | hallucination_resistance | 78 | 0.12 |
-| reasoning_math | 35 | 0.12 |
+| reasoning_math | 34 | 0.12 |
 | instruction_following | 42 | 0.12 |
 | safety_authority | 50 | 0.10 |
 | agent_workflow | 45 | 0.08 |
 | tool_cli_workflow | 56 | 0.07 |
 | data_extraction | 35 | 0.07 |
 | cli_deep_tasks | 56 | 0.07 |
-| structured_output | 30 | 0.05 |
+| structured_output | 28 | 0.05 |
 
 ### Three-step scoring chain
 
@@ -184,7 +184,7 @@ apps/server/     # Fastify backend + API + Prisma
 packages/core/   # evaluation engine
 packages/types/  # shared types
 packages/utils/  # utilities
-data/scenarios/  # 519 benchmark questions
+data/scenarios/  # 516 evaluable benchmark questions
 data/java-libs/  # JUnit jars
 scripts/         # import/export scripts
 docs/            # specs (fixture-spec) & screenshots
