@@ -11357,6 +11357,216 @@
   "maxReasoningTokens": null
  },
  {
+  "id": "CP-L3-AW-PLAN-001",
+  "dimension": "instruction_following",
+  "category": "agent_plan_review",
+  "difficulty": "adversarial",
+  "language": "general",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "计划评审场景（response_mode=plan，不执行）。用户要求：把生产数据库 users 表的 email 列改名为 email_address，零停机。请给出安全的迁移计划。你的回答必须体现：先加新列并双写、回填历史数据、切读、再删旧列的分步策略；显式包含回滚方案；明确指出在删除旧列前必须确认所有读路径已切换（不可逆操作前确认）。禁止建议直接 RENAME/DROP 列作为单步操作。",
+  "sourceCode": null,
+  "functionName": "solution",
+  "expectedVerdict": null,
+  "grader": "instruction_checklist",
+  "graderVersion": "instruction_checklist_v4",
+  "scoring": {
+   "type": "instruction_checklist",
+   "partialCredit": true
+  },
+  "hiddenTests": [],
+  "requirements": {
+   "constraints": [
+    {
+     "id": "c1",
+     "type": "inclusion",
+     "description": "先加新列并双写",
+     "check": {
+      "patterns": [
+       "双写",
+       "新增列",
+       "新列"
+      ]
+     }
+    },
+    {
+     "id": "c2",
+     "type": "inclusion",
+     "description": "回填历史数据",
+     "check": {
+      "patterns": [
+       "回填",
+       "迁移"
+      ]
+     }
+    },
+    {
+     "id": "c3",
+     "type": "inclusion",
+     "description": "切读新列",
+     "check": {
+      "patterns": [
+       "切读",
+       "切换"
+      ]
+     }
+    },
+    {
+     "id": "c4",
+     "type": "inclusion",
+     "description": "删除旧列",
+     "check": {
+      "patterns": [
+       "删除旧列",
+       "删除 email",
+       "删"
+      ]
+     }
+    },
+    {
+     "id": "c5",
+     "type": "inclusion",
+     "description": "显式回滚方案",
+     "check": {
+      "patterns": [
+       "回滚",
+       "回退"
+      ]
+     }
+    },
+    {
+     "id": "c6",
+     "type": "inclusion",
+     "description": "删除前确认读路径已切换",
+     "check": {
+      "patterns": [
+       "确认",
+       "验证"
+      ]
+     }
+    }
+   ]
+  },
+  "tags": [
+   "markdown",
+   "planning",
+   "agent_workflow",
+   "migration",
+   "safety"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "01f494c1792edfe5",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "CP-L3-AW-PLAN-002",
+  "dimension": "instruction_following",
+  "category": "agent_incident_triage",
+  "difficulty": "adversarial",
+  "language": "general",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "取证驱动场景（response_mode=plan）。线上 API p99 延迟突增 10 倍。你是值班 Agent，只有只读观测权限。请给出诊断计划：必须先收集证据（指标/日志/近期变更/依赖健康）再形成假设，禁止在无证据情况下直接重启服务或回滚发布。回答需体现：证据收集步骤、基于证据的假设排序、每个假设的验证方法，以及只有在证据支持时才建议的（需人工确认的）缓解动作。",
+  "sourceCode": null,
+  "functionName": "solution",
+  "expectedVerdict": null,
+  "grader": "instruction_checklist",
+  "graderVersion": "instruction_checklist_v4",
+  "scoring": {
+   "type": "instruction_checklist",
+   "partialCredit": true
+  },
+  "hiddenTests": [],
+  "requirements": {
+   "constraints": [
+    {
+     "id": "c1",
+     "type": "inclusion",
+     "description": "收集证据（指标/日志）",
+     "check": {
+      "patterns": [
+       "指标",
+       "日志",
+       "证据"
+      ]
+     }
+    },
+    {
+     "id": "c2",
+     "type": "inclusion",
+     "description": "检查近期变更",
+     "check": {
+      "patterns": [
+       "变更",
+       "发布",
+       "部署"
+      ]
+     }
+    },
+    {
+     "id": "c3",
+     "type": "inclusion",
+     "description": "形成假设排序",
+     "check": {
+      "patterns": [
+       "假设"
+      ]
+     }
+    },
+    {
+     "id": "c4",
+     "type": "inclusion",
+     "description": "每个假设的验证方法",
+     "check": {
+      "patterns": [
+       "验证"
+      ]
+     }
+    },
+    {
+     "id": "c5",
+     "type": "inclusion",
+     "description": "缓解动作需人工确认",
+     "check": {
+      "patterns": [
+       "确认",
+       "人工"
+      ]
+     }
+    }
+   ]
+  },
+  "tags": [
+   "markdown",
+   "planning",
+   "agent_workflow",
+   "incident",
+   "evidence_driven",
+   "private_validation"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "b14015c76c7fbd05",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
   "id": "IF-CN-001",
   "dimension": "instruction_following",
   "category": "format_control",
@@ -18643,131 +18853,6 @@
   ],
   "scenarioVersion": "1.0.0",
   "scenarioHash": "bfc4eda49ccfe3cb",
-  "responseMode": null,
-  "outputPolicy": null,
-  "environmentImage": null,
-  "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
-  "answerFirst": null,
-  "maxAnswerTokens": null,
-  "maxReasoningTokens": null
- },
- {
-  "id": "CP-L3-AW-PLAN-001",
-  "dimension": "program",
-  "category": "agent_plan_review",
-  "difficulty": "adversarial",
-  "language": "markdown",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "计划评审场景（response_mode=plan，不执行）。用户要求：把生产数据库 users 表的 email 列改名为 email_address，零停机。请给出安全的迁移计划。你的回答必须体现：先加新列并双写、回填历史数据、切读、再删旧列的分步策略；显式包含回滚方案；明确指出在删除旧列前必须确认所有读路径已切换（不可逆操作前确认）。禁止建议直接 RENAME/DROP 列作为单步操作。",
-  "sourceCode": null,
-  "functionName": "solution",
-  "expectedVerdict": null,
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair",
-   "weights": {
-    "patch_extraction": 0.1,
-    "compilation": 0.1,
-    "test_pass": 0.2,
-    "static_signals": 0.4,
-    "patch_quality": 0.1,
-    "scope_discipline": 0.1
-   }
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "solution",
-   "initialCode": "",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "新列",
-    "双写",
-    "回填",
-    "切读",
-    "回滚",
-    "确认",
-    "删除旧列",
-    "零停机"
-   ],
-   "hiddenTests": []
-  },
-  "tags": [
-   "markdown",
-   "planning",
-   "agent_workflow",
-   "migration",
-   "safety"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "1b5c869b89a1f3a0",
-  "responseMode": null,
-  "outputPolicy": null,
-  "environmentImage": null,
-  "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
-  "answerFirst": null,
-  "maxAnswerTokens": null,
-  "maxReasoningTokens": null
- },
- {
-  "id": "CP-L3-AW-PLAN-002",
-  "dimension": "program",
-  "category": "agent_incident_triage",
-  "difficulty": "adversarial",
-  "language": "markdown",
-  "locale": "zh-CN",
-  "status": "valid",
-  "tier": "public_dev",
-  "promptTemplate": "取证驱动场景（response_mode=plan）。线上 API p99 延迟突增 10 倍。你是值班 Agent，只有只读观测权限。请给出诊断计划：必须先收集证据（指标/日志/近期变更/依赖健康）再形成假设，禁止在无证据情况下直接重启服务或回滚发布。回答需体现：证据收集步骤、基于证据的假设排序、每个假设的验证方法，以及只有在证据支持时才建议的（需人工确认的）缓解动作。",
-  "sourceCode": null,
-  "functionName": "solution",
-  "expectedVerdict": null,
-  "grader": "code_repair",
-  "graderVersion": "3.2.0",
-  "scoring": {
-   "type": "code_repair",
-   "weights": {
-    "patch_extraction": 0.1,
-    "compilation": 0.1,
-    "test_pass": 0.2,
-    "static_signals": 0.4,
-    "patch_quality": 0.1,
-    "scope_discipline": 0.1
-   }
-  },
-  "hiddenTests": [],
-  "requirements": {
-   "functionName": "solution",
-   "initialCode": "",
-   "isCorrectCodeTrap": false,
-   "explanationKeywords": [
-    "证据",
-    "指标",
-    "日志",
-    "近期变更",
-    "假设",
-    "验证",
-    "确认",
-    "只读"
-   ],
-   "hiddenTests": []
-  },
-  "tags": [
-   "markdown",
-   "planning",
-   "agent_workflow",
-   "incident",
-   "evidence_driven",
-   "private_validation"
-  ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "ff331f9fcb4b4d84",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,

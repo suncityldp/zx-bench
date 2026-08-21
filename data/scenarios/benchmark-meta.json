@@ -6,12 +6,12 @@
   "cli_deep_tasks": 56,
   "data_extraction": 35,
   "hallucination_resistance": 78,
-  "instruction_following": 40,
-  "program": 86,
+  "instruction_following": 42,
+  "program": 84,
   "reasoning_math": 35,
   "safety_authority": 50,
   "structured_output": 30,
   "tool_cli_workflow": 56
  },
- "generatedAt": "2026-08-21T16:28:20.353Z"
+ "generatedAt": "2026-08-21T16:32:54.471Z"
 }
