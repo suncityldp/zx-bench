@@ -17214,7 +17214,7 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "下面代码无法编译：在持有不可变借用的同时尝试可变借用 vec。请重构 `dedup_push`，使其正确编译并语义为：若 value 不在 vec 中则追加。保持函数签名不变。\n\n```rust\nfn dedup_push(vec: &mut Vec<i32>, value: i32) {\n    let found = vec.iter().find(|&&x| x == value);\n    if found.is_none() {\n        vec.push(value);\n    }\n}\n```",
-  "sourceCode": "fn dedup_push(vec: &mut Vec<i32>, value: i32) {\n    let found = vec.iter().find(|&&x| x == value);\n    if found.is_none() {\n        vec.push(value);\n    }\n}",
+  "sourceCode": "fn dedup_push(vec: &mut Vec<i32>, value: i32) {\n    for &x in vec.iter() {\n        if x != value {\n            vec.push(value);\n        }\n    }\n}",
   "functionName": "dedup_push",
   "expectedVerdict": null,
   "grader": "code_repair",
@@ -17241,19 +17241,24 @@
   ],
   "requirements": {
    "functionName": "dedup_push",
-   "initialCode": "fn dedup_push(vec: &mut Vec<i32>, value: i32) {\n    let found = vec.iter().find(|&&x| x == value);\n    if found.is_none() {\n        vec.push(value);\n    }\n}",
+   "initialCode": "fn dedup_push(vec: &mut Vec<i32>, value: i32) {\n    for &x in vec.iter() {\n        if x != value {\n            vec.push(value);\n        }\n    }\n}",
    "isCorrectCodeTrap": false,
    "explanationKeywords": [
     "contains",
-    "let exists =",
-    "drop(found)"
+    "!vec.contains",
+    "dedup"
    ],
    "hiddenTests": [
     {
      "code": "let mut v=vec![1,2]; dedup_push(&mut v,2); dedup_push(&mut v,3); assert_eq!(v, vec![1,2,3]);",
      "description": "去重追加"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "rust",
+    "uses": [],
+    "helpers": ""
+   }
   },
   "tags": [
    "rust",

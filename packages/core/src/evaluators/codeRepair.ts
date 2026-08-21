@@ -16,6 +16,7 @@ import { runReplacedCodeTest, runReplacedCodeTestPython, summarizeTestResults, c
 import { runGoTestsInContainer, type GoFixture } from '../execution/goRunner.js';
 import { runJavaTestsInContainer, type JavaFixture } from '../execution/javaRunner.js';
 import { runCTestsInContainer, type CFixture } from '../execution/cRunner.js';
+import { runRustTestsInContainer, type RustFixture } from '../execution/rustRunner.js';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -469,10 +470,11 @@ export const codeRepairEvaluator: Evaluator = {
     const goFixture = (lang === 'go' && reqObj.fixture) ? (reqObj.fixture as GoFixture) : undefined;
     const javaFixture = (lang === 'java' && reqObj.fixture) ? (reqObj.fixture as JavaFixture) : undefined;
     const cFixture = (lang === 'c' && reqObj.fixture) ? (reqObj.fixture as CFixture) : undefined;
+    const rustFixture = (lang === 'rust' && reqObj.fixture) ? (reqObj.fixture as RustFixture) : undefined;
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
       ? getPythonBin() != null
-      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null);
+      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
     if (scenario.expectedVerdict === 'no_bug') {
@@ -565,7 +567,36 @@ export const codeRepairEvaluator: Evaluator = {
         ? scenario.hiddenTests
         : scenario.publicTests || [];
 
-      if (cFixture) {
+      if (rustFixture) {
+        // ===== Rust 容器执行路径（真实编译 + assert） =====
+        const rustRes = runRustTestsInContainer(patch, tests, rustFixture);
+        const rustCompiled = !/error\[?/.test(rustRes.stderr) && !/^error:/.test(rustRes.stderr);
+        axisScores.compilation = rustCompiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(rustCompiled
+          ? 'Rust container compiled successfully'
+          : 'Rust container compile failed: ' + rustRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+
+        if (tests.length > 0) {
+          const details = rustRes.tests.map((t) => ({
+            testId: t.name,
+            testType: 'hidden',
+            passed: t.passed,
+            stdout: '',
+            stderr: t.passed ? '' : 'test failed (assert)',
+            exitCode: t.passed ? 0 : 1,
+            duration: 0,
+            timedOut: rustRes.timedOut,
+          }));
+          const suiteResult = summarizeTestResults(details);
+          axisScores.test_pass = calculateTestScore(suiteResult);
+          axisEvidence.test_pass = 'verified';
+          evidence.push(`Rust container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+        } else {
+          axisEvidence.test_pass = 'unmeasured';
+          evidence.push('No Rust tests available for verification');
+        }
+      } else if (cFixture) {
         // ===== C 容器执行路径（真实编译 + ASan + assert） =====
         const cRes = runCTestsInContainer(patch, tests, cFixture);
         const cCompiled = !/error:/.test(cRes.stderr);
