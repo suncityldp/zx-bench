@@ -21168,9 +21168,9 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 类中的 Bug，使其满足所有测试。要求：\n1. 保留类名和方法签名\n2. 输出修复后的完整类（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nclass TaskQueue {\n  static VALID_TRANSITIONS = {\n    pending: [\"running\", \"cancelled\"],\n    running: [\"completed\", \"failed\", \"cancelled\"],\n    completed: [],\n    failed: [\"retrying\"],\n    retrying: [\"pending\"],\n    cancelled: [],\n  };\n\n  constructor() {\n    this.tasks = new Map();\n    this._idCounter = 0;\n  }\n\n  addTask(name, payload) {\n    this._idCounter++;\n    const taskId = this._idCounter;\n    this.tasks.set(taskId, {\n      id: taskId, name, payload, status: \"pending\", attempts: 0,\n    });\n    return taskId;\n  }\n\n  transition(taskId, newStatus) {\n    const task = this.tasks.get(taskId);\n    if (!task) throw new Error(`Task ${taskId} not found`);\n    const current = task.status;\n    const allowed = TaskQueue.VALID_TRANSITIONS[current] ?? [];\n    if (!allowed.includes(newStatus)) {\n      throw new Error(`Cannot transition from ${current} to ${newStatus}`);\n    }\n    task.status = newStatus;\n    return true;\n  }\n\n  getRunnable() {\n    return [...this.tasks.values()].filter(t => t.status === \"pending\");\n  }\n\n  markFailed(taskId) {\n    this.transition(taskId, \"failed\");\n  }\n\n  retry(taskId) {\n    const task = this.tasks.get(taskId);\n    if (task.status !== \"failed\") {\n      throw new Error(\"Can only retry failed tasks\");\n    }\n    task.attempts++;\n    this.transition(taskId, \"retrying\");\n  }\n}\n```\n\n#### 公开测试\n```js\nconst q = new TaskQueue();\nconst tid = q.addTask(\"test\", { x: 1 });\nq.transition(tid, \"running\");\nq.markFailed(tid);\nq.retry(tid);\nconsole.assert(q.tasks.get(tid).status === \"retrying\");\nq.transition(tid, \"pending\");\nconsole.assert(q.tasks.get(tid).status === \"pending\");\nconsole.log(\"Public tests passed!\");\n```\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "class TaskQueue {\n  static VALID_TRANSITIONS = {\n    pending: [\"running\", \"cancelled\"],\n    running: [\"completed\", \"failed\", \"cancelled\"],\n    completed: [],\n    failed: [\"retrying\"],\n    retrying: [\"pending\"],\n    cancelled: [],\n  };\n\n  constructor() {\n    this.tasks = new Map();\n    this._idCounter = 0;\n  }\n\n  addTask(name, payload) {\n    this._idCounter++;\n    const taskId = this._idCounter;\n    this.tasks.set(taskId, {\n      id: taskId, name, payload, status: \"pending\", attempts: 0,\n    });\n    return taskId;\n  }\n\n  transition(taskId, newStatus) {\n    const task = this.tasks.get(taskId);\n    if (!task) throw new Error(`Task ${taskId} not found`);\n    const current = task.status;\n    const allowed = TaskQueue.VALID_TRANSITIONS[current] ?? [];\n    if (!allowed.includes(newStatus)) {\n      throw new Error(`Cannot transition from ${current} to ${newStatus}`);\n    }\n    task.status = newStatus;\n    return true;\n  }\n\n  getRunnable() {\n    return [...this.tasks.values()].filter(t => t.status === \"pending\");\n  }\n\n  markFailed(taskId) {\n    this.transition(taskId, \"failed\");\n  }\n\n  retry(taskId) {\n    const task = this.tasks.get(taskId);\n    if (task.status !== \"failed\") {\n      throw new Error(\"Can only retry failed tasks\");\n    }\n    task.attempts++;\n    this.transition(taskId, \"retrying\");\n  }\n}",
   "functionName": null,
-  "expectedVerdict": null,
+  "expectedVerdict": "no_bug",
   "grader": "code_repair",
   "graderVersion": "3.2.0",
   "scoring": {
@@ -21199,7 +21199,18 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "TaskQueue",
+   "initialCode": "class TaskQueue {\n  static VALID_TRANSITIONS = {\n    pending: [\"running\", \"cancelled\"],\n    running: [\"completed\", \"failed\", \"cancelled\"],\n    completed: [],\n    failed: [\"retrying\"],\n    retrying: [\"pending\"],\n    cancelled: [],\n  };\n\n  constructor() {\n    this.tasks = new Map();\n    this._idCounter = 0;\n  }\n\n  addTask(name, payload) {\n    this._idCounter++;\n    const taskId = this._idCounter;\n    this.tasks.set(taskId, {\n      id: taskId, name, payload, status: \"pending\", attempts: 0,\n    });\n    return taskId;\n  }\n\n  transition(taskId, newStatus) {\n    const task = this.tasks.get(taskId);\n    if (!task) throw new Error(`Task ${taskId} not found`);\n    const current = task.status;\n    const allowed = TaskQueue.VALID_TRANSITIONS[current] ?? [];\n    if (!allowed.includes(newStatus)) {\n      throw new Error(`Cannot transition from ${current} to ${newStatus}`);\n    }\n    task.status = newStatus;\n    return true;\n  }\n\n  getRunnable() {\n    return [...this.tasks.values()].filter(t => t.status === \"pending\");\n  }\n\n  markFailed(taskId) {\n    this.transition(taskId, \"failed\");\n  }\n\n  retry(taskId) {\n    const task = this.tasks.get(taskId);\n    if (task.status !== \"failed\") {\n      throw new Error(\"Can only retry failed tasks\");\n    }\n    task.attempts++;\n    this.transition(taskId, \"retrying\");\n  }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "state-machine",
@@ -21207,7 +21218,7 @@
    "multi-method"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "ce96da4b490475c3",
+  "scenarioHash": "a53bccc9225fe675",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21228,9 +21239,9 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 类中的 Bug，使其满足所有测试。要求：\n1. 保留类名和方法签名\n2. 输出修复后的完整类（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nclass InventoryService {\n  constructor() {\n    this.stock = new Map();\n    this.reservations = new Map();\n  }\n\n  setStock(productId, quantity) {\n    this.stock.set(productId, quantity);\n  }\n\n  getAvailable(productId) {\n    const total = this.stock.get(productId) ?? 0;\n    const reserved = [...this.reservations.values()]\n      .filter(r => r.productId === productId)\n      .reduce((sum, r) => sum + r.quantity, 0);\n    return total - reserved;\n  }\n\n  reserve(orderId, productId, quantity) {\n    if (this.getAvailable(productId) < quantity) {\n      throw new Error(`Insufficient stock for ${productId}`);\n    }\n    this.reservations.set(orderId, { productId, quantity });\n    return true;\n  }\n\n  confirm(orderId) {\n    const reservation = this.reservations.get(orderId);\n    if (!reservation) throw new Error(`Order ${orderId} not found`);\n    this.reservations.delete(orderId);\n    const current = this.stock.get(reservation.productId) ?? 0;\n    this.stock.set(reservation.productId, current - reservation.quantity);\n    return true;\n  }\n\n  cancel(orderId) {\n    return this.reservations.delete(orderId);\n  }\n}\n```\n\n#### 公开测试\n```js\nconst svc = new InventoryService();\nsvc.setStock(\"A\", 10);\nsvc.reserve(\"order1\", \"A\", 3);\nconsole.assert(svc.getAvailable(\"A\") === 7);\nsvc.confirm(\"order1\");\nconsole.assert(svc.getAvailable(\"A\") === 7);\nconsole.assert(svc.stock.get(\"A\") === 7);\nconsole.log(\"Public tests passed!\");\n```\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "class InventoryService {\n  constructor() {\n    this.stock = new Map();\n    this.reservations = new Map();\n  }\n\n  setStock(productId, quantity) {\n    this.stock.set(productId, quantity);\n  }\n\n  getAvailable(productId) {\n    const total = this.stock.get(productId) ?? 0;\n    const reserved = [...this.reservations.values()]\n      .filter(r => r.productId === productId)\n      .reduce((sum, r) => sum + r.quantity, 0);\n    return total - reserved;\n  }\n\n  reserve(orderId, productId, quantity) {\n    if (this.getAvailable(productId) < quantity) {\n      throw new Error(`Insufficient stock for ${productId}`);\n    }\n    this.reservations.set(orderId, { productId, quantity });\n    return true;\n  }\n\n  confirm(orderId) {\n    const reservation = this.reservations.get(orderId);\n    if (!reservation) throw new Error(`Order ${orderId} not found`);\n    this.reservations.delete(orderId);\n    const current = this.stock.get(reservation.productId) ?? 0;\n    this.stock.set(reservation.productId, current - reservation.quantity);\n    return true;\n  }\n\n  cancel(orderId) {\n    return this.reservations.delete(orderId);\n  }\n}",
   "functionName": null,
-  "expectedVerdict": null,
+  "expectedVerdict": "no_bug",
   "grader": "code_repair",
   "graderVersion": "3.2.0",
   "scoring": {
@@ -21259,7 +21270,18 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "InventoryService",
+   "initialCode": "class InventoryService {\n  constructor() {\n    this.stock = new Map();\n    this.reservations = new Map();\n  }\n\n  setStock(productId, quantity) {\n    this.stock.set(productId, quantity);\n  }\n\n  getAvailable(productId) {\n    const total = this.stock.get(productId) ?? 0;\n    const reserved = [...this.reservations.values()]\n      .filter(r => r.productId === productId)\n      .reduce((sum, r) => sum + r.quantity, 0);\n    return total - reserved;\n  }\n\n  reserve(orderId, productId, quantity) {\n    if (this.getAvailable(productId) < quantity) {\n      throw new Error(`Insufficient stock for ${productId}`);\n    }\n    this.reservations.set(orderId, { productId, quantity });\n    return true;\n  }\n\n  confirm(orderId) {\n    const reservation = this.reservations.get(orderId);\n    if (!reservation) throw new Error(`Order ${orderId} not found`);\n    this.reservations.delete(orderId);\n    const current = this.stock.get(reservation.productId) ?? 0;\n    this.stock.set(reservation.productId, current - reservation.quantity);\n    return true;\n  }\n\n  cancel(orderId) {\n    return this.reservations.delete(orderId);\n  }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "inventory",
@@ -21268,7 +21290,7 @@
    "duplicate-detection"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "9d7452c29b4bf1a0",
+  "scenarioHash": "f87bbf89709a6d1d",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21289,7 +21311,7 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 类中的 Bug，使其满足所有测试。要求：\n1. 保留类名和方法签名\n2. 输出修复后的完整类（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nclass BankService {\n  constructor() {\n    this.accounts = new Map();\n  }\n\n  createAccount(id, initialBalance = 0) {\n    this.accounts.set(id, { id, balance: initialBalance });\n    return this.accounts.get(id);\n  }\n\n  getBalance(id) {\n    return this.accounts.get(id)?.balance ?? 0;\n  }\n\n  deposit(id, amount) {\n    const acc = this.accounts.get(id);\n    if (!acc) throw new Error(\"Account not found\");\n    acc.balance += amount;\n    return acc.balance;\n  }\n\n  withdraw(id, amount) {\n    const acc = this.accounts.get(id);\n    if (!acc) throw new Error(\"Account not found\");\n    if (acc.balance < amount) throw new Error(\"Insufficient funds\");\n    acc.balance -= amount;\n    return acc.balance;\n  }\n\n  transfer(fromId, toId, amount) {\n    // 先扣款\n    this.withdraw(fromId, amount);\n    // 再加款\n    this.deposit(toId, amount);\n    return true;\n  }\n}\n```\n\n#### 公开测试\n```js\nconst bank = new BankService();\nbank.createAccount(\"a\", 100);\nbank.createAccount(\"b\", 50);\nbank.transfer(\"a\", \"b\", 30);\nconsole.assert(bank.getBalance(\"a\") === 70);\nconsole.assert(bank.getBalance(\"b\") === 80);\nconsole.log(\"Public tests passed!\");\n```\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "class BankService {\n  constructor() {\n    this.accounts = new Map();\n  }\n\n  createAccount(id, initialBalance = 0) {\n    this.accounts.set(id, { id, balance: initialBalance });\n    return this.accounts.get(id);\n  }\n\n  getBalance(id) {\n    return this.accounts.get(id)?.balance ?? 0;\n  }\n\n  deposit(id, amount) {\n    const acc = this.accounts.get(id);\n    if (!acc) throw new Error(\"Account not found\");\n    acc.balance += amount;\n    return acc.balance;\n  }\n\n  withdraw(id, amount) {\n    const acc = this.accounts.get(id);\n    if (!acc) throw new Error(\"Account not found\");\n    if (acc.balance < amount) throw new Error(\"Insufficient funds\");\n    acc.balance -= amount;\n    return acc.balance;\n  }\n\n  transfer(fromId, toId, amount) {\n    // 先扣款\n    this.withdraw(fromId, amount);\n    // 再加款\n    this.deposit(toId, amount);\n    return true;\n  }\n}",
   "functionName": null,
   "expectedVerdict": null,
   "grader": "code_repair",
@@ -21320,7 +21342,13 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "BankService",
+   "initialCode": "class BankService {\n  constructor() {\n    this.accounts = new Map();\n  }\n\n  createAccount(id, initialBalance = 0) {\n    this.accounts.set(id, { id, balance: initialBalance });\n    return this.accounts.get(id);\n  }\n\n  getBalance(id) {\n    return this.accounts.get(id)?.balance ?? 0;\n  }\n\n  deposit(id, amount) {\n    const acc = this.accounts.get(id);\n    if (!acc) throw new Error(\"Account not found\");\n    acc.balance += amount;\n    return acc.balance;\n  }\n\n  withdraw(id, amount) {\n    const acc = this.accounts.get(id);\n    if (!acc) throw new Error(\"Account not found\");\n    if (acc.balance < amount) throw new Error(\"Insufficient funds\");\n    acc.balance -= amount;\n    return acc.balance;\n  }\n\n  transfer(fromId, toId, amount) {\n    // 先扣款\n    this.withdraw(fromId, amount);\n    // 再加款\n    this.deposit(toId, amount);\n    return true;\n  }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "banking",
@@ -21329,7 +21357,7 @@
    "class-level"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "1550e94c7701cfbc",
+  "scenarioHash": "b9946c87a856235a",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21350,9 +21378,9 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 类中的 Bug，使其满足所有测试。要求：\n1. 保留类名和方法签名\n2. 输出修复后的完整类（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nclass EventEmitter {\n  constructor() {\n    this.listeners = new Map();\n  }\n\n  on(event, fn) {\n    if (!this.listeners.has(event)) {\n      this.listeners.set(event, new Set());\n    }\n    this.listeners.get(event).add(fn);\n    return this;\n  }\n\n  once(event, fn) {\n    const wrapper = (...args) => {\n      this.off(event, wrapper);\n      fn(...args);\n    };\n    return this.on(event, wrapper);\n  }\n\n  off(event, fn) {\n    const set = this.listeners.get(event);\n    if (set) {\n      set.delete(fn);\n      if (set.size === 0) this.listeners.delete(event);\n    }\n    return this;\n  }\n\n  emit(event, ...args) {\n    const set = this.listeners.get(event);\n    if (set) {\n      for (const fn of [...set]) {\n        fn(...args);\n      }\n    }\n    return this;\n  }\n\n  listenerCount(event) {\n    return this.listeners.get(event)?.size ?? 0;\n  }\n}\n```\n\n#### 公开测试\n```js\nconst em = new EventEmitter();\nlet count = 0;\nem.on(\"test\", () => count++);\nem.emit(\"test\");\nem.emit(\"test\");\nconsole.assert(count === 2);\nconsole.log(\"Public tests passed!\");\n```\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "class EventEmitter {\n  constructor() {\n    this.listeners = new Map();\n  }\n\n  on(event, fn) {\n    if (!this.listeners.has(event)) {\n      this.listeners.set(event, new Set());\n    }\n    this.listeners.get(event).add(fn);\n    return this;\n  }\n\n  once(event, fn) {\n    const wrapper = (...args) => {\n      this.off(event, wrapper);\n      fn(...args);\n    };\n    return this.on(event, wrapper);\n  }\n\n  off(event, fn) {\n    const set = this.listeners.get(event);\n    if (set) {\n      set.delete(fn);\n      if (set.size === 0) this.listeners.delete(event);\n    }\n    return this;\n  }\n\n  emit(event, ...args) {\n    const set = this.listeners.get(event);\n    if (set) {\n      for (const fn of [...set]) {\n        fn(...args);\n      }\n    }\n    return this;\n  }\n\n  listenerCount(event) {\n    return this.listeners.get(event)?.size ?? 0;\n  }\n}",
   "functionName": null,
-  "expectedVerdict": null,
+  "expectedVerdict": "no_bug",
   "grader": "code_repair",
   "graderVersion": "3.2.0",
   "scoring": {
@@ -21381,7 +21409,18 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "EventEmitter",
+   "initialCode": "class EventEmitter {\n  constructor() {\n    this.listeners = new Map();\n  }\n\n  on(event, fn) {\n    if (!this.listeners.has(event)) {\n      this.listeners.set(event, new Set());\n    }\n    this.listeners.get(event).add(fn);\n    return this;\n  }\n\n  once(event, fn) {\n    const wrapper = (...args) => {\n      this.off(event, wrapper);\n      fn(...args);\n    };\n    return this.on(event, wrapper);\n  }\n\n  off(event, fn) {\n    const set = this.listeners.get(event);\n    if (set) {\n      set.delete(fn);\n      if (set.size === 0) this.listeners.delete(event);\n    }\n    return this;\n  }\n\n  emit(event, ...args) {\n    const set = this.listeners.get(event);\n    if (set) {\n      for (const fn of [...set]) {\n        fn(...args);\n      }\n    }\n    return this;\n  }\n\n  listenerCount(event) {\n    return this.listeners.get(event)?.size ?? 0;\n  }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "event-emitter",
@@ -21390,7 +21429,7 @@
    "class-level"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "c078f8fbbd82ec44",
+  "scenarioHash": "3ff49e02065effe0",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21411,9 +21450,9 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 类中的 Bug，使其满足所有测试。要求：\n1. 保留类名和方法签名\n2. 输出修复后的完整类（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nclass MessageQueue {\n  constructor() {\n    this.queues = new Map(); // topic -> message[]\n    this.consumers = new Map(); // topic -> consumer[]\n  }\n\n  publish(topic, message) {\n    if (!this.queues.has(topic)) this.queues.set(topic, []);\n    this.queues.get(topic).push({ id: Date.now() + Math.random(), payload: message, timestamp: Date.now() });\n    this._deliver(topic);\n  }\n\n  subscribe(topic, handler) {\n    if (!this.consumers.has(topic)) this.consumers.set(topic, []);\n    this.consumers.get(topic).push(handler);\n  }\n\n  _deliver(topic) {\n    const messages = this.queues.get(topic) ?? [];\n    const handlers = this.consumers.get(topic) ?? [];\n    for (const handler of handlers) {\n      for (const msg of messages) {\n        try {\n          handler(msg.payload);\n        } catch (err) {\n          console.error(\"Consumer error:\", err);\n        }\n      }\n    }\n    // 清空队列 — BUG: 第一个 handler 后队列被清空\n    this.queues.set(topic, []);\n  }\n\n  getQueueLength(topic) {\n    return this.queues.get(topic)?.length ?? 0;\n  }\n}\n```\n\n#### 公开测试\n```js\nconst mq = new MessageQueue();\nconst received = [];\nmq.subscribe(\"orders\", (msg) => received.push(msg));\nmq.publish(\"orders\", { id: 1, item: \"book\" });\nconsole.assert(received.length === 1);\nconsole.assert(mq.getQueueLength(\"orders\") === 0);\nconsole.log(\"Public tests passed!\");\n```\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "class MessageQueue {\n  constructor() {\n    this.queues = new Map(); // topic -> message[]\n    this.consumers = new Map(); // topic -> consumer[]\n  }\n\n  publish(topic, message) {\n    if (!this.queues.has(topic)) this.queues.set(topic, []);\n    this.queues.get(topic).push({ id: Date.now() + Math.random(), payload: message, timestamp: Date.now() });\n    this._deliver(topic);\n  }\n\n  subscribe(topic, handler) {\n    if (!this.consumers.has(topic)) this.consumers.set(topic, []);\n    this.consumers.get(topic).push(handler);\n  }\n\n  _deliver(topic) {\n    const messages = this.queues.get(topic) ?? [];\n    const handlers = this.consumers.get(topic) ?? [];\n    for (const handler of handlers) {\n      for (const msg of messages) {\n        try {\n          handler(msg.payload);\n        } catch (err) {\n          console.error(\"Consumer error:\", err);\n        }\n      }\n    }\n    // 清空队列 — BUG: 第一个 handler 后队列被清空\n    this.queues.set(topic, []);\n  }\n\n  getQueueLength(topic) {\n    return this.queues.get(topic)?.length ?? 0;\n  }\n}",
   "functionName": null,
-  "expectedVerdict": null,
+  "expectedVerdict": "no_bug",
   "grader": "code_repair",
   "graderVersion": "3.2.0",
   "scoring": {
@@ -21442,7 +21481,18 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "MessageQueue",
+   "initialCode": "class MessageQueue {\n  constructor() {\n    this.queues = new Map(); // topic -> message[]\n    this.consumers = new Map(); // topic -> consumer[]\n  }\n\n  publish(topic, message) {\n    if (!this.queues.has(topic)) this.queues.set(topic, []);\n    this.queues.get(topic).push({ id: Date.now() + Math.random(), payload: message, timestamp: Date.now() });\n    this._deliver(topic);\n  }\n\n  subscribe(topic, handler) {\n    if (!this.consumers.has(topic)) this.consumers.set(topic, []);\n    this.consumers.get(topic).push(handler);\n  }\n\n  _deliver(topic) {\n    const messages = this.queues.get(topic) ?? [];\n    const handlers = this.consumers.get(topic) ?? [];\n    for (const handler of handlers) {\n      for (const msg of messages) {\n        try {\n          handler(msg.payload);\n        } catch (err) {\n          console.error(\"Consumer error:\", err);\n        }\n      }\n    }\n    // 清空队列 — BUG: 第一个 handler 后队列被清空\n    this.queues.set(topic, []);\n  }\n\n  getQueueLength(topic) {\n    return this.queues.get(topic)?.length ?? 0;\n  }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "message-queue",
@@ -21451,7 +21501,7 @@
    "delivery-order"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "a5b9c30195c66123",
+  "scenarioHash": "852a225f5c1210d6",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21472,7 +21522,7 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 函数中的 Bug，使其满足所有测试。要求：\n1. 保留函数名和参数列表\n2. 输出修复后的完整函数（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nfunction parseQueryString(qs) {\n  const params = {};\n  if (!qs) return params;\n\n  const pairs = qs.replace(/^\\?/, \"\").split(\"&\");\n  for (const pair of pairs) {\n    const [key, value] = pair.split(\"=\");\n    if (key) {\n      params[decodeURIComponent(key)] = decodeURIComponent(value || \"\");\n    }\n  }\n  return params;\n}\n\nfunction buildQueryString(params) {\n  return Object.entries(params)\n    .filter(([_, v]) => v !== undefined && v !== null)\n    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)\n    .join(\"&\");\n}\n```\n\n#### 公开测试\n```js\nconst params = parseQueryString(\"?name=alice&age=30\");\nconsole.assert(params.name === \"alice\");\nconsole.assert(params.age === \"30\");\nconst qs = buildQueryString({ name: \"alice\", age: 30 });\nconsole.assert(qs === \"name=alice&age=30\");\nconsole.log(\"Public tests passed!\");\n```\n\n**已知边界问题（需修复）：重复 key 后者应覆盖前者、空值 key 应保留、无值 key 应设为 \"\"、+号应解码为空格、URL 编码应正确解码**\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "function parseQueryString(qs) {\n  const params = {};\n  if (!qs) return params;\n\n  const pairs = qs.replace(/^\\?/, \"\").split(\"&\");\n  for (const pair of pairs) {\n    const [key, value] = pair.split(\"=\");\n    if (key) {\n      params[decodeURIComponent(key)] = decodeURIComponent(value || \"\");\n    }\n  }\n  return params;\n}\n\nfunction buildQueryString(params) {\n  return Object.entries(params)\n    .filter(([_, v]) => v !== undefined && v !== null)\n    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)\n    .join(\"&\");\n}",
   "functionName": null,
   "expectedVerdict": null,
   "grader": "code_repair",
@@ -21503,7 +21553,13 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "parseQueryString",
+   "initialCode": "function parseQueryString(qs) {\n  const params = {};\n  if (!qs) return params;\n\n  const pairs = qs.replace(/^\\?/, \"\").split(\"&\");\n  for (const pair of pairs) {\n    const [key, value] = pair.split(\"=\");\n    if (key) {\n      params[decodeURIComponent(key)] = decodeURIComponent(value || \"\");\n    }\n  }\n  return params;\n}\n\nfunction buildQueryString(params) {\n  return Object.entries(params)\n    .filter(([_, v]) => v !== undefined && v !== null)\n    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)\n    .join(\"&\");\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "url-parsing",
@@ -21512,7 +21568,7 @@
    "query-string"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "a66accc91c17cdcc",
+  "scenarioHash": "722748e98a81971d",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21533,7 +21589,7 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "请修复下面 JavaScript 函数中的 Bug，使其满足所有测试。要求：\n1. 保留函数名和参数列表\n2. 输出修复后的完整函数（包裹在 ```js 代码块中）\n3. 简要说明修复了什么\n4. **直接输出代码块和修复说明，禁止输出分析过程、思考过程或中间推理**\n\n#### 初始代码\n```js\nasync function fetchWithRetry(url, options = {}) {\n  const { maxRetries = 3, baseDelay = 1000 } = options;\n  let lastError;\n\n  for (let attempt = 0; attempt <= maxRetries; attempt++) {\n    try {\n      const response = await fetch(url);\n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}`);\n      }\n      return await response.json();\n    } catch (err) {\n      lastError = err;\n      if (attempt < maxRetries) {\n        const delay = baseDelay * Math.pow(2, attempt);\n        await new Promise(resolve => setTimeout(resolve, delay));\n      }\n    }\n  }\n\n  throw lastError;\n}\n```\n\n#### 公开测试\n```js\nlet callCount = 0;\nglobalThis.fetch = async () => {\n  callCount++;\n  if (callCount < 3) return { ok: false, status: 500 };\n  return { ok: true, json: async () => ({ success: true }) };\n};\nconst result = await fetchWithRetry(\"/api/data\", { baseDelay: 10 });\nconsole.assert(result.success === true);\nconsole.log(\"Public tests passed!\");\n```\n\n**已知问题：4xx 错误不应重试（客户端错误）、5xx 和网络错误应重试、baseDelay=0 时应直接重试无延迟**\n\n**输出格式：仅修复后的代码块 + 一句话修复说明。禁止输出任何分析过程、思考步骤或中间推理，否则视为无效输出。**\n",
-  "sourceCode": null,
+  "sourceCode": "async function fetchWithRetry(url, options = {}) {\n  const { maxRetries = 3, baseDelay = 1000 } = options;\n  let lastError;\n\n  for (let attempt = 0; attempt <= maxRetries; attempt++) {\n    try {\n      const response = await fetch(url);\n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}`);\n      }\n      return await response.json();\n    } catch (err) {\n      lastError = err;\n      if (attempt < maxRetries) {\n        const delay = baseDelay * Math.pow(2, attempt);\n        await new Promise(resolve => setTimeout(resolve, delay));\n      }\n    }\n  }\n\n  throw lastError;\n}",
   "functionName": null,
   "expectedVerdict": null,
   "grader": "code_repair",
@@ -21564,7 +21620,13 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "fetchWithRetry",
+   "initialCode": "async function fetchWithRetry(url, options = {}) {\n  const { maxRetries = 3, baseDelay = 1000 } = options;\n  let lastError;\n\n  for (let attempt = 0; attempt <= maxRetries; attempt++) {\n    try {\n      const response = await fetch(url);\n      if (!response.ok) {\n        throw new Error(`HTTP ${response.status}`);\n      }\n      return await response.json();\n    } catch (err) {\n      lastError = err;\n      if (attempt < maxRetries) {\n        const delay = baseDelay * Math.pow(2, attempt);\n        await new Promise(resolve => setTimeout(resolve, delay));\n      }\n    }\n  }\n\n  throw lastError;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "async",
@@ -21573,7 +21635,7 @@
    "network-resilience"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "de26f6b4e3bb5c27",
+  "scenarioHash": "274b10d2deb4944f",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -21594,7 +21656,7 @@
   "status": "valid",
   "tier": "public_dev",
   "promptTemplate": "判断下面 JavaScript 代码是否存在功能 Bug。如果存在，请输出修复后的代码；如果不存在，请输出 `NO_FIX_NEEDED` 并说明原因。\n\n```js\nasync function fetchWithTimeout(url, timeoutMs = 5000) {\n  const controller = new AbortController();\n  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);\n\n  try {\n    const response = await fetch(url, { signal: controller.signal });\n    if (!response.ok) {\n      throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n    }\n    return await response.json();\n  } catch (err) {\n    if (err.name === \"AbortError\") {\n      throw new Error(`Request timed out after ${timeoutMs}ms`);\n    }\n    throw err;\n  } finally {\n    clearTimeout(timeoutId);\n  }\n}\n```\n\n**输出格式：仅 `NO_FIX_NEEDED` + 原因说明 或 修复后代码块。禁止输出分析过程。**\n",
-  "sourceCode": null,
+  "sourceCode": "async function fetchWithTimeout(url, timeoutMs = 5000) {\n  const controller = new AbortController();\n  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);\n\n  try {\n    const response = await fetch(url, { signal: controller.signal });\n    if (!response.ok) {\n      throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n    }\n    return await response.json();\n  } catch (err) {\n    if (err.name === \"AbortError\") {\n      throw new Error(`Request timed out after ${timeoutMs}ms`);\n    }\n    throw err;\n  } finally {\n    clearTimeout(timeoutId);\n  }\n}",
   "functionName": null,
   "expectedVerdict": "no_bug",
   "grader": "code_repair",
@@ -21630,7 +21692,19 @@
     "expectedExitCode": 0
    }
   ],
-  "requirements": {},
+  "requirements": {
+   "functionName": "fetchWithTimeout",
+   "initialCode": "async function fetchWithTimeout(url, timeoutMs = 5000) {\n  const controller = new AbortController();\n  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);\n\n  try {\n    const response = await fetch(url, { signal: controller.signal });\n    if (!response.ok) {\n      throw new Error(`HTTP ${response.status}: ${response.statusText}`);\n    }\n    return await response.json();\n  } catch (err) {\n    if (err.name === \"AbortError\") {\n      throw new Error(`Request timed out after ${timeoutMs}ms`);\n    }\n    throw err;\n  } finally {\n    clearTimeout(timeoutId);\n  }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "NO_FIX_NEEDED",
+    "no bug",
+    "无 bug",
+    "正确",
+    "clearTimeout"
+   ],
+   "hiddenTests": []
+  },
   "tags": [
    "javascript",
    "correct-code",
@@ -21640,7 +21714,7 @@
    "correct_code_trap"
   ],
   "scenarioVersion": "1.0.0",
-  "scenarioHash": "fa6be84595fa4e2f",
+  "scenarioHash": "913b9c8b7bfa5837",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
