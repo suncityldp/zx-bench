@@ -30,7 +30,7 @@ export { cliCommandEvaluator } from './evaluators/cliCommand.js';
 export { hallucinationResistanceEvaluator } from './evaluators/hallucinationResistance.js';
 
 // 沙箱执行
-export { runInSandbox, runTestCase, runTestSuite } from './sandbox/index.js';
+export { runInSandbox, runTestCase, runTestSuite, runReplacedCodeTest, runReplacedCodeTestPython, runTestCaseInContainer, runReplacedCodeTestPythonInContainer } from './sandbox/index.js';
 export type { SandboxResult, SandboxOptions } from './sandbox/index.js';
 
 // 隐藏测试

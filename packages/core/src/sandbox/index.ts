@@ -492,3 +492,87 @@ function applyPatch(sourceCode: string, patch: string): string {
 
   return resultLines.join('\n');
 }
+
+// ============================================================
+// 容器执行（Phase 2 垂直切片）：用 Docker 隔离执行 hidden tests，
+// 与 host fork 沙箱语义一致（throw → 非零退出、console.log → stdout）。
+// ============================================================
+
+import { runInContainer, CONTAINER_IMAGES } from '../execution/containerRunner.js';
+
+/** JS/TS hidden test 容器执行（垂直切片）：复用 applyPatch + toRunnableJs */
+export async function runTestCaseInContainer(
+  sourceCode: string,
+  patch: string | null,
+  testCase: HiddenTestCase,
+  options: SandboxOptions = {},
+): Promise<TestDetail> {
+  const startedAt = new Date().toISOString();
+  let modifiedCode = sourceCode;
+  if (patch) modifiedCode = applyPatch(sourceCode, patch);
+  const fullCode = `\n${modifiedCode}\n\n// ===== 测试代码 =====\n${testCase.testCode}\n`;
+  const runnable = toRunnableJs(fullCode);
+
+  const res = runInContainer({
+    image: CONTAINER_IMAGES.javascript,
+    command: ['node', 'main.mjs'],
+    files: [{ path: 'main.mjs', content: runnable }],
+    timeoutMs: testCase.timeout || options.timeout || 10000,
+  });
+
+  let passed = false;
+  if (testCase.expectedOutput !== undefined) {
+    passed = res.stdout.trim() === String(testCase.expectedOutput).trim();
+  } else if (testCase.expectedExitCode !== undefined) {
+    passed = res.exitCode === testCase.expectedExitCode;
+  } else {
+    passed = res.success;
+  }
+
+  return {
+    testId: testCase.id,
+    testType: testCase.type,
+    passed,
+    actualOutput: res.stdout.trim() || undefined,
+    expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
+    stdout: res.stdout,
+    stderr: res.stderr,
+    exitCode: res.exitCode,
+    duration: res.durationMs,
+    timedOut: res.timedOut,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+  };
+}
+
+/** Python hidden test 容器执行（垂直切片） */
+export async function runReplacedCodeTestPythonInContainer(
+  replacedCode: string,
+  testCase: HiddenTestCase,
+  options: SandboxOptions = {},
+): Promise<TestDetail> {
+  const startedAt = new Date().toISOString();
+  const fullCode = `${replacedCode}\n\n# ===== 测试代码 =====\n${testCase.testCode}\n`;
+  const res = runInContainer({
+    image: CONTAINER_IMAGES.python,
+    command: ['python', 'main.py'],
+    files: [{ path: 'main.py', content: fullCode }],
+    timeoutMs: testCase.timeout || options.timeout || 10000,
+  });
+
+  const passed = res.exitCode === 0 && !res.timedOut;
+  return {
+    testId: testCase.id,
+    testType: testCase.type,
+    passed,
+    actualOutput: res.stdout.trim() || undefined,
+    expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
+    stdout: res.stdout,
+    stderr: res.stderr,
+    exitCode: res.exitCode,
+    duration: res.durationMs,
+    timedOut: res.timedOut,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+  };
+}
