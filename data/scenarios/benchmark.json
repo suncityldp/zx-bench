@@ -20937,6 +20937,351 @@
   "maxReasoningTokens": null
  },
  {
+  "id": "CR2-CC-001",
+  "dimension": "program",
+  "category": "signed_unsigned",
+  "difficulty": "medium",
+  "language": "c",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C 工程师。以下反向遍历函数在空数组时崩溃（越界访问）。请找出并修复 bug：\n\n```c\n#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        (void)arr[i];\n    }\n}\n```\n\n提示：size_t 是无符号类型。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无符号回绕）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保持函数签名不变）",
+  "sourceCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        (void)arr[i];\n    }\n}",
+  "functionName": "print_reverse",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [
+   {
+    "id": "CR2-CC-001-t1",
+    "type": "hidden",
+    "description": "空数组不崩溃",
+    "testCode": "print_reverse(NULL, 0); printf(\"safe\");",
+    "expectedExitCode": 0
+   },
+   {
+    "id": "CR2-CC-001-t2",
+    "type": "hidden",
+    "description": "非空数组逆序遍历不越界",
+    "testCode": "int a[3] = {1,2,3}; print_reverse(a, 3); printf(\"done\");",
+    "expectedExitCode": 0
+   }
+  ],
+  "requirements": {
+   "functionName": "print_reverse",
+   "initialCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "i < len",
+    "i-- > 0",
+    "ssize_t",
+    "len > 0"
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len; i > 0; i--) {\n        (void)arr[i-1];\n    }\n}"
+  },
+  "tags": [
+   "c",
+   "unsigned",
+   "wraparound",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "eba9e8802ac20a19",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "CR2-CC-002",
+  "dimension": "program",
+  "category": "buffer_overflow",
+  "difficulty": "medium",
+  "language": "c",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C 安全工程师。以下函数存在严重内存安全问题，请找出并修复：\n\n```c\n#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}\n```\n\n注意：src 来自外部输入，长度不可信。\n\n输出要求：\n1. 结论（有 bug / 无 bug）及问题类型\n2. 风险分析（1-3 句，说明溢出后果）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保证 dest 永不越界且总是以 NUL 结尾）",
+  "sourceCode": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}",
+  "functionName": "copy_name",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [
+   {
+    "id": "CR2-CC-002-t1",
+    "type": "hidden",
+    "description": "超长输入安全截断且 NUL 结尾",
+    "testCode": "char d[16]; char *s = malloc(1000); memset(s, 'x', 999); s[999] = 0; copy_name(d, s); assert(strlen(d) <= 15); free(s);",
+    "expectedExitCode": 0
+   }
+  ],
+  "requirements": {
+   "functionName": "copy_name",
+   "initialCode": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "strncpy",
+    "snprintf",
+    "strcpy_s",
+    "15"
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    snprintf(dest, 16, \"%s\", src);\n}"
+  },
+  "tags": [
+   "c",
+   "buffer-overflow",
+   "strcpy",
+   "security",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "d183debb845437d0",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "CR2-CC-003",
+  "dimension": "program",
+  "category": "dangling_pointer",
+  "difficulty": "hard",
+  "language": "c",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C 工程师。以下函数返回后调用方读到乱码甚至崩溃。请找出并修复 bug：\n\n```c\n#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释栈上局部变量的生命周期）\n3. 修复后的完整代码（包裹在 ```c 代码块中，说明调用方的内存责任）",
+  "sourceCode": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}",
+  "functionName": "make_greeting",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [
+   {
+    "id": "CR2-CC-003-t1",
+    "type": "hidden",
+    "description": "返回的指针在函数返回后仍有效",
+    "testCode": "const char *g = make_greeting(\"world\"); assert(strcmp(g, \"Hello, world\") == 0);",
+    "expectedExitCode": 0
+   }
+  ],
+  "requirements": {
+   "functionName": "make_greeting",
+   "initialCode": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "malloc",
+    "snprintf",
+    "free"
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    size_t n = strlen(name) + 8;\n    char *buf = malloc(n);\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}"
+  },
+  "tags": [
+   "c",
+   "dangling-pointer",
+   "stack-lifetime",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "19eeb7b6a767a6cf",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "CR2-CC-004",
+  "dimension": "program",
+  "category": "correct_code_trap",
+  "difficulty": "hard",
+  "language": "cpp",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 C++ 工程师。请审查以下资源管理类，判断是否存在 bug。注意：这段代码可能完全正确，如果正确请说明异常发生时资源为什么不会泄漏：\n\n```cpp\n#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 分析理由（说明 RAII 与 unique_ptr 的析构保证）",
+  "sourceCode": "#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};",
+  "functionName": "Report",
+  "expectedVerdict": "no_bug",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [],
+  "requirements": {
+   "functionName": "Report",
+   "initialCode": "#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "RAII",
+    "析构",
+    "unique_ptr",
+    "destructor",
+    "异常安全"
+   ]
+  },
+  "tags": [
+   "cpp",
+   "trap",
+   "correct-code",
+   "raii"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "211e196c4e9dcb89",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
+  "id": "CR2-SH-001",
+  "dimension": "program",
+  "category": "quoting",
+  "difficulty": "medium",
+  "language": "bash",
+  "locale": "zh-CN",
+  "status": "valid",
+  "tier": "public_dev",
+  "promptTemplate": "你是一名资深 DevOps 工程师。以下备份脚本在文件名包含空格时行为错乱（把 1 个文件当成多个参数），且在中间命令失败后仍继续执行。请找出并修复：\n\n```bash\n#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone\n```\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（说明至少两个问题：变量未加引号、ls 解析、错误处理）\n3. 修复后的完整脚本（包裹在 ```bash 代码块中）",
+  "sourceCode": "#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone",
+  "functionName": "backup_file",
+  "expectedVerdict": "fix",
+  "grader": "code_repair",
+  "graderVersion": "3.2.0",
+  "scoring": {
+   "type": "code_repair"
+  },
+  "hiddenTests": [
+   {
+    "id": "CR2-SH-001-t1",
+    "type": "hidden",
+    "testCode": "d=$(mktemp -d); echo hello > \"$d/plain.txt\"; backup_file \"$d/plain.txt\" \"$d/plain.bak\"; [[ \"$(cat \"$d/plain.bak\")\" == \"hello\" ]]",
+    "description": "常规：无空格路径备份成功",
+    "expectedOutput": "备份成功且内容一致"
+   },
+   {
+    "id": "CR2-SH-001-t2",
+    "type": "boundary",
+    "testCode": "d=$(mktemp -d); echo hello > \"$d/my file.txt\"; backup_file \"$d/my file.txt\" \"$d/backup.dat\"; [[ -f \"$d/backup.dat\" && \"$(cat \"$d/backup.dat\")\" == \"hello\" ]]",
+    "description": "边界：源路径含空格不得分词错乱（bug 必挂）",
+    "expectedOutput": "备份成功且内容一致"
+   },
+   {
+    "id": "CR2-SH-001-t3",
+    "type": "boundary",
+    "testCode": "d=$(mktemp -d); echo hi > \"$d/a.txt\"; backup_file \"$d/a.txt\" \"$d/new name.bak\"; [[ -f \"$d/new name.bak\" ]]",
+    "description": "边界：目标路径含空格不得分词错乱（bug 必挂）",
+    "expectedOutput": "备份文件存在"
+   },
+   {
+    "id": "CR2-SH-001-t4",
+    "type": "boundary",
+    "testCode": "d=$(mktemp -d); echo x > \"$d/f\"; chmod 600 \"$d/f\"; backup_file \"$d/f\" \"$d/g\"; [[ $(stat -c %a \"$d/g\") == 644 ]]",
+    "description": "边界：备份后权限为 644",
+    "expectedOutput": "644"
+   }
+  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "\"$src\"",
+    "set -e",
+    "set -euo",
+    "glob",
+    "find"
+   ],
+   "hiddenTests": [
+    {
+     "code": "d=$(mktemp -d); echo hello > \"$d/plain.txt\"; backup_file \"$d/plain.txt\" \"$d/plain.bak\"; [[ \"$(cat \"$d/plain.bak\")\" == \"hello\" ]]",
+     "description": "常规：无空格路径备份成功"
+    },
+    {
+     "code": "d=$(mktemp -d); echo hello > \"$d/my file.txt\"; backup_file \"$d/my file.txt\" \"$d/backup.dat\"; [[ -f \"$d/backup.dat\" && \"$(cat \"$d/backup.dat\")\" == \"hello\" ]]",
+     "description": "边界：源路径含空格不得分词错乱（bug 必挂）"
+    },
+    {
+     "code": "d=$(mktemp -d); echo hi > \"$d/a.txt\"; backup_file \"$d/a.txt\" \"$d/new name.bak\"; [[ -f \"$d/new name.bak\" ]]",
+     "description": "边界：目标路径含空格不得分词错乱（bug 必挂）"
+    },
+    {
+     "code": "d=$(mktemp -d); echo x > \"$d/f\"; chmod 600 \"$d/f\"; backup_file \"$d/f\" \"$d/g\"; [[ $(stat -c %a \"$d/g\") == 644 ]]",
+     "description": "边界：备份后权限为 644"
+    }
+   ],
+   "referenceSolution": "#!/bin/bash\nset -e\n\nbackup_file() {\n    local src=\"$1\"\n    local dest=\"$2\"\n    cp \"$src\" \"$dest\"\n    chmod 644 \"$dest\"\n}\n\nfor f in /data/*; do\n    [ -f \"$f\" ] || continue\n    backup_file \"$f\" \"/backup/$(basename \"$f\").bak\"\ndone",
+   "fixture": {
+    "language": "bash",
+    "image": "bash:5",
+    "setOptions": [],
+    "helpers": ""
+   }
+  },
+  "tags": [
+   "bash",
+   "quoting",
+   "set-e",
+   "fix"
+  ],
+  "scenarioVersion": "1.0.0",
+  "scenarioHash": "d7e7147f96e35a43",
+  "responseMode": null,
+  "outputPolicy": null,
+  "environmentImage": null,
+  "seed": null,
+  "goldSource": null,
+  "reviewStatus": "unreviewed",
+  "answerFirst": null,
+  "maxAnswerTokens": null,
+  "maxReasoningTokens": null
+ },
+ {
   "id": "CS-001",
   "dimension": "program",
   "category": "equals_hashcode",
