@@ -8,8 +8,8 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "你是一名资深 C 工程师。以下反向遍历函数在空数组时崩溃（越界访问）。请找出并修复 bug：\n\n```c\n#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}\n```\n\n提示：size_t 是无符号类型。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无符号回绕）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保持函数签名不变）",
-  "sourceCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}",
+  "promptTemplate": "你是一名资深 C 工程师。以下反向遍历函数在空数组时崩溃（越界访问）。请找出并修复 bug：\n\n```c\n#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        (void)arr[i];\n    }\n}\n```\n\n提示：size_t 是无符号类型。\n\n输出要求：\n1. 结论（有 bug / 无 bug）\n2. 根因分析（1-3 句，解释无符号回绕）\n3. 修复后的完整代码（包裹在 ```c 代码块中，保持函数签名不变）",
+  "sourceCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        (void)arr[i];\n    }\n}",
   "functionName": "print_reverse",
   "expectedVerdict": "fix",
   "grader": "code_repair",
@@ -20,17 +20,17 @@
   "hiddenTests": [
    {
     "id": "CR2-CC-001-t1",
-    "type": "static",
-    "testCode": "// print_reverse(NULL, 0) 不得崩溃",
-    "description": "空数组边界",
-    "expectedOutput": "safe"
+    "type": "hidden",
+    "description": "空数组不崩溃",
+    "testCode": "print_reverse(NULL, 0); printf(\"safe\");",
+    "expectedExitCode": 0
    },
    {
     "id": "CR2-CC-001-t2",
-    "type": "static",
-    "testCode": "// 非空数组完整逆序遍历恰好 len 次",
-    "description": "正常遍历不重不漏",
-    "expectedOutput": "pass"
+    "type": "hidden",
+    "description": "非空数组逆序遍历不越界",
+    "testCode": "int a[3] = {1,2,3}; print_reverse(a, 3); printf(\"done\");",
+    "expectedExitCode": 0
    }
   ],
   "requirements": {
@@ -42,7 +42,13 @@
     "i-- > 0",
     "ssize_t",
     "len > 0"
-   ]
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len; i > 0; i--) {\n        (void)arr[i-1];\n    }\n}"
   },
   "tags": [
    "c",
@@ -74,17 +80,10 @@
   "hiddenTests": [
    {
     "id": "CR2-CC-002-t1",
-    "type": "static",
-    "testCode": "// src 长度 1000 时 dest 不得越界",
-    "description": "超长输入安全截断",
-    "expectedOutput": "truncated"
-   },
-   {
-    "id": "CR2-CC-002-t2",
-    "type": "static",
-    "testCode": "// 任意输入后 dest[15] 检查与 strlen(dest) <= 15",
-    "description": "NUL 结尾保证",
-    "expectedOutput": "pass"
+    "type": "hidden",
+    "description": "超长输入安全截断且 NUL 结尾",
+    "testCode": "char d[16]; char *s = malloc(1000); memset(s, 'x', 999); s[999] = 0; copy_name(d, s); assert(strlen(d) <= 15); free(s);",
+    "expectedExitCode": 0
    }
   ],
   "requirements": {
@@ -96,7 +95,13 @@
     "snprintf",
     "strcpy_s",
     "15"
-   ]
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    snprintf(dest, 16, \"%s\", src);\n}"
   },
   "tags": [
    "c",
@@ -129,10 +134,10 @@
   "hiddenTests": [
    {
     "id": "CR2-CC-003-t1",
-    "type": "static",
-    "testCode": "// 返回的指针在函数返回后仍有效",
-    "description": "修复悬垂指针",
-    "expectedOutput": "Hello, world"
+    "type": "hidden",
+    "description": "返回的指针在函数返回后仍有效",
+    "testCode": "const char *g = make_greeting(\"world\"); assert(strcmp(g, \"Hello, world\") == 0);",
+    "expectedExitCode": 0
    }
   ],
   "requirements": {
@@ -143,7 +148,13 @@
     "malloc",
     "snprintf",
     "free"
-   ]
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   },
+   "referenceSolution": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    size_t n = strlen(name) + 8;\n    char *buf = malloc(n);\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}"
   },
   "tags": [
    "c",
@@ -315,7 +326,26 @@
     "子查询",
     "subquery",
     "GROUP BY o.id"
-   ]
+   ],
+   "fixture": {
+    "language": "sql",
+    "dialect": "sqlite",
+    "schema": "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, amount REAL); CREATE TABLE payments (id INTEGER PRIMARY KEY, order_id INTEGER, paid_amount REAL);",
+    "seed": "INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'); INSERT INTO orders VALUES (1,1,100.0),(2,1,50.0),(3,2,30.0); INSERT INTO payments VALUES (1,1,60.0),(2,1,40.0),(3,2,50.0);",
+    "expectedResult": [
+     {
+      "id": 1,
+      "name": "Alice",
+      "total": 150
+     },
+     {
+      "id": 2,
+      "name": "Bob",
+      "total": 30
+     }
+    ]
+   },
+   "referenceSolution": "SELECT c.id, c.name, SUM(o.amount) AS total FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.id, c.name;"
   },
   "tags": [
    "sql",
@@ -353,7 +383,24 @@
     "NOT EXISTS",
     "IS NOT NULL",
     "LEFT JOIN"
-   ]
+   ],
+   "fixture": {
+    "language": "sql",
+    "dialect": "sqlite",
+    "schema": "CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT); CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER);",
+    "seed": "INSERT INTO customers VALUES (1,'Alice'),(2,'Bob'),(3,'Carol'); INSERT INTO orders VALUES (1,1),(2,NULL);",
+    "expectedResult": [
+     {
+      "id": 2,
+      "name": "Bob"
+     },
+     {
+      "id": 3,
+      "name": "Carol"
+     }
+    ]
+   },
+   "referenceSolution": "SELECT * FROM customers c WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.customer_id = c.id);"
   },
   "tags": [
    "sql",
@@ -390,7 +437,51 @@
     "DENSE_RANK",
     "PARTITION BY",
     "RANK"
-   ]
+   ],
+   "fixture": {
+    "language": "sql",
+    "dialect": "sqlite",
+    "schema": "CREATE TABLE employees (id INTEGER PRIMARY KEY, name TEXT, dept TEXT, salary INTEGER);",
+    "seed": "INSERT INTO employees VALUES (1,'A','eng',100),(2,'B','eng',90),(3,'C','eng',90),(4,'D','eng',80),(5,'E','sales',70),(6,'F','sales',60),(7,'G','sales',50),(8,'H','sales',40);",
+    "expectedResult": [
+     {
+      "dept": "eng",
+      "name": "A",
+      "salary": 100
+     },
+     {
+      "dept": "eng",
+      "name": "B",
+      "salary": 90
+     },
+     {
+      "dept": "eng",
+      "name": "C",
+      "salary": 90
+     },
+     {
+      "dept": "eng",
+      "name": "D",
+      "salary": 80
+     },
+     {
+      "dept": "sales",
+      "name": "E",
+      "salary": 70
+     },
+     {
+      "dept": "sales",
+      "name": "F",
+      "salary": 60
+     },
+     {
+      "dept": "sales",
+      "name": "G",
+      "salary": 50
+     }
+    ]
+   },
+   "referenceSolution": "SELECT dept, name, salary FROM (SELECT dept, name, salary, DENSE_RANK() OVER (PARTITION BY dept ORDER BY salary DESC) AS r FROM employees) WHERE r <= 3 ORDER BY dept, salary DESC, name;"
   },
   "tags": [
    "sql",

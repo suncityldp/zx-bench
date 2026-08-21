@@ -67,6 +67,7 @@ export function runCTestsInContainer(
       timeoutMs,
       memoryMb: 256,
       pidsLimit: 64,
+      env: { ASAN_OPTIONS: 'detect_stack_use_after_return=1:halt_on_error=1:detect_leaks=0' },
     });
     tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut });
     allStdout += res.stdout;

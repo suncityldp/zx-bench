@@ -13,7 +13,7 @@
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { runReplacedCodeTest, runReplacedCodeTestPython, summarizeTestResults, calculateTestScore, getPythonBin } from '../hidden-tests/index.js';
-import { runGoTestsInContainer, type GoFixture } from '../execution/goRunner.js';
+import { runGoTestsInContainer, runGoProgramInContainer, type GoFixture } from '../execution/goRunner.js';
 import { runJavaTestsInContainer, type JavaFixture } from '../execution/javaRunner.js';
 import { runCTestsInContainer, type CFixture } from '../execution/cRunner.js';
 import { runRustTestsInContainer, type RustFixture } from '../execution/rustRunner.js';
@@ -735,6 +735,16 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else if (goFixture) {
         // ===== Go 容器执行路径（真实编译 + go test） =====
+        if (goFixture.programMode && goFixture.expectedOutput) {
+          const progRes = runGoProgramInContainer(patch, goFixture.expectedOutput);
+          axisScores.compilation = progRes.exitCode === 0 && !/error/.test(progRes.stderr) ? 100 : 0;
+          axisEvidence.compilation = 'verified';
+          axisScores.test_pass = progRes.passed ? 100 : 0;
+          axisEvidence.test_pass = 'verified';
+          evidence.push(progRes.passed
+            ? 'Go program output matches expected'
+            : 'Go program output mismatch: ' + JSON.stringify(progRes.stdout).slice(0, 200));
+        } else {
         const goRes = runGoTestsInContainer(patch, tests, goFixture);
         // 只要有 PASS/FAIL 输出即说明编译通过（编译失败不会产生测试结果行）
         const compiled = goRes.tests.length > 0;
@@ -762,6 +772,7 @@ export const codeRepairEvaluator: Evaluator = {
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Go tests available for verification');
+        }
         }
       } else {
         // ===== 沙箱执行路径（JS/TS/Python） =====

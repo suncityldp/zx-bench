@@ -19,6 +19,10 @@ export interface GoFixture {
   helpers?: string;
   /** 启用 race detector（并发/race 题） */
   race?: boolean;
+  /** 完整 main 程序模式（CR2 的 package main 题）：跑程序比对输出 */
+  programMode?: boolean;
+  /** programMode 下的期望输出行（排序后比对） */
+  expectedOutput?: string[];
 }
 
 export interface GoRunResult {
@@ -107,5 +111,38 @@ export function runGoTestsInContainer(
     timedOut: res.timedOut,
     durationMs: res.durationMs,
     tests,
+  };
+}
+// ============================================================
+// Go 完整程序模式（CR2 的 package main 题）：跑程序，比对 stdout 行集合
+// ============================================================
+
+/** 完整 main 程序执行 + 输出行集合比对（排序后相等，允许顺序差异） */
+export function runGoProgramInContainer(
+  sourceCode: string,
+  expectedOutputLines: string[],
+  timeoutMs = 30000,
+): { passed: boolean; stdout: string; stderr: string; exitCode: number; timedOut: boolean; durationMs: number } {
+  const res = runInContainer({
+    image: GO_IMAGE,
+    command: ['go', 'run', 'main.go'],
+    files: [{ path: 'main.go', content: sourceCode }],
+    timeoutMs,
+    memoryMb: 256,
+    pidsLimit: 128,
+    env: { GOCACHE: '/tmp/go-build', GOPATH: '/tmp/gopath', HOME: '/tmp', GOMAXPROCS: '1' },
+  });
+
+  const lines = res.stdout.split('\n').map((l) => l.trim()).filter((l) => l.length > 0).sort();
+  const expected = [...expectedOutputLines].sort();
+  const passed = res.exitCode === 0 && !res.timedOut && JSON.stringify(lines) === JSON.stringify(expected);
+
+  return {
+    passed,
+    stdout: res.stdout,
+    stderr: res.stderr,
+    exitCode: res.exitCode,
+    timedOut: res.timedOut,
+    durationMs: res.durationMs,
   };
 }

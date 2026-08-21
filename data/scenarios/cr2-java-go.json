@@ -184,10 +184,10 @@
   "hiddenTests": [
    {
     "id": "CR2-JV-004-t1",
-    "type": "static",
-    "testCode": "// 10 线程 x 10000 次后 getCount() == 100000",
-    "description": "并发累加不丢失",
-    "expectedOutput": "100000"
+    "type": "hidden",
+    "description": "10 线程 x 10000 次并发累加不丢失",
+    "testCode": "Counter c = new Counter(); Thread[] ts = new Thread[10]; for (int i = 0; i < 10; i++) { ts[i] = new Thread(() -> { for (int k = 0; k < 10000; k++) c.increment(); }); ts[i].start(); } for (Thread t : ts) { try { t.join(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); } } assertEquals(100000, c.getCount());",
+    "expectedExitCode": 0
    }
   ],
   "requirements": {
@@ -198,7 +198,13 @@
     "AtomicInteger",
     "synchronized",
     "incrementAndGet"
-   ]
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": false,
+    "imports": []
+   },
+   "referenceSolution": "public class Counter {\n    private final java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger(0);\n    public void increment() { count.incrementAndGet(); }\n    public int getCount() { return count.get(); }\n}"
   },
   "tags": [
    "java",
@@ -271,9 +277,9 @@
   "hiddenTests": [
    {
     "id": "CR2-GO-001-t1",
-    "type": "static",
-    "testCode": "// 输出应为 0 1 2 的某个排列",
+    "type": "hidden",
     "description": "每个 goroutine 打印各自的 i",
+    "testCode": "program",
     "expectedOutput": "0 1 2"
    }
   ],
@@ -285,7 +291,17 @@
     "go func(i int)",
     "i := i",
     "j :="
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "programMode": true,
+    "expectedOutput": [
+     "0",
+     "1",
+     "2"
+    ]
+   },
+   "referenceSolution": "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tvar wg sync.WaitGroup\n\tfor i := 0; i < 3; i++ {\n\t\twg.Add(1)\n\t\tgo func(i int) {\n\t\t\tdefer wg.Done()\n\t\t\tfmt.Println(i)\n\t\t}(i)\n\t}\n\twg.Wait()\n}"
   },
   "tags": [
    "go",
@@ -317,10 +333,10 @@
   "hiddenTests": [
    {
     "id": "CR2-GO-002-t1",
-    "type": "static",
-    "testCode": "src := []int{1, 2, 3, 4}\np := CopyPrefix(src, 2)\np = append(p, 99)\n// src 必须保持 [1, 2, 3, 4]",
+    "type": "hidden",
     "description": "append 不污染原切片",
-    "expectedOutput": "[1 2 3 4]"
+    "testCode": "src := []int{1,2,3,4}; p := CopyPrefix(src, 2); p = append(p, 99); if !(src[0]==1 && src[1]==2 && src[2]==3 && src[3]==4) { t.Fatal(\"aliasing\") }",
+    "expectedExitCode": 0
    }
   ],
   "requirements": {
@@ -332,7 +348,15 @@
     "copy(",
     "append([]int",
     "items[:n:n]"
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "imports": [],
+    "importStubs": [],
+    "helpers": "",
+    "race": false
+   },
+   "referenceSolution": "func CopyPrefix(items []int, n int) []int {\n\treturn append([]int{}, items[:n]...)\n}"
   },
   "tags": [
    "go",
@@ -364,9 +388,9 @@
   "hiddenTests": [
    {
     "id": "CR2-GO-003-t1",
-    "type": "static",
-    "testCode": "// 程序应输出 42 且不死锁",
-    "description": "发送与接收正确配对",
+    "type": "hidden",
+    "description": "输出 42 且不死锁",
+    "testCode": "program",
     "expectedOutput": "42"
    }
   ],
@@ -378,7 +402,15 @@
     "make(chan int, 1)",
     "go func",
     "go func()"
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "programMode": true,
+    "expectedOutput": [
+     "42"
+    ]
+   },
+   "referenceSolution": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tch := make(chan int, 1)\n\tch <- 42\n\tfmt.Println(<-ch)\n}"
   },
   "tags": [
    "go",
