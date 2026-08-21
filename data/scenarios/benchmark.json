@@ -14610,7 +14610,18 @@
      "code": "ch:=make(chan int); go printAll(0,ch); _,ok:=<-ch; if ok {t.Fatal(\"n=0\")}",
      "description": "n=0 立即关闭"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "imports": [
+     "sync"
+    ],
+    "importStubs": [
+     "sync.NewCond"
+    ],
+    "helpers": "",
+    "race": false
+   }
   },
   "tags": [
    "go",
@@ -16178,7 +16189,14 @@
      "code": "if len(CopyPrefix([]int{1,2,3},0))!=0 {t.Fatal(\"n=0\")}",
      "description": "n=0"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "imports": [],
+    "importStubs": [],
+    "helpers": "",
+    "race": false
+   }
   },
   "tags": [
    "go",
@@ -16246,7 +16264,20 @@
      "code": "err:=Load(\"missing\"); if !errors.Is(err, ErrNotFound) {t.Fatal(\"wrapping lost\")}",
      "description": "errors.Is 可识别底层错误"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "imports": [
+     "errors",
+     "fmt"
+    ],
+    "importStubs": [
+     "errors.New",
+     "fmt.Errorf"
+    ],
+    "helpers": "func fetch(id string) error { if id == \"missing\" { return ErrNotFound }; return nil }",
+    "race": false
+   }
   },
   "tags": [
    "go",
@@ -17354,7 +17385,18 @@
      "code": "_,err:=Atoi(\"1a2\"); if err==nil {t.Fatal(\"want error\")}",
      "description": "非法字符报错"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "imports": [
+     "errors"
+    ],
+    "importStubs": [
+     "errors.New"
+    ],
+    "helpers": "",
+    "race": false
+   }
   },
   "tags": [
    "go",
@@ -19112,7 +19154,18 @@
      "code": "c:=&Counter{}; var wg sync.WaitGroup; for i:=0;i<1000;i++{wg.Add(1); go func(){defer wg.Done(); c.Inc()}()}; wg.Wait(); if c.Get()!=1000 {t.Fatal(c.Get())}",
      "description": "1000 并发"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "go",
+    "imports": [
+     "sync"
+    ],
+    "importStubs": [
+     "sync.NewCond"
+    ],
+    "helpers": "",
+    "race": true
+   }
   },
   "tags": [
    "go",

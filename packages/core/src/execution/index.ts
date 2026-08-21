@@ -8,3 +8,5 @@ export {
   CONTAINER_IMAGES,
 } from './containerRunner.js';
 export type { ContainerRunOptions, ContainerRunResult, ContainerFile } from './containerRunner.js';
+export { buildGoTestHarness, runGoTestsInContainer } from './goRunner.js';
+export type { GoFixture, GoRunResult } from './goRunner.js';

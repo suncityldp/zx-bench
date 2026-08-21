@@ -70,5 +70,5 @@ export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScena
 export type { GraderContract } from './contracts/index.js';
 
 // 容器执行后端（Phase 2）
-export { runInContainer, isDockerAvailable, getImageDigest, CONTAINER_IMAGES } from './execution/index.js';
+export { runInContainer, isDockerAvailable, getImageDigest, CONTAINER_IMAGES, buildGoTestHarness, runGoTestsInContainer } from './execution/index.js';
 export type { ContainerRunOptions, ContainerRunResult, ContainerFile } from './execution/index.js';
