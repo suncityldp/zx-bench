@@ -6,6 +6,7 @@
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { fileURLToPath } from 'node:url';
 
 export interface JavaFixture {
   imports?: string[];
@@ -27,7 +28,9 @@ const JAVA_IMAGE = 'eclipse-temurin:17-jdk-alpine';
 const JUNIT_JAR = 'junit-4.13.2.jar';
 const HAMCREST_JAR = 'hamcrest-core-1.3.jar';
 function javaLibsDir(): string {
-  return process.env.ZXBENCH_JAVA_LIBS || 'J:/zxbench-java-libs';
+  if (process.env.ZXBENCH_JAVA_LIBS) return process.env.ZXBENCH_JAVA_LIBS;
+  // 默认从项目内 data/java-libs 读取（随仓库分发，clone 即跑）
+  return fileURLToPath(new URL('../../../../data/java-libs', import.meta.url));
 }
 
 export function buildJavaHarness(

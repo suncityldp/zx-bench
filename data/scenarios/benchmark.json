@@ -16060,7 +16060,12 @@
      "code": "char *r=join(\"\",\"\"); assert(r[0]=='\\0'); free(r);",
      "description": "空串不越界"
     }
-   ]
+   ],
+   "fixture": {
+    "language": "c",
+    "includes": [],
+    "helpers": ""
+   }
   },
   "tags": [
    "c",
