@@ -40,9 +40,14 @@
     "expectedOutput": "-1"
    }
   ],
-  "requirements": [
-   "len(arr) - 1"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def binary_search(arr, target):\n    left, right = 0, len(arr) - 2\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "len(arr) - 1"
+   ]
+  },
   "tags": [
    "python",
    "binary-search",
@@ -86,10 +91,15 @@
     "expectedOutput": "pass"
    }
   ],
-  "requirements": [
-   "cart is None",
-   "None"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def add_item(item, cart=[]):\n    cart.append(item)\n    return cart",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "cart is None",
+    "None"
+   ]
+  },
   "tags": [
    "python",
    "mutable-default",
@@ -133,9 +143,14 @@
     "expectedOutput": "33.33"
    }
   ],
-  "requirements": [
-   "success / total"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def success_rate(success, total):\n    return (success // total) * 100",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "success / total"
+   ]
+  },
   "tags": [
    "python",
    "integer-division",
@@ -171,10 +186,15 @@
     "expectedOutput": "pass"
    }
   ],
-  "requirements": [
-   "i=i",
-   "default argument"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def make_multipliers(n):\n    return [lambda x: x * i for i in range(n)]",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "i=i",
+    "default argument"
+   ]
+  },
   "tags": [
    "python",
    "closure",
@@ -218,10 +238,15 @@
     "expectedOutput": "pass"
    }
   ],
-  "requirements": [
-   "for _ in range",
-   "comprehension"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def create_board(size):\n    return [[0] * size] * size",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "for _ in range",
+    "comprehension"
+   ]
+  },
   "tags": [
    "python",
    "shallow-copy",
@@ -265,10 +290,15 @@
     "expectedOutput": "False"
    }
   ],
-  "requirements": [
-   "isclose",
-   "abs("
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def total_equals(prices, expected):\n    total = sum(prices)\n    return total == expected",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "isclose",
+    "abs("
+   ]
+  },
   "tags": [
    "python",
    "float",
@@ -312,9 +342,14 @@
     "expectedOutput": "[]"
    }
   ],
-  "requirements": [
-   "continue"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def parse_scores(lines):\n    scores = []\n    for line in lines:\n        try:\n            scores.append(int(line.strip()))\n        except ValueError:\n            return scores\n    return scores",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "continue"
+   ]
+  },
   "tags": [
    "python",
    "exception",
@@ -364,11 +399,16 @@
     "expectedOutput": "10"
    }
   ],
-  "requirements": [
-   "OrderedDict",
-   "move_to_end",
-   "dict"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "class LRUCache:\n    def __init__(self, capacity):\n        raise NotImplementedError\n\n    def get(self, key):\n        raise NotImplementedError\n\n    def put(self, key, value):\n        raise NotImplementedError",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "OrderedDict",
+    "move_to_end",
+    "dict"
+   ]
+  },
   "tags": [
    "python",
    "lru",
@@ -418,10 +458,15 @@
     "expectedOutput": "True"
    }
   ],
-  "requirements": [
-   "min(",
-   "refill"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "class TokenBucket:\n    def __init__(self, capacity, refill_rate):\n        raise NotImplementedError\n\n    def allow(self, now):\n        raise NotImplementedError",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "min(",
+    "refill"
+   ]
+  },
   "tags": [
    "python",
    "rate-limiter",
@@ -458,10 +503,15 @@
     "expectedOutput": "(6, 3)"
    }
   ],
-  "requirements": [
-   "sum(numbers)",
-   "max(numbers)"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def stats(numbers):\n    it = iter(numbers)\n    total = sum(it)\n    peak = max(it)\n    return total, peak",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "sum(numbers)",
+    "max(numbers)"
+   ]
+  },
   "tags": [
    "python",
    "iterator",
@@ -505,12 +555,17 @@
     "expectedOutput": "[]"
    }
   ],
-  "requirements": [
-   "copy",
-   "comprehension",
-   "filter",
-   "nums[:]"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def remove_negatives(nums):\n    for x in nums:\n        if x < 0:\n            nums.remove(x)\n    return nums",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "copy",
+    "comprehension",
+    "filter",
+    "nums[:]"
+   ]
+  },
   "tags": [
    "python",
    "mutation",
@@ -539,15 +594,20 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "lock",
-   "锁",
-   "原子",
-   "线程",
-   "thread",
-   "critical section",
-   "临界区"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "import threading\n\nclass SafeCounter:\n    def __init__(self):\n        self._value = 0\n        self._lock = threading.Lock()\n\n    def increment(self, n=1):\n        with self._lock:\n            current = self._value\n            self._value = current + n\n            return self._value",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "lock",
+    "锁",
+    "原子",
+    "线程",
+    "thread",
+    "critical section",
+    "临界区"
+   ]
+  },
   "tags": [
    "python",
    "concurrency",
@@ -598,12 +658,17 @@
     "expectedOutput": "pass"
    }
   ],
-  "requirements": [
-   "dict",
-   "{}",
-   "in seen",
-   "enumerate"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def two_sum(nums, target):\n    for i in range(len(nums)):\n        for j in range(i + 1, len(nums)):\n            if nums[i] + nums[j] == target:\n                return [i, j]\n    return []",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "dict",
+    "{}",
+    "in seen",
+    "enumerate"
+   ]
+  },
   "tags": [
    "python",
    "performance",
@@ -640,13 +705,18 @@
     "expectedOutput": "parameterized"
    }
   ],
-  "requirements": [
-   "%s",
-   "?",
-   "参数化",
-   "parameterized",
-   "placeholder"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "def get_user(db_cursor, username):\n    query = \"SELECT * FROM users WHERE name = '\" + username + \"'\"\n    db_cursor.execute(query)\n    return db_cursor.fetchall()",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "%s",
+    "?",
+    "参数化",
+    "parameterized",
+    "placeholder"
+   ]
+  },
   "tags": [
    "python",
    "security",
@@ -675,14 +745,19 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "deepcopy",
-   "None",
-   "可变默认",
-   "mutable default",
-   "深拷贝",
-   "is not None"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "import copy\n\ndef merge_config(base, overrides=None):\n    result = copy.deepcopy(base)\n    if overrides is not None:\n        result.update(overrides)\n    return result",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "deepcopy",
+    "None",
+    "可变默认",
+    "mutable default",
+    "深拷贝",
+    "is not None"
+   ]
+  },
   "tags": [
    "python",
    "trap",

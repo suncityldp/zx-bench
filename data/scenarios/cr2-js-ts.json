@@ -33,11 +33,16 @@
     "expectedOutput": "false true"
    }
   ],
-  "requirements": [
-   "Number(",
-   "parseInt",
-   "18"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function isAdult(ageInput) {\n  return ageInput >= '18';\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "Number(",
+    "parseInt",
+    "18"
+   ]
+  },
   "tags": [
    "javascript",
    "type-coercion",
@@ -80,11 +85,16 @@
     "expectedOutput": "0"
    }
   ],
-  "requirements": [
-   "let",
-   "const i",
-   "forEach"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function delayedLoggers(n) {\n  const fns = [];\n  for (var i = 0; i < n; i++) {\n    fns.push(() => i);\n  }\n  return fns;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "let",
+    "const i",
+    "forEach"
+   ]
+  },
   "tags": [
    "javascript",
    "closure",
@@ -135,11 +145,16 @@
     "expectedOutput": "[\"a\",\"b\"]"
    }
   ],
-  "requirements": [
-   "Set",
-   "i--",
-   "filter"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function removeDuplicates(items) {\n  for (let i = 0; i < items.length; i++) {\n    if (items.indexOf(items[i]) !== i) {\n      items.splice(i, 1);\n    }\n  }\n  return items;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "Set",
+    "i--",
+    "filter"
+   ]
+  },
   "tags": [
    "javascript",
    "splice",
@@ -183,12 +198,17 @@
     "expectedOutput": "[5]"
    }
   ],
-  "requirements": [
-   "slice()",
-   "spread",
-   "[...scores]",
-   "toSorted"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function topThree(scores) {\n  return scores.sort((a, b) => b - a).slice(0, 3);\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "slice()",
+    "spread",
+    "[...scores]",
+    "toSorted"
+   ]
+  },
   "tags": [
    "javascript",
    "mutation",
@@ -238,12 +258,17 @@
     "expectedOutput": "[\"deep\"]"
    }
   ],
-  "requirements": [
-   "isArray",
-   "reduce",
-   "concat",
-   "recursion"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function flatten(arr) {\n  // 将任意深度的嵌套数组扁平化为一维数组\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "isArray",
+    "reduce",
+    "concat",
+    "recursion"
+   ]
+  },
   "tags": [
    "javascript",
    "recursion",
@@ -285,11 +310,16 @@
     "expectedOutput": "2"
    }
   ],
-  "requirements": [
-   "WeakMap",
-   "Map",
-   "seen"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function deepClone(obj) {\n  // 深拷贝对象，支持循环引用\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "WeakMap",
+    "Map",
+    "seen"
+   ]
+  },
   "tags": [
    "javascript",
    "deep-clone",
@@ -333,11 +363,16 @@
     "expectedOutput": "a user"
    }
   ],
-  "requirements": [
-   "role: 'user', permissions: []",
-   "structuredClone",
-   "map"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function createUsers(names) {\n  const defaultProfile = { role: 'user', permissions: [] };\n  return names.map((name) => ({ name, profile: defaultProfile }));\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "role: 'user', permissions: []",
+    "structuredClone",
+    "map"
+   ]
+  },
   "tags": [
    "javascript",
    "shared-reference",
@@ -374,14 +409,19 @@
     "expectedOutput": "$19.99 -$0.05 $1.00"
    }
   ],
-  "requirements": [
-   "整数",
-   "cents",
-   "浮点",
-   "float",
-   "padStart",
-   "integer"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function formatPrice(cents) {\n  const sign = cents < 0 ? '-' : '';\n  const abs = Math.abs(cents);\n  const dollars = Math.floor(abs / 100);\n  const remainder = String(abs % 100).padStart(2, '0');\n  return `${sign}$${dollars}.${remainder}`;\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "整数",
+    "cents",
+    "浮点",
+    "float",
+    "padStart",
+    "integer"
+   ]
+  },
   "tags": [
    "javascript",
    "trap",
@@ -425,12 +465,17 @@
     "expectedOutput": "<div class=\"comment\">hello &amp; &quot;world&quot;</div>"
    }
   ],
-  "requirements": [
-   "&lt;",
-   "&amp;",
-   "escape",
-   "replace"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function renderComment(userInput) {\n  return `<div class=\"comment\">${userInput}</div>`;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "&lt;",
+    "&amp;",
+    "escape",
+    "replace"
+   ]
+  },
   "tags": [
    "javascript",
    "security",
@@ -459,11 +504,16 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "T | undefined",
-   "throw",
-   "undefined"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function first<T>(items: T[]): T {\n  return items[0];\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "T | undefined",
+    "throw",
+    "undefined"
+   ]
+  },
   "tags": [
    "typescript",
    "type-safety",
@@ -491,11 +541,16 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "?.",
-   "??",
-   "unknown"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "interface User {\n  name: string;\n  address?: { city: string };\n}\n\nfunction getCity(user: User): string {\n  return user.address.city;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "?.",
+    "??",
+    "unknown"
+   ]
+  },
   "tags": [
    "typescript",
    "optional-chaining",
@@ -523,12 +578,17 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "Number.isInteger",
-   "ok:",
-   "isNaN",
-   "trim"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };\n\nfunction safeParseInt(s: string): Result<number, string> {\n  // TODO\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "Number.isInteger",
+    "ok:",
+    "isNaN",
+    "trim"
+   ]
+  },
   "tags": [
    "typescript",
    "result-type",
@@ -557,14 +617,19 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "收窄",
-   "narrowing",
-   "穷举",
-   "exhaustive",
-   "never",
-   "discriminated"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "type Shape =\n  | { kind: 'circle'; radius: number }\n  | { kind: 'square'; side: number };\n\nfunction area(s: Shape): number {\n  switch (s.kind) {\n    case 'circle':\n      return Math.PI * s.radius ** 2;\n    case 'square':\n      return s.side ** 2;\n  }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "收窄",
+    "narrowing",
+    "穷举",
+    "exhaustive",
+    "never",
+    "discriminated"
+   ]
+  },
   "tags": [
    "typescript",
    "trap",
@@ -593,12 +658,17 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "__proto__",
-   "hasOwnProperty",
-   "Object.keys",
-   "constructor"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function merge(target: Record<string, unknown>, source: Record<string, unknown>) {\n  for (const key in source) {\n    target[key] = source[key];\n  }\n  return target;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "__proto__",
+    "hasOwnProperty",
+    "Object.keys",
+    "constructor"
+   ]
+  },
   "tags": [
    "typescript",
    "security",

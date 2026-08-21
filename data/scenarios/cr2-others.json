@@ -18,12 +18,17 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "prepare",
-   "password_verify",
-   "bindParam",
-   "execute"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "function login($pdo, $username, $password) {\n    $sql = \"SELECT * FROM users WHERE username = '$username' AND password = '$password'\";\n    $stmt = $pdo->query($sql);\n    return $stmt->fetch() !== false;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "prepare",
+    "password_verify",
+    "bindParam",
+    "execute"
+   ]
+  },
   "tags": [
    "php",
    "security",
@@ -52,11 +57,16 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "decimal",
-   "Decimal",
-   "decimal"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "public static class Ledger\n{\n    public static double SumTransactions(IEnumerable<double> amounts)\n    {\n        double total = 0;\n        foreach (var a in amounts)\n        {\n            total += a;\n        }\n        return total;\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "decimal",
+    "Decimal",
+    "decimal"
+   ]
+  },
   "tags": [
    "csharp",
    "decimal",
@@ -85,13 +95,18 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "\"$src\"",
-   "set -e",
-   "set -euo",
-   "glob",
-   "find"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "#!/bin/bash\nbackup_file() {\n    local src=$1\n    local dest=$2\n    cp $src $dest\n    chmod 644 $dest\n}\n\nfor f in $(ls /data); do\n    backup_file /data/$f /backup/$f.bak\ndone",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "\"$src\"",
+    "set -e",
+    "set -euo",
+    "glob",
+    "find"
+   ]
+  },
   "tags": [
    "bash",
    "quoting",

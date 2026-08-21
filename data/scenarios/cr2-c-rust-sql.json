@@ -33,12 +33,17 @@
     "expectedOutput": "pass"
    }
   ],
-  "requirements": [
-   "i < len",
-   "i-- > 0",
-   "ssize_t",
-   "len > 0"
-  ],
+  "requirements": {
+   "functionName": "print_reverse",
+   "initialCode": "#include <stddef.h>\n\nvoid print_reverse(const int *arr, size_t len) {\n    for (size_t i = len - 1; i >= 0; i--) {\n        // print arr[i]\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "i < len",
+    "i-- > 0",
+    "ssize_t",
+    "len > 0"
+   ]
+  },
   "tags": [
    "c",
    "unsigned",
@@ -82,12 +87,17 @@
     "expectedOutput": "pass"
    }
   ],
-  "requirements": [
-   "strncpy",
-   "snprintf",
-   "strcpy_s",
-   "15"
-  ],
+  "requirements": {
+   "functionName": "copy_name",
+   "initialCode": "#include <string.h>\n\nvoid copy_name(char dest[16], const char *src) {\n    strcpy(dest, src);\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "strncpy",
+    "snprintf",
+    "strcpy_s",
+    "15"
+   ]
+  },
   "tags": [
    "c",
    "buffer-overflow",
@@ -125,11 +135,16 @@
     "expectedOutput": "Hello, world"
    }
   ],
-  "requirements": [
-   "malloc",
-   "snprintf",
-   "free"
-  ],
+  "requirements": {
+   "functionName": "make_greeting",
+   "initialCode": "#include <stdlib.h>\n#include <string.h>\n\nconst char *make_greeting(const char *name) {\n    char buf[128];\n    strcpy(buf, \"Hello, \");\n    strcat(buf, name);\n    return buf;\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "malloc",
+    "snprintf",
+    "free"
+   ]
+  },
   "tags": [
    "c",
    "dangling-pointer",
@@ -158,13 +173,18 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "RAII",
-   "析构",
-   "unique_ptr",
-   "destructor",
-   "异常安全"
-  ],
+  "requirements": {
+   "functionName": "Report",
+   "initialCode": "#include <memory>\n#include <fstream>\n\nclass Report {\npublic:\n    explicit Report(const std::string& path)\n        : file_(std::make_unique<std::ofstream>(path)),\n          line_count_(0) {}\n\n    void write_line(const std::string& line) {\n        *file_ << line << '\\n';\n        ++line_count_;\n    }\n\n    int line_count() const { return line_count_; }\n\nprivate:\n    std::unique_ptr<std::ofstream> file_;\n    int line_count_;\n};",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "RAII",
+    "析构",
+    "unique_ptr",
+    "destructor",
+    "异常安全"
+   ]
+  },
   "tags": [
    "cpp",
    "trap",
@@ -201,11 +221,22 @@
     "expectedOutput": "[0, 5, 10]"
    }
   ],
-  "requirements": [
-   "let first = v[0]",
-   "v[0]",
-   "copy"
-  ],
+  "requirements": {
+   "functionName": "normalize",
+   "initialCode": "fn normalize(v: &mut Vec<i32>) {\n    let first = &v[0];\n    for x in v.iter_mut() {\n        *x -= first;\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "let first = v[0]",
+    "v[0]",
+    "copy"
+   ],
+   "fixture": {
+    "language": "rust",
+    "uses": [],
+    "helpers": ""
+   },
+   "referenceSolution": "fn normalize(v: &mut Vec<i32>) {\n    let first = v[0];\n    for x in v.iter_mut() {\n        *x -= first;\n    }\n}"
+  },
   "tags": [
    "rust",
    "borrow-checker",
@@ -234,14 +265,19 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "Arc",
-   "Mutex",
-   "clone",
-   "引用计数",
-   "join",
-   "锁"
-  ],
+  "requirements": {
+   "functionName": "count",
+   "initialCode": "use std::sync::{Arc, Mutex};\nuse std::thread;\n\nfn count() -> i32 {\n    let counter = Arc::new(Mutex::new(0));\n    let mut handles = vec![];\n\n    for _ in 0..10 {\n        let c = Arc::clone(&counter);\n        let h = thread::spawn(move || {\n            let mut num = c.lock().unwrap();\n            *num += 1;\n        });\n        handles.push(h);\n    }\n\n    for h in handles {\n        h.join().unwrap();\n    }\n\n    *counter.lock().unwrap()\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "Arc",
+    "Mutex",
+    "clone",
+    "引用计数",
+    "join",
+    "锁"
+   ]
+  },
   "tags": [
    "rust",
    "trap",
@@ -270,12 +306,17 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "DISTINCT",
-   "子查询",
-   "subquery",
-   "GROUP BY o.id"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "SELECT c.id, c.name, SUM(o.amount) AS total\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nJOIN payments p ON p.order_id = o.id\nGROUP BY c.id, c.name;",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "DISTINCT",
+    "子查询",
+    "subquery",
+    "GROUP BY o.id"
+   ]
+  },
   "tags": [
    "sql",
    "join",
@@ -304,11 +345,16 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "NOT EXISTS",
-   "IS NOT NULL",
-   "LEFT JOIN"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "SELECT *\nFROM customers\nWHERE id NOT IN (SELECT customer_id FROM orders);",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "NOT EXISTS",
+    "IS NOT NULL",
+    "LEFT JOIN"
+   ]
+  },
   "tags": [
    "sql",
    "null",
@@ -336,11 +382,16 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "DENSE_RANK",
-   "PARTITION BY",
-   "RANK"
-  ],
+  "requirements": {
+   "functionName": "",
+   "initialCode": "-- employees(id, name, dept, salary)\n-- 每个部门薪资前 3 的员工（含并列）",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "DENSE_RANK",
+    "PARTITION BY",
+    "RANK"
+   ]
+  },
   "tags": [
    "sql",
    "window-function",

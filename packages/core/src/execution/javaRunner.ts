@@ -50,7 +50,10 @@ export function buildJavaHarness(
     '',
   ];
   if (!wrap) {
-    parts.push(sourceCode.trim(), '', 'public class HiddenTest {', testMethods, '}');
+    // public class 不能放进 HiddenTest.java（必须同名文件）→ 去掉 public 修饰符，
+    // 使其成为 package-private class，测试仍可同文件访问
+    const src = sourceCode.replace(/\bpublic\s+(class|interface|enum)\b/g, '$1');
+    parts.push(src.trim(), '', 'public class HiddenTest {', testMethods, '}');
   } else {
     parts.push('public class HiddenTest {', sourceCode.trim(), '', testMethods, '}');
   }

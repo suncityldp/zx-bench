@@ -33,10 +33,21 @@
     "expectedOutput": "4.0"
    }
   ],
-  "requirements": [
-   "(double)",
-   "1.0 *"
-  ],
+  "requirements": {
+   "functionName": "ScoreUtil",
+   "initialCode": "public class ScoreUtil {\n    public static double average(int total, int count) {\n        return total / count;\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "(double)",
+    "1.0 *"
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": false,
+    "imports": []
+   },
+   "referenceSolution": "public class ScoreUtil {\n    public static double average(int total, int count) {\n        return (double) total / count;\n    }\n}"
+  },
   "tags": [
    "java",
    "integer-division",
@@ -72,11 +83,24 @@
     "expectedOutput": "[1, 4]"
    }
   ],
-  "requirements": [
-   "removeIf",
-   "Iterator",
-   "iterator.remove"
-  ],
+  "requirements": {
+   "functionName": "ListCleaner",
+   "initialCode": "import java.util.List;\n\npublic class ListCleaner {\n    public static void removeNegatives(List<Integer> nums) {\n        for (Integer n : nums) {\n            if (n < 0) {\n                nums.remove(n);\n            }\n        }\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "removeIf",
+    "Iterator",
+    "iterator.remove"
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": false,
+    "imports": [
+     "import java.util.*;"
+    ]
+   },
+   "referenceSolution": "import java.util.List;\n\npublic class ListCleaner {\n    public static void removeNegatives(List<Integer> nums) {\n        nums.removeIf(n -> n < 0);\n    }\n}"
+  },
   "tags": [
    "java",
    "concurrent-modification",
@@ -113,10 +137,23 @@
     "expectedOutput": "a"
    }
   ],
-  "requirements": [
-   "hashCode",
-   "Objects.hash"
-  ],
+  "requirements": {
+   "functionName": "Money",
+   "initialCode": "import java.util.Objects;\n\npublic class Money {\n    private final String currency;\n    private final long amount;\n\n    public Money(String currency, long amount) {\n        this.currency = currency;\n        this.amount = amount;\n    }\n\n    @Override\n    public boolean equals(Object o) {\n        if (!(o instanceof Money)) return false;\n        Money m = (Money) o;\n        return amount == m.amount && Objects.equals(currency, m.currency);\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "hashCode",
+    "Objects.hash"
+   ],
+   "fixture": {
+    "language": "java",
+    "wrapInClass": false,
+    "imports": [
+     "import java.util.*;"
+    ]
+   },
+   "referenceSolution": "import java.util.Objects;\n\npublic class Money {\n    private final String currency;\n    private final long amount;\n    public Money(String currency, long amount) { this.currency = currency; this.amount = amount; }\n    @Override\n    public boolean equals(Object o) {\n        if (!(o instanceof Money)) return false;\n        Money m = (Money) o;\n        return amount == m.amount && Objects.equals(currency, m.currency);\n    }\n    @Override\n    public int hashCode() {\n        return Objects.hash(currency, amount);\n    }\n}"
+  },
   "tags": [
    "java",
    "equals-hashcode",
@@ -153,11 +190,16 @@
     "expectedOutput": "100000"
    }
   ],
-  "requirements": [
-   "AtomicInteger",
-   "synchronized",
-   "incrementAndGet"
-  ],
+  "requirements": {
+   "functionName": "Counter",
+   "initialCode": "public class Counter {\n    private int count = 0;\n\n    public void increment() {\n        count++;\n    }\n\n    public int getCount() {\n        return count;\n    }\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "AtomicInteger",
+    "synchronized",
+    "incrementAndGet"
+   ]
+  },
   "tags": [
    "java",
    "concurrency",
@@ -186,14 +228,19 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "BigDecimal",
-   "double",
-   "不可变",
-   "immutable",
-   "精度",
-   "String"
-  ],
+  "requirements": {
+   "functionName": "PriceAccumulator",
+   "initialCode": "import java.math.BigDecimal;\n\npublic class PriceAccumulator {\n    private BigDecimal total = BigDecimal.ZERO;\n\n    public void add(String price) {\n        total = total.add(new BigDecimal(price));\n    }\n\n    public String getTotal() {\n        return total.toPlainString();\n    }\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "BigDecimal",
+    "double",
+    "不可变",
+    "immutable",
+    "精度",
+    "String"
+   ]
+  },
   "tags": [
    "java",
    "trap",
@@ -230,11 +277,16 @@
     "expectedOutput": "0 1 2"
    }
   ],
-  "requirements": [
-   "go func(i int)",
-   "i := i",
-   "j :="
-  ],
+  "requirements": {
+   "functionName": "main",
+   "initialCode": "package main\n\nimport (\n\t\"fmt\"\n\t\"sync\"\n)\n\nfunc main() {\n\tvar wg sync.WaitGroup\n\tfor i := 0; i < 3; i++ {\n\t\twg.Add(1)\n\t\tgo func() {\n\t\t\tdefer wg.Done()\n\t\t\tfmt.Println(i)\n\t\t}()\n\t}\n\twg.Wait()\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "go func(i int)",
+    "i := i",
+    "j :="
+   ]
+  },
   "tags": [
    "go",
    "goroutine",
@@ -271,12 +323,17 @@
     "expectedOutput": "[1 2 3 4]"
    }
   ],
-  "requirements": [
-   "make(",
-   "copy(",
-   "append([]int",
-   "items[:n:n]"
-  ],
+  "requirements": {
+   "functionName": "CopyPrefix",
+   "initialCode": "func CopyPrefix(items []int, n int) []int {\n\treturn items[:n]\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "make(",
+    "copy(",
+    "append([]int",
+    "items[:n:n]"
+   ]
+  },
   "tags": [
    "go",
    "slice",
@@ -313,11 +370,16 @@
     "expectedOutput": "42"
    }
   ],
-  "requirements": [
-   "make(chan int, 1)",
-   "go func",
-   "go func()"
-  ],
+  "requirements": {
+   "functionName": "main",
+   "initialCode": "package main\n\nimport \"fmt\"\n\nfunc main() {\n\tch := make(chan int)\n\tch <- 42\n\tfmt.Println(<-ch)\n}",
+   "isCorrectCodeTrap": false,
+   "explanationKeywords": [
+    "make(chan int, 1)",
+    "go func",
+    "go func()"
+   ]
+  },
   "tags": [
    "go",
    "channel",
@@ -346,13 +408,18 @@
    "type": "code_repair"
   },
   "hiddenTests": [],
-  "requirements": [
-   "%w",
-   "errors.Is",
-   "Unwrap",
-   "包装",
-   "wrap"
-  ],
+  "requirements": {
+   "functionName": "Load",
+   "initialCode": "package store\n\nimport (\n\t\"errors\"\n\t\"fmt\"\n)\n\nvar ErrNotFound = errors.New(\"record not found\")\n\nfunc Load(id string) (string, error) {\n\tif id == \"\" {\n\t\treturn \"\", fmt.Errorf(\"load %q: %w\", id, ErrNotFound)\n\t}\n\treturn \"data\", nil\n}\n\nfunc Exists(id string) bool {\n\t_, err := Load(id)\n\treturn !errors.Is(err, ErrNotFound)\n}",
+   "isCorrectCodeTrap": true,
+   "explanationKeywords": [
+    "%w",
+    "errors.Is",
+    "Unwrap",
+    "包装",
+    "wrap"
+   ]
+  },
   "tags": [
    "go",
    "trap",
