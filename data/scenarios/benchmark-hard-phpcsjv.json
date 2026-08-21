@@ -1,0 +1,967 @@
+[
+  {
+    "id": "CP-L3-SEM-PHP-001",
+    "dimension": "program",
+    "category": "foreach_reference",
+    "difficulty": "hard",
+    "language": "php",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`normalizeTags` 清洗标签（去首尾空白、转大写）并过滤空标签。第一个 `foreach` 按引用遍历后未 `unset`，`$t` 仍指向最后一个元素，第二个 `foreach` 对 `$t` 的每次赋值都会写穿它——返回值被静默污染（末元素被改写、空项过滤失效）。请修复，保持函数签名不变。\n\n```php\nfunction normalizeTags(array $tags): array {\n    $out = $tags;\n    foreach ($out as &$t) {\n        $t = strtoupper(trim($t));\n    }\n    foreach ($out as $i => $t) {\n        if ($t === '') {\n            unset($out[$i]);\n        }\n    }\n    return $out;\n}\n```",
+    "sourceCode": "function normalizeTags(array $tags): array {\n    $out = $tags;\n    foreach ($out as &$t) {\n        $t = strtoupper(trim($t));\n    }\n    foreach ($out as $i => $t) {\n        if ($t === '') {\n            unset($out[$i]);\n        }\n    }\n    return $out;\n}",
+    "functionName": "normalizeTags",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-PHP-001-hidden-1",
+        "type": "hidden",
+        "testCode": "assert(normalizeTags(['  php ', '8.2', 'stable']) === ['PHP', '8.2', 'STABLE']);",
+        "description": "常规输入：清洗并大写",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-001-hidden-2",
+        "type": "hidden",
+        "testCode": "assert(array_values(normalizeTags([' a ', '', 'b'])) === ['A', 'B']);",
+        "description": "边界：过滤空标签并重排索引",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-001-hidden-3",
+        "type": "hidden",
+        "testCode": "assert(normalizeTags([' php ']) === ['PHP']);",
+        "description": "边界：单元素不受污染",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "normalizeTags",
+      "initialCode": "function normalizeTags(array $tags): array {\n    $out = $tags;\n    foreach ($out as &$t) {\n        $t = strtoupper(trim($t));\n    }\n    foreach ($out as $i => $t) {\n        if ($t === '') {\n            unset($out[$i]);\n        }\n    }\n    return $out;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "unset($t)",
+        "unset",
+        "引用",
+        "reference"
+      ],
+      "hiddenTests": [
+        {
+          "code": "assert(normalizeTags(['  php ', '8.2', 'stable']) === ['PHP', '8.2', 'STABLE']);",
+          "description": "常规输入：清洗并大写"
+        },
+        {
+          "code": "assert(array_values(normalizeTags([' a ', '', 'b'])) === ['A', 'B']);",
+          "description": "边界：过滤空标签并重排索引"
+        },
+        {
+          "code": "assert(normalizeTags([' php ']) === ['PHP']);",
+          "description": "边界：单元素不受污染"
+        }
+      ],
+      "fixture": {
+        "language": "php",
+        "phpVersion": "8.2",
+        "includes": [],
+        "helpers": ""
+      },
+      "referenceSolution": "function normalizeTags(array $tags): array {\n    $out = $tags;\n    foreach ($out as &$t) {\n        $t = strtoupper(trim($t));\n    }\n    unset($t); // 断开引用，防止后续 foreach 写穿最后一个元素\n    foreach ($out as $i => $t) {\n        if ($t === '') {\n            unset($out[$i]);\n        }\n    }\n    return $out;\n}"
+    },
+    "tags": [
+      "php",
+      "foreach_reference",
+      "fix",
+      "hidden_test_verified"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "b18b7c29dbe07103",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-PHP-002",
+    "dimension": "program",
+    "category": "date_overflow",
+    "difficulty": "hard",
+    "language": "php",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`addMonths` 用 `DateTimeImmutable::modify('+N months')` 做月份加减。当原日期的天数超过目标月的天数时，DateTime 会把 2021-01-31 +1 个月溢出成 2021-03-03（2021-02-31 被归一化）。业务期望钳制到目标月月末（2021-02-28）。请修复（支持负数月份），保持函数签名不变。\n\n```php\nfunction addMonths(string $date, int $months): string {\n    return (new DateTimeImmutable($date))->modify(\"+{$months} months\")->format('Y-m-d');\n}\n```",
+    "sourceCode": "function addMonths(string $date, int $months): string {\n    return (new DateTimeImmutable($date))->modify(\"+{$months} months\")->format('Y-m-d');\n}",
+    "functionName": "addMonths",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-PHP-002-hidden-1",
+        "type": "hidden",
+        "testCode": "assert(addMonths('2021-01-15', 1) === '2021-02-15');",
+        "description": "常规：非月末日期加一月",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-002-hidden-2",
+        "type": "hidden",
+        "testCode": "assert(addMonths('2021-01-31', 1) === '2021-02-28');",
+        "description": "边界：1月31日+1月应钳到2月28日",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-002-hidden-3",
+        "type": "hidden",
+        "testCode": "assert(addMonths('2020-02-29', 12) === '2021-02-28');",
+        "description": "边界：闰日+12月应钳到非闰年2月28日",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-002-hidden-4",
+        "type": "hidden",
+        "testCode": "assert(addMonths('2021-03-31', -1) === '2021-02-28');",
+        "description": "边界：负数月份同样钳制到月末",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "addMonths",
+      "initialCode": "function addMonths(string $date, int $months): string {\n    return (new DateTimeImmutable($date))->modify(\"+{$months} months\")->format('Y-m-d');\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "format('t')",
+        "clamp",
+        "钳制",
+        "月末",
+        "last day",
+        "cal_days_in_month"
+      ],
+      "hiddenTests": [
+        {
+          "code": "assert(addMonths('2021-01-15', 1) === '2021-02-15');",
+          "description": "常规：非月末日期加一月"
+        },
+        {
+          "code": "assert(addMonths('2021-01-31', 1) === '2021-02-28');",
+          "description": "边界：1月31日+1月应钳到2月28日"
+        },
+        {
+          "code": "assert(addMonths('2020-02-29', 12) === '2021-02-28');",
+          "description": "边界：闰日+12月应钳到非闰年2月28日"
+        },
+        {
+          "code": "assert(addMonths('2021-03-31', -1) === '2021-02-28');",
+          "description": "边界：负数月份同样钳制到月末"
+        }
+      ],
+      "fixture": {
+        "language": "php",
+        "phpVersion": "8.2",
+        "includes": [],
+        "helpers": ""
+      },
+      "referenceSolution": "function addMonths(string $date, int $months): string {\n    $t = new DateTimeImmutable($date);\n    $y = (int)$t->format('Y');\n    $m = (int)$t->format('n');\n    $d = (int)$t->format('j');\n    $total = $y * 12 + ($m - 1) + $months;\n    $ny = intdiv($total, 12);\n    $nm = $total % 12 + 1;\n    $last = (int)(new DateTimeImmutable(sprintf('%04d-%02d-01', $ny, $nm)))->format('t');\n    return sprintf('%04d-%02d-%02d', $ny, $nm, min($d, $last));\n}"
+    },
+    "tags": [
+      "php",
+      "date_overflow",
+      "fix",
+      "hidden_test_verified"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "34484008b54ccc88",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-PHP-003",
+    "dimension": "program",
+    "category": "mbstring_pad",
+    "difficulty": "hard",
+    "language": "php",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`padCenterUnicode` 用 `str_pad` 居中填充到指定宽度，但 `str_pad` 按**字节**计宽——UTF-8 中文每字 3 字节，导致多字节文本填充位数错误甚至完全不填充。请改为按**字符数**（UTF-8 码点）填充居中，宽度不足时原样返回，保持函数签名不变。\n\n```php\nfunction padCenterUnicode(string $text, int $width): string {\n    return str_pad($text, $width, ' ', STR_PAD_BOTH);\n}\n```",
+    "sourceCode": "function padCenterUnicode(string $text, int $width): string {\n    return str_pad($text, $width, ' ', STR_PAD_BOTH);\n}",
+    "functionName": "padCenterUnicode",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-PHP-003-hidden-1",
+        "type": "hidden",
+        "testCode": "assert(padCenterUnicode('ab', 6) === '  ab  ');",
+        "description": "常规：ASCII 字节与字符等宽",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-003-hidden-2",
+        "type": "hidden",
+        "testCode": "assert(padCenterUnicode('中文', 8) === '   中文   ');",
+        "description": "边界：中文按字符宽度填充",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-PHP-003-hidden-3",
+        "type": "hidden",
+        "testCode": "assert(padCenterUnicode('中文', 5) === ' 中文  ');",
+        "description": "边界：奇数宽度左侧少补一位，且不截断",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "padCenterUnicode",
+      "initialCode": "function padCenterUnicode(string $text, int $width): string {\n    return str_pad($text, $width, ' ', STR_PAD_BOTH);\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "mb_strlen",
+        "mb_str_pad",
+        "码点",
+        "多字节",
+        "multibyte"
+      ],
+      "hiddenTests": [
+        {
+          "code": "assert(padCenterUnicode('ab', 6) === '  ab  ');",
+          "description": "常规：ASCII 字节与字符等宽"
+        },
+        {
+          "code": "assert(padCenterUnicode('中文', 8) === '   中文   ');",
+          "description": "边界：中文按字符宽度填充"
+        },
+        {
+          "code": "assert(padCenterUnicode('中文', 5) === ' 中文  ');",
+          "description": "边界：奇数宽度左侧少补一位，且不截断"
+        }
+      ],
+      "fixture": {
+        "language": "php",
+        "phpVersion": "8.2",
+        "includes": [],
+        "helpers": ""
+      },
+      "referenceSolution": "function padCenterUnicode(string $text, int $width): string {\n    $len = mb_strlen($text, 'UTF-8');\n    if ($len >= $width) {\n        return $text;\n    }\n    $total = $width - $len;\n    $left = intdiv($total, 2);\n    $right = $total - $left;\n    return str_repeat(' ', $left) . $text . str_repeat(' ', $right);\n}"
+    },
+    "tags": [
+      "php",
+      "mbstring_pad",
+      "fix",
+      "hidden_test_verified",
+      "i18n"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "695aa1b9837eca33",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-CS-001",
+    "dimension": "program",
+    "category": "closure_capture",
+    "difficulty": "hard",
+    "language": "csharp",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`MakeCounters` 返回 n 个计数器委托，期望分别返回 1..n。但所有 lambda 闭包捕获的是**同一个** for 循环变量 `i`（引用捕获），循环结束后 i == n+1，所有委托都返回 n+1。请修复，保持方法签名与返回数量不变。\n\n```csharp\npublic static List<Func<int>> MakeCounters(int n)\n{\n    var fs = new List<Func<int>>();\n    for (int i = 1; i <= n; i++)\n        fs.Add(() => i);\n    return fs;\n}\n```",
+    "sourceCode": "public static List<Func<int>> MakeCounters(int n)\n{\n    var fs = new List<Func<int>>();\n    for (int i = 1; i <= n; i++)\n        fs.Add(() => i);\n    return fs;\n}",
+    "functionName": "MakeCounters",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-CS-001-hidden-1",
+        "type": "hidden",
+        "testCode": "Assert.Equal(3, MakeCounters(3).Count);",
+        "description": "常规：返回委托数量",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-001-hidden-2",
+        "type": "hidden",
+        "testCode": "var cs = MakeCounters(3); Assert.True(cs[0]() == 1 && cs[1]() == 2 && cs[2]() == 3);",
+        "description": "边界：各计数器应返回各自捕获值",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-001-hidden-3",
+        "type": "hidden",
+        "testCode": "Assert.Equal(1, MakeCounters(1)[0]());",
+        "description": "边界：单计数器返回 1 而非 2",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "MakeCounters",
+      "initialCode": "public static List<Func<int>> MakeCounters(int n)\n{\n    var fs = new List<Func<int>>();\n    for (int i = 1; i <= n; i++)\n        fs.Add(() => i);\n    return fs;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "int c = i",
+        "局部变量",
+        "副本",
+        "copy",
+        "loop variable"
+      ],
+      "hiddenTests": [
+        {
+          "code": "Assert.Equal(3, MakeCounters(3).Count);",
+          "description": "常规：返回委托数量"
+        },
+        {
+          "code": "var cs = MakeCounters(3); Assert.True(cs[0]() == 1 && cs[1]() == 2 && cs[2]() == 3);",
+          "description": "边界：各计数器应返回各自捕获值"
+        },
+        {
+          "code": "Assert.Equal(1, MakeCounters(1)[0]());",
+          "description": "边界：单计数器返回 1 而非 2"
+        }
+      ],
+      "fixture": {
+        "language": "csharp",
+        "wrapInClass": true,
+        "usings": [],
+        "helpers": ""
+      },
+      "referenceSolution": "public static List<Func<int>> MakeCounters(int n)\n{\n    var fs = new List<Func<int>>();\n    for (int i = 1; i <= n; i++)\n    {\n        int c = i; // 每次迭代捕获独立副本\n        fs.Add(() => c);\n    }\n    return fs;\n}"
+    },
+    "tags": [
+      "csharp",
+      "closure_capture",
+      "fix",
+      "hidden_test_verified"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "bf518c3d39f1941a",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-CS-002",
+    "dimension": "program",
+    "category": "midpoint_rounding",
+    "difficulty": "hard",
+    "language": "csharp",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`RoundMoney` 给金额保留两位小数，但 `Math.Round(amount, 2)` 默认是**银行家舍入**（MidpointRounding.ToEven）：0.125 → 0.12、2.665 → 2.66。财务对账要求中点值**四舍五入（远离零）**：0.125 → 0.13、-0.125 → -0.13。请修复，保持方法签名不变。\n\n```csharp\npublic static decimal RoundMoney(decimal amount)\n{\n    return Math.Round(amount, 2);\n}\n```",
+    "sourceCode": "public static decimal RoundMoney(decimal amount)\n{\n    return Math.Round(amount, 2);\n}",
+    "functionName": "RoundMoney",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-CS-002-hidden-1",
+        "type": "hidden",
+        "testCode": "Assert.Equal(3.14m, RoundMoney(3.14159m));",
+        "description": "常规：非中点值舍入",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-002-hidden-2",
+        "type": "hidden",
+        "testCode": "Assert.Equal(0.13m, RoundMoney(0.125m));",
+        "description": "边界：正中点应远离零进位",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-002-hidden-3",
+        "type": "hidden",
+        "testCode": "Assert.Equal(2.67m, RoundMoney(2.665m));",
+        "description": "边界：偶数位中点不受 ToEven 影响的错误倾向",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-002-hidden-4",
+        "type": "hidden",
+        "testCode": "Assert.Equal(-0.13m, RoundMoney(-0.125m));",
+        "description": "边界：负中点向远离零方向舍入",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "RoundMoney",
+      "initialCode": "public static decimal RoundMoney(decimal amount)\n{\n    return Math.Round(amount, 2);\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "MidpointRounding.AwayFromZero",
+        "AwayFromZero",
+        "四舍五入",
+        "ToEven",
+        "银行家"
+      ],
+      "hiddenTests": [
+        {
+          "code": "Assert.Equal(3.14m, RoundMoney(3.14159m));",
+          "description": "常规：非中点值舍入"
+        },
+        {
+          "code": "Assert.Equal(0.13m, RoundMoney(0.125m));",
+          "description": "边界：正中点应远离零进位"
+        },
+        {
+          "code": "Assert.Equal(2.67m, RoundMoney(2.665m));",
+          "description": "边界：偶数位中点不受 ToEven 影响的错误倾向"
+        },
+        {
+          "code": "Assert.Equal(-0.13m, RoundMoney(-0.125m));",
+          "description": "边界：负中点向远离零方向舍入"
+        }
+      ],
+      "fixture": {
+        "language": "csharp",
+        "wrapInClass": true,
+        "usings": [],
+        "helpers": ""
+      },
+      "referenceSolution": "public static decimal RoundMoney(decimal amount)\n{\n    return Math.Round(amount, 2, MidpointRounding.AwayFromZero);\n}"
+    },
+    "tags": [
+      "csharp",
+      "midpoint_rounding",
+      "fix",
+      "hidden_test_verified",
+      "finance"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "59268316fbc18c33",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-CS-003",
+    "dimension": "program",
+    "category": "mutable_struct_copy",
+    "difficulty": "hard",
+    "language": "csharp",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`Metrics.Record` 调用 `Total.Increment()` 后计数恒为 0：`Total` 是自动属性，getter 返回可变 struct 的**防御性副本**，`Increment()` 修改的是副本并被静默丢弃（编译器不报错）。请修复使计数生效——可将 `Total` 改为公开字段，或将 `Counter` 改为 class（任选其一），保持 `m.Total.Value` 的对外用法与初始值 0 不变。\n\n```csharp\nstruct Counter\n{\n    public int Value;\n    public void Increment() { Value++; }\n}\n\nclass Metrics\n{\n    public Counter Total { get; private set; }\n\n    public void Record()\n    {\n        Total.Increment();\n    }\n}\n```",
+    "sourceCode": "struct Counter\n{\n    public int Value;\n    public void Increment() { Value++; }\n}\n\nclass Metrics\n{\n    public Counter Total { get; private set; }\n\n    public void Record()\n    {\n        Total.Increment();\n    }\n}",
+    "functionName": "Metrics.Record",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-CS-003-hidden-1",
+        "type": "hidden",
+        "testCode": "var m = new Metrics(); m.Record(); Assert.Equal(1, m.Total.Value);",
+        "description": "常规：Record 一次应计数 1",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-003-hidden-2",
+        "type": "hidden",
+        "testCode": "var m2 = new Metrics(); m2.Record(); m2.Record(); m2.Record(); Assert.Equal(3, m2.Total.Value);",
+        "description": "边界：连续 Record 三次应累计",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-CS-003-hidden-3",
+        "type": "hidden",
+        "testCode": "Assert.Equal(0, new Metrics().Total.Value);",
+        "description": "边界：初始计数为 0",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "Metrics.Record",
+      "initialCode": "struct Counter\n{\n    public int Value;\n    public void Increment() { Value++; }\n}\n\nclass Metrics\n{\n    public Counter Total { get; private set; }\n\n    public void Record()\n    {\n        Total.Increment();\n    }\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "字段",
+        "field",
+        "class Counter",
+        "引用类型",
+        "防御性副本",
+        "defensive copy"
+      ],
+      "hiddenTests": [
+        {
+          "code": "var m = new Metrics(); m.Record(); Assert.Equal(1, m.Total.Value);",
+          "description": "常规：Record 一次应计数 1"
+        },
+        {
+          "code": "var m2 = new Metrics(); m2.Record(); m2.Record(); m2.Record(); Assert.Equal(3, m2.Total.Value);",
+          "description": "边界：连续 Record 三次应累计"
+        },
+        {
+          "code": "Assert.Equal(0, new Metrics().Total.Value);",
+          "description": "边界：初始计数为 0"
+        }
+      ],
+      "fixture": {
+        "language": "csharp",
+        "wrapInClass": false,
+        "usings": [],
+        "helpers": ""
+      },
+      "referenceSolution": "struct Counter\n{\n    public int Value;\n    public void Increment() { Value++; }\n}\n\nclass Metrics\n{\n    public Counter Total; // 公开字段：Total.Increment() 直接修改字段本体\n\n    public void Record()\n    {\n        Total.Increment();\n    }\n}"
+    },
+    "tags": [
+      "csharp",
+      "mutable_struct_copy",
+      "fix",
+      "hidden_test_verified"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "fbaf1195fd9f372d",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-JV-001",
+    "dimension": "program",
+    "category": "autoboxing_identity",
+    "difficulty": "hard",
+    "language": "java",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`sameCredit` 用 `==` 比较两个 `Integer`。`==` 比较的是引用：JLS 规定 `-128~127` 走 `IntegerCache` 会碰巧相等，缓存外的值每次自动装箱都是新对象，`sameCredit(128, 128)` 返回 false。请修复为数值比较，保持方法签名不变。\n\n```java\nstatic boolean sameCredit(Integer a, Integer b) {\n    return a == b;\n}\n```",
+    "sourceCode": "static boolean sameCredit(Integer a, Integer b) {\n    return a == b;\n}",
+    "functionName": "sameCredit",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-JV-001-hidden-1",
+        "type": "hidden",
+        "testCode": "assertTrue(sameCredit(100, 100));",
+        "description": "常规：缓存内相等",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-001-hidden-2",
+        "type": "hidden",
+        "testCode": "assertTrue(sameCredit(127, 127));",
+        "description": "边界：缓存上界 127 相等",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-001-hidden-3",
+        "type": "hidden",
+        "testCode": "assertTrue(sameCredit(128, 128));",
+        "description": "边界：缓存外 128 数值相等（bug 必挂）",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-001-hidden-4",
+        "type": "hidden",
+        "testCode": "assertTrue(sameCredit(1000, 1000));",
+        "description": "边界：缓存外 1000 数值相等",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-001-hidden-5",
+        "type": "hidden",
+        "testCode": "assertFalse(sameCredit(100, 200));",
+        "description": "边界：不同数值不相等",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "sameCredit",
+      "initialCode": "static boolean sameCredit(Integer a, Integer b) {\n    return a == b;\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "equals",
+        "Objects.equals",
+        "IntegerCache",
+        "装箱",
+        "autoboxing"
+      ],
+      "hiddenTests": [
+        {
+          "code": "assertTrue(sameCredit(100, 100));",
+          "description": "常规：缓存内相等"
+        },
+        {
+          "code": "assertTrue(sameCredit(127, 127));",
+          "description": "边界：缓存上界 127 相等"
+        },
+        {
+          "code": "assertTrue(sameCredit(128, 128));",
+          "description": "边界：缓存外 128 数值相等（bug 必挂）"
+        },
+        {
+          "code": "assertTrue(sameCredit(1000, 1000));",
+          "description": "边界：缓存外 1000 数值相等"
+        },
+        {
+          "code": "assertFalse(sameCredit(100, 200));",
+          "description": "边界：不同数值不相等"
+        }
+      ],
+      "fixture": {
+        "language": "java",
+        "wrapInClass": true,
+        "imports": []
+      },
+      "referenceSolution": "static boolean sameCredit(Integer a, Integer b) {\n    return a.equals(b);\n}"
+    },
+    "tags": [
+      "java",
+      "autoboxing_identity",
+      "fix",
+      "hidden_test_verified"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "493abc916e4a0431",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-JV-002",
+    "dimension": "program",
+    "category": "bigdecimal_equals",
+    "difficulty": "hard",
+    "language": "java",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`hasSettled` 用 `List.contains` 判断账目是否已结算，但 `BigDecimal.equals` **对 scale 敏感**：`new BigDecimal(\"1.00\")` 不 equals `new BigDecimal(\"1.0\")`，金额相等（1.00 元 vs 1.0 元）的账目被误判为未结算。请改为数值相等判断（`compareTo`），保持方法签名不变。\n\n```java\nstatic boolean hasSettled(java.util.List<java.math.BigDecimal> ledger, java.math.BigDecimal amount) {\n    return ledger.contains(amount);\n}\n```",
+    "sourceCode": "static boolean hasSettled(java.util.List<java.math.BigDecimal> ledger, java.math.BigDecimal amount) {\n    return ledger.contains(amount);\n}",
+    "functionName": "hasSettled",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-JV-002-hidden-1",
+        "type": "hidden",
+        "testCode": "assertTrue(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"19.99\")), new java.math.BigDecimal(\"19.99\")));",
+        "description": "常规：相同 scale 的金额匹配",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-002-hidden-2",
+        "type": "hidden",
+        "testCode": "assertTrue(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"1.00\")), new java.math.BigDecimal(\"1.0\")));",
+        "description": "边界：scale 不同但数值相等（bug 必挂）",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-002-hidden-3",
+        "type": "hidden",
+        "testCode": "assertTrue(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"5.0\"), new java.math.BigDecimal(\"5.00\")), new java.math.BigDecimal(\"5.000\")));",
+        "description": "边界：混合 scale 列表匹配",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-002-hidden-4",
+        "type": "hidden",
+        "testCode": "assertFalse(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"2.00\")), new java.math.BigDecimal(\"2.01\")));",
+        "description": "边界：数值不同不匹配",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "hasSettled",
+      "initialCode": "static boolean hasSettled(java.util.List<java.math.BigDecimal> ledger, java.math.BigDecimal amount) {\n    return ledger.contains(amount);\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "compareTo",
+        "stripTrailingZeros",
+        "数值相等",
+        "scale"
+      ],
+      "hiddenTests": [
+        {
+          "code": "assertTrue(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"19.99\")), new java.math.BigDecimal(\"19.99\")));",
+          "description": "常规：相同 scale 的金额匹配"
+        },
+        {
+          "code": "assertTrue(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"1.00\")), new java.math.BigDecimal(\"1.0\")));",
+          "description": "边界：scale 不同但数值相等（bug 必挂）"
+        },
+        {
+          "code": "assertTrue(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"5.0\"), new java.math.BigDecimal(\"5.00\")), new java.math.BigDecimal(\"5.000\")));",
+          "description": "边界：混合 scale 列表匹配"
+        },
+        {
+          "code": "assertFalse(hasSettled(java.util.Arrays.asList(new java.math.BigDecimal(\"2.00\")), new java.math.BigDecimal(\"2.01\")));",
+          "description": "边界：数值不同不匹配"
+        }
+      ],
+      "fixture": {
+        "language": "java",
+        "wrapInClass": true,
+        "imports": []
+      },
+      "referenceSolution": "static boolean hasSettled(java.util.List<java.math.BigDecimal> ledger, java.math.BigDecimal amount) {\n    for (java.math.BigDecimal v : ledger) {\n        if (v.compareTo(amount) == 0) {\n            return true;\n        }\n    }\n    return false;\n}"
+    },
+    "tags": [
+      "java",
+      "bigdecimal_equals",
+      "fix",
+      "hidden_test_verified",
+      "finance"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "cf8142b84a575b45",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  },
+  {
+    "id": "CP-L3-SEM-JV-003",
+    "dimension": "program",
+    "category": "lenient_date_parse",
+    "difficulty": "hard",
+    "language": "java",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "public_dev",
+    "promptTemplate": "`normalizeDate` 校验并归一化 `yyyy-MM-dd` 日期，非法输入应返回 null。但 `SimpleDateFormat` 默认 **lenient** 模式会把日历字段自动归一化：`2021-02-31` 被滚动成 `2021-03-03`、`2021-13-01` 滚动成 `2022-01-01`，非法日期未被拒绝。请改为严格解析（setLenient(false)），合法日期原样返回，保持方法签名不变。\n\n```java\nstatic String normalizeDate(String s) {\n    try {\n        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(\"yyyy-MM-dd\");\n        return f.format(f.parse(s));\n    } catch (java.text.ParseException e) {\n        return null;\n    }\n}\n```",
+    "sourceCode": "static String normalizeDate(String s) {\n    try {\n        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(\"yyyy-MM-dd\");\n        return f.format(f.parse(s));\n    } catch (java.text.ParseException e) {\n        return null;\n    }\n}",
+    "functionName": "normalizeDate",
+    "expectedVerdict": null,
+    "grader": "code_repair",
+    "graderVersion": "3.2.0",
+    "scoring": {
+      "type": "code_repair",
+      "weights": {
+        "patch_extraction": 0.15,
+        "compilation": 0.1,
+        "test_pass": 0.25,
+        "static_signals": 0.25,
+        "patch_quality": 0.15,
+        "scope_discipline": 0.1
+      }
+    },
+    "hiddenTests": [
+      {
+        "id": "CP-L3-SEM-JV-003-hidden-1",
+        "type": "hidden",
+        "testCode": "assertEquals(\"2021-06-15\", normalizeDate(\"2021-06-15\"));",
+        "description": "常规：合法日期原样返回",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-003-hidden-2",
+        "type": "hidden",
+        "testCode": "assertEquals(\"2020-02-29\", normalizeDate(\"2020-02-29\"));",
+        "description": "边界：闰日合法",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-003-hidden-3",
+        "type": "hidden",
+        "testCode": "assertNull(normalizeDate(\"2021-02-31\"));",
+        "description": "边界：2 月 31 日应拒绝（bug 必挂）",
+        "expectedExitCode": 0
+      },
+      {
+        "id": "CP-L3-SEM-JV-003-hidden-4",
+        "type": "hidden",
+        "testCode": "assertNull(normalizeDate(\"2021-13-01\"));",
+        "description": "边界：13 月应拒绝",
+        "expectedExitCode": 0
+      }
+    ],
+    "requirements": {
+      "functionName": "normalizeDate",
+      "initialCode": "static String normalizeDate(String s) {\n    try {\n        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(\"yyyy-MM-dd\");\n        return f.format(f.parse(s));\n    } catch (java.text.ParseException e) {\n        return null;\n    }\n}",
+      "isCorrectCodeTrap": false,
+      "explanationKeywords": [
+        "setLenient(false)",
+        "setLenient",
+        "strict",
+        "严格解析"
+      ],
+      "hiddenTests": [
+        {
+          "code": "assertEquals(\"2021-06-15\", normalizeDate(\"2021-06-15\"));",
+          "description": "常规：合法日期原样返回"
+        },
+        {
+          "code": "assertEquals(\"2020-02-29\", normalizeDate(\"2020-02-29\"));",
+          "description": "边界：闰日合法"
+        },
+        {
+          "code": "assertNull(normalizeDate(\"2021-02-31\"));",
+          "description": "边界：2 月 31 日应拒绝（bug 必挂）"
+        },
+        {
+          "code": "assertNull(normalizeDate(\"2021-13-01\"));",
+          "description": "边界：13 月应拒绝"
+        }
+      ],
+      "fixture": {
+        "language": "java",
+        "wrapInClass": true,
+        "imports": []
+      },
+      "referenceSolution": "static String normalizeDate(String s) {\n    try {\n        java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(\"yyyy-MM-dd\");\n        f.setLenient(false);\n        return f.format(f.parse(s));\n    } catch (java.text.ParseException e) {\n        return null;\n    }\n}"
+    },
+    "tags": [
+      "java",
+      "lenient_date_parse",
+      "fix",
+      "hidden_test_verified"
+    ],
+    "scenarioVersion": "1.0.0",
+    "scenarioHash": "82e83e8332bb8dd7",
+    "responseMode": null,
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null
+  }
+]
