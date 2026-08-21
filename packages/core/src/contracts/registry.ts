@@ -161,7 +161,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     version: '3.2.0',
     dimension: 'program',
     consumedFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap'],
-    declaredFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture'],
+    declaredFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'referenceSolution'],
     requiredFields: [],
     capabilities: {
       supportedLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash', 'markdown'],

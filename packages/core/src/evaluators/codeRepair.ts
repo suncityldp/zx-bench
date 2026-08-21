@@ -17,6 +17,8 @@ import { runGoTestsInContainer, type GoFixture } from '../execution/goRunner.js'
 import { runJavaTestsInContainer, type JavaFixture } from '../execution/javaRunner.js';
 import { runCTestsInContainer, type CFixture } from '../execution/cRunner.js';
 import { runRustTestsInContainer, type RustFixture } from '../execution/rustRunner.js';
+import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.js';
+import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -471,10 +473,12 @@ export const codeRepairEvaluator: Evaluator = {
     const javaFixture = (lang === 'java' && reqObj.fixture) ? (reqObj.fixture as JavaFixture) : undefined;
     const cFixture = (lang === 'c' && reqObj.fixture) ? (reqObj.fixture as CFixture) : undefined;
     const rustFixture = (lang === 'rust' && reqObj.fixture) ? (reqObj.fixture as RustFixture) : undefined;
+    const phpFixture = (lang === 'php' && reqObj.fixture) ? (reqObj.fixture as PhpFixture) : undefined;
+    const csharpFixture = (lang === 'csharp' && reqObj.fixture) ? (reqObj.fixture as CsharpFixture) : undefined;
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
       ? getPythonBin() != null
-      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null);
+      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
     if (scenario.expectedVerdict === 'no_bug') {
@@ -567,7 +571,65 @@ export const codeRepairEvaluator: Evaluator = {
         ? scenario.hiddenTests
         : scenario.publicTests || [];
 
-      if (rustFixture) {
+      if (phpFixture) {
+        // ===== PHP 容器执行路径（真实运行 + assert） =====
+        const phpRes = runPhpTestsInContainer(patch, tests, phpFixture);
+        const phpCompiled = !/Parse error|Fatal error:/.test(phpRes.stderr);
+        axisScores.compilation = phpCompiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(phpCompiled
+          ? 'PHP container ran successfully'
+          : 'PHP container parse/run failed: ' + phpRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+
+        if (tests.length > 0) {
+          const details = phpRes.tests.map((t) => ({
+            testId: t.name,
+            testType: 'hidden',
+            passed: t.passed,
+            stdout: '',
+            stderr: t.passed ? '' : 'test failed (assert)',
+            exitCode: t.passed ? 0 : 1,
+            duration: 0,
+            timedOut: phpRes.timedOut,
+          }));
+          const suiteResult = summarizeTestResults(details);
+          axisScores.test_pass = calculateTestScore(suiteResult);
+          axisEvidence.test_pass = 'verified';
+          evidence.push(`PHP container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+        } else {
+          axisEvidence.test_pass = 'unmeasured';
+          evidence.push('No PHP tests available for verification');
+        }
+      } else if (csharpFixture) {
+        // ===== C# 容器执行路径（真实编译 + 运行） =====
+        const csRes = runCsharpTestsInContainer(patch, tests, csharpFixture);
+        const csCompiled = !/error CS\d+/.test(csRes.stderr);
+        axisScores.compilation = csCompiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(csCompiled
+          ? 'C# container compiled successfully'
+          : 'C# container compile failed: ' + csRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+
+        if (tests.length > 0) {
+          const details = csRes.tests.map((t) => ({
+            testId: t.name,
+            testType: 'hidden',
+            passed: t.passed,
+            stdout: '',
+            stderr: t.passed ? '' : 'test failed (assert)',
+            exitCode: t.passed ? 0 : 1,
+            duration: 0,
+            timedOut: csRes.timedOut,
+          }));
+          const suiteResult = summarizeTestResults(details);
+          axisScores.test_pass = calculateTestScore(suiteResult);
+          axisEvidence.test_pass = 'verified';
+          evidence.push(`C# container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+        } else {
+          axisEvidence.test_pass = 'unmeasured';
+          evidence.push('No C# tests available for verification');
+        }
+      } else if (rustFixture) {
         // ===== Rust 容器执行路径（真实编译 + assert） =====
         const rustRes = runRustTestsInContainer(patch, tests, rustFixture);
         const rustCompiled = !/error\[?/.test(rustRes.stderr) && !/^error:/.test(rustRes.stderr);
