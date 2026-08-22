@@ -239,6 +239,20 @@ static_signals = (matched / requirements.length) × 100
 
 **Code block extraction strategy:** Extract all markdown code blocks; prefer the **last** block containing `functionName` (avoids intermediate reasoning pollution).
 
+**no_bug verdict mechanics & known limits:**
+
+`verdict_correct` (70%) decides the model's stance via regex-first (negative / positive) matching, with the keyword arrays as fallback:
+
+- **Negative (no_bug)**: `没有/无/不存在/不是/并非/不算` + optional modifier (`功能/功能性/逻辑/任何/明显/实质`) + `bug/错误/问题`; or `代码/逻辑/实现/写法/功能/结果/这段代码…正确`, `无需/不需要/不用/不必要修复`, `no_bug`, `NO_FIX_NEEDED`, etc.
+- **Positive (fix)**: `存在/出现/有个/这里有/代码有` + `bug/错误`, with a negative-lookbehind `(?<![不没无未非别])` to exclude negations; or `需要/应该/应当修复`, `the bug is`, etc.
+
+**Known limits (regex ceiling; the AI Judge covers the residual error):**
+
+1. **Nested negation** — e.g. 「不构成需要修复的 bug」: the outer negation "不构成…bug" wraps the inner "需要修复", so the regex flags "需要修复" as a positive fix signal → `ambiguous=50` instead of 100. Rare; not handled.
+2. **Bare code / empty output** — a code-only or empty reply carries no stance signal → treated as "proposed a fix" → `verdict_correct=0` (emitting code on a no_bug question counts as falling into the trap).
+3. **Contradictory sentence** — e.g. "代码正确，但这里有个 bug" hits both negative and positive → `ambiguous=50`.
+4. **Fundamental limit** — detecting "did the model recognize the code is already correct" is semantic; keywords/regex only cover common phrasings. When `det < 25` and the model produced substantial output, `formatBlindspot` triggers and the AI Judge takes over (det 0.3 / judge 0.7), covering most of the residual error.
+
 ### 5.3 structured_output_v2
 
 **Mode:** Format parser + Schema validation + Constraint checking
