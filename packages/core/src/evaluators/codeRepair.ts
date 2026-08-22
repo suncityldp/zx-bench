@@ -78,19 +78,33 @@ async function compileCheck(code: string, language: string): Promise<{ score: nu
   }
 }
 
-/** 拒绝修复（认为代码正确）的信号词 */
+/** 拒绝修复（认为代码正确）的信号词（兜底，弱信号） */
 const NO_BUG_SIGNALS = [
   '没有 bug', '没有bug', '无 bug', '无bug', '不存在 bug', '代码正确', '代码是正确的',
   '无需修复', '不需要修复', '不用修复', '没有错误', '没有问题', '正确的代码',
   'no bug', 'no bugs', 'is correct', 'looks correct', 'nothing to fix', 'no fix needed',
-  '代码本身正确', '这段代码正确', '是正确的',
+  '代码本身正确', '这段代码正确', '是正确的', '代码没问题', '代码没有问题', '代码没毛病',
+  '逻辑正确', '实现正确', '写法正确', '功能正确', '结果正确', '没错', '无错', '无问题',
+  '无需修改', '不需要修改', '不用改', '无需改动', '无需更正', '不是 bug', '并非 bug', '不算 bug',
+  'correct as is', 'already correct', 'is already correct', 'nothing wrong', 'no issue', 'no problem', 'no error', 'works correctly', 'functions correctly',
 ];
 
-/** 提出修复的信号词 */
+/** 提出修复的信号词（兜底，弱信号） */
 const FIX_SIGNALS = [
   '修复', '修改为', '改为', '应该改成', '存在 bug', '有 bug', 'bug 在于', '问题是',
   'fix', 'fixed', 'the bug is', 'change to', 'should be',
+  '需要修复', '应该修复', '要修复', '需要修改', '应该修改', '需要改成', '需要改为', '修复成',
+  '存在一个 bug', '有个 bug', '出现 bug', '代码有 bug', '这里有 bug', '错误在于', '问题在于', '问题出在',
+  'there is a bug', 'has a bug', 'needs fixing', 'needs to be fixed', 'should be fixed', 'should fix', 'should be changed', 'must change',
 ];
+
+/** 否定式 no_bug 信号（正则，优先）：明确「没有/无/不存在 bug」或「代码正确/无需修复」。
+ *  用否定词前缀避免「没有 bug」被「有 bug」子串误伤。 */
+const NEGATIVE_NO_BUG_RE = /(?:没有|无|不存在|不是|并非|不算|无需|不用|不需要)\s*(?:bug|错误|问题|毛病|缺陷|修复|修改|改动)|(?:代码|逻辑|实现|写法|功能|结果|这段代码)\s*(?:正确|没错|没有问题|没有错误|没问题|是对的|无错)|(?:no|not)\s+(?:bug|issue|error|problem)|nothing\s+to\s+fix|no\s+fix\s+needed|is\s+correct|looks\s+correct|correct\s+as\s+is|already\s+correct/i;
+
+/** 肯定式 fix 信号（正则）：明确「存在/有个/出现 bug」或「需要修复」。
+ *  用「存在/有个/出现/这里有/代码有」等前缀避免「没有 bug」子串误伤。 */
+const POSITIVE_FIX_RE = /(?:存在|出现|有个|这里有|代码有)\s*(?:bug|错误|问题)|(?:bug|错误|问题)\s*(?:在于|是|出在)|(?:需要|应该|要|应当)\s*(?:修复|修改|改成|改为|更正)|修复\s*成|改成|改为|the\s+bug\s+is|there\s+is\s+a\s+bug|has\s+a\s+bug|needs\s+fixing|needs\s+to\s+be\s+fixed|should\s+be\s+fixed|should\s+fix|should\s+be\s+changed|change\s+to|must\s+change/i;
 
 /**
  * 提取最后一个包含 functionName 的有效代码块。
@@ -488,19 +502,36 @@ export const codeRepairEvaluator: Evaluator = {
     // ===== 陷阱题（no_bug verdict）分支 =====
     if (scenario.expectedVerdict === 'no_bug') {
       const lower = modelOutput.toLowerCase();
-      const noBugScore = NO_BUG_SIGNALS.some((s) => lower.includes(s.toLowerCase()));
-      const fixScore = FIX_SIGNALS.some((s) => lower.includes(s.toLowerCase()));
       const blocks = extractCodeBlocks(modelOutput);
 
-      if (noBugScore && !fixScore) {
+      // 正则优先：否定式（没有/无/不存在 bug 或 代码正确/无需修复）与肯定式（存在/有个/出现 bug 或 需要修复），
+      // 避免「没有 bug」被「有 bug」子串误伤（原有 includes 匹配会把否定式误判为 ambiguous）。
+      const negativeNoBug = NEGATIVE_NO_BUG_RE.test(lower);
+      const positiveFix = POSITIVE_FIX_RE.test(lower);
+
+      if (negativeNoBug && !positiveFix) {
         axisScores.verdict_correct = 100;
         evidence.push('Verdict correct: identified code as correct (no bug)');
-      } else if (noBugScore && fixScore) {
+      } else if (positiveFix && !negativeNoBug) {
+        axisScores.verdict_correct = 0;
+        evidence.push('Verdict wrong: proposed a fix for correct code (false positive)');
+      } else if (negativeNoBug && positiveFix) {
         axisScores.verdict_correct = 50;
         evidence.push('Ambiguous verdict: mixed signals of no-bug and fix');
       } else {
-        axisScores.verdict_correct = 0;
-        evidence.push('Verdict wrong: proposed a fix for correct code (false positive)');
+        // 正则无信号时兜底用关键词数组（弱信号）
+        const noBugScore = NO_BUG_SIGNALS.some((s) => lower.includes(s.toLowerCase()));
+        const fixScore = FIX_SIGNALS.some((s) => lower.includes(s.toLowerCase()));
+        if (noBugScore && !fixScore) {
+          axisScores.verdict_correct = 100;
+          evidence.push('Verdict correct: identified code as correct (no bug)');
+        } else if (noBugScore && fixScore) {
+          axisScores.verdict_correct = 50;
+          evidence.push('Ambiguous verdict: mixed signals of no-bug and fix');
+        } else {
+          axisScores.verdict_correct = 0;
+          evidence.push('Verdict wrong: proposed a fix for correct code (false positive)');
+        }
       }
 
       // 解释质量：是否提到关键陷阱点（requirements 中的关键词）
@@ -601,7 +632,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: bashCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`Bash container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `Bash container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'Bash compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Bash tests available for verification');
@@ -647,7 +680,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: phpCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`PHP container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `PHP container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'PHP compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No PHP tests available for verification');
@@ -677,7 +712,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: csCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`C# container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `C# container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'C# compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No C# tests available for verification');
@@ -707,7 +744,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: rustCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`Rust container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `Rust container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'Rust compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Rust tests available for verification');
@@ -737,7 +776,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: cCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`C container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `C container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'C compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No C tests available for verification');
@@ -767,7 +808,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: javaCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`Java container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `Java container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'Java compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Java tests available for verification');
@@ -810,7 +853,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: compiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`Go container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `Go container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : 'Go compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Go tests available for verification');
@@ -829,7 +874,9 @@ export const codeRepairEvaluator: Evaluator = {
           runtimeEval = { compilePassed: !!scenario.sourceCode, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
-          evidence.push(`Sandbox tests (${lang}): ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
+          evidence.push(suiteResult.totalTests > 0
+            ? `Sandbox tests (${lang}): ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            : `Sandbox tests (${lang}) not run — compile failed`);
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No tests available for verification');
