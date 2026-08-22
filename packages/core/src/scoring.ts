@@ -59,7 +59,9 @@ export function getJudgeWeights(dimension: string, grader: string): { determinis
   if (dimension === 'agent_workflow' || grader === 'agent_trace') return { deterministic: 0.7, judge: 0.3 };
   if (dimension === 'tool_cli_workflow' || grader === 'tool_call_trace') return { deterministic: 0.7, judge: 0.3 };
   if (dimension === 'cli_deep_tasks' || grader === 'cli_command') return { deterministic: 0.5, judge: 0.5 };
-  if (dimension === 'hallucination_resistance' || grader === 'hallucination_resistance') return { deterministic: 1.0, judge: 0.0 };
+  // hallucination_resistance: Judge-led. Whether an answer hallucinates is a semantic judgment;
+  // rules only handle unambiguous cases (empty output / exact answer match) as a veto.
+  if (dimension === 'hallucination_resistance' || grader === 'hallucination_resistance') return { deterministic: 0.3, judge: 0.7 };
   return { deterministic: 0.6, judge: 0.4 };
 }
 

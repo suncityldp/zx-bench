@@ -38,7 +38,7 @@ describe('getJudgeWeights', () => {
   const cases = [
     ['data_extraction', '', 1.0, 0.0],
     ['safety_authority', '', 1.0, 0.0],
-    ['hallucination_resistance', '', 1.0, 0.0],
+    ['hallucination_resistance', '', 0.3, 0.7],
     ['structured_output', '', 0.9, 0.1],
     ['reasoning_math', '', 0.95, 0.05],
     ['program', '', 0.8, 0.2],

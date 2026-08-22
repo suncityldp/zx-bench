@@ -484,13 +484,22 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     // AI Judge 只用于确定性评分覆盖不到的语义维度
     // 不让 AI Judge 覆盖语法、测试、执行和安全事实
     if (finalJudge && result.totalScore != null) {
-      const judgeScore = (
-        finalJudge.bugDetection * 25 +
-        finalJudge.rootCause * 25 +
-        finalJudge.patchCorrectness * 30 +
-        finalJudge.scopeDiscipline * 10 +
-        finalJudge.outputCompleteness * 10
-      );
+      // 幻觉抵抗维度：Judge 输出 factuality(0-1) 作为语义事实分；其余维度沿用代码修复字段加权
+      const isHallucination = scenario.dimension === 'hallucination_resistance';
+      const judgeScore = (isHallucination && finalJudge.factuality != null)
+        ? Math.round(finalJudge.factuality * 100)
+        : (
+            finalJudge.bugDetection * 25 +
+            finalJudge.rootCause * 25 +
+            finalJudge.patchCorrectness * 30 +
+            finalJudge.scopeDiscipline * 10 +
+            finalJudge.outputCompleteness * 10
+          );
+
+      // 幻觉抵抗维度 Judge 参与后，factuality 轴证据从 rule 升级为 llm
+      if (isHallucination) {
+        result.axisEvidence = { ...(result.axisEvidence || {}), factuality: 'llm' };
+      }
 
       // 保存混合前的确定性分数和 Judge 分数
       result.deterministicScore = result.totalScore;
@@ -515,6 +524,27 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       if (deterministicPassed && judgeSaysFail) {
         result.humanReviewRequired = true;
         result.evidence.push('DISPUTE: Deterministic tests passed but Judge says patch incorrect');
+      }
+    }
+  }
+
+  // ===== Stage 8b: citation 类幻觉题的引用真伪核实 =====
+  // citation 题要求给出 DOI/URL/ISBN/PMID 等可核实引用，其真伪需联网检索验证。
+  // 当前 Judge 为纯 Chat Completions 调用（无 tools/检索能力），无法验证引用是否真实存在。
+  // 因此当 Judge 模型无检索能力时，引用真伪升级人工复核（用户事后核实），不静默判分。
+  if (scenario.dimension === 'hallucination_resistance') {
+    const hallucinationReqs = scenario.requirements as unknown as { citationTrap?: boolean };
+    if (hallucinationReqs?.citationTrap === true) {
+      const judgeHasSearch =
+        judgeOptions?.localModel?.webSearchEnabled === true ||
+        judgeOptions?.frontierModel?.webSearchEnabled === true;
+      // 只有模型「实际输出了引用形态」（URL/DOI/ISBN/PMID）时，引用真伪才需要检索/人工核实；
+      // 诚实拒绝（未给出引用）由 Judge 语义判分即可，无需人工复核。
+      const hasCitation = /https?:\/\/|doi\.org|\b10\.\d{4,9}\/\S+|isbn[\s:：-]*[\d-]{9,}|pmid[\s:：-]*\d+/i.test(modelResponse.content);
+      if (!judgeHasSearch && hasCitation) {
+        result.humanReviewRequired = true;
+        result.evidence = [...(result.evidence || []),
+          'CITATION_UNVERIFIABLE: Judge 无检索能力，引用(DOI/URL/ISBN/PMID)真伪需人工核实'];
       }
     }
   }

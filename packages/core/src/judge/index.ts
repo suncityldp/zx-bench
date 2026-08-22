@@ -178,6 +178,7 @@ async function callJudgeModel(
     patchCompleteness: toScore(parsed.patch_completeness),
     scopeDiscipline: toScore(parsed.scope_discipline),
     outputCompleteness: toScore(parsed.output_completeness),
+    factuality: typeof parsed.factuality === 'number' ? toScore(parsed.factuality) : undefined,
     confidence: toScore(parsed.confidence),
     needsEscalation: Boolean(parsed.needs_escalation),
     evidence: Array.isArray(parsed.evidence) ? parsed.evidence.map(String) : [],
@@ -205,6 +206,9 @@ function mergeDecisions(local: JudgeResult, frontier: JudgeResult): JudgeResult 
     patchCompleteness: local.patchCompleteness * 0.3 + frontier.patchCompleteness * 0.7,
     scopeDiscipline: local.scopeDiscipline * 0.3 + frontier.scopeDiscipline * 0.7,
     outputCompleteness: local.outputCompleteness * 0.3 + frontier.outputCompleteness * 0.7,
+    factuality: (local.factuality != null && frontier.factuality != null)
+      ? local.factuality * 0.3 + frontier.factuality * 0.7
+      : (frontier.factuality ?? local.factuality),
     confidence: Math.max(local.confidence, frontier.confidence),
     needsEscalation: false,
     evidence: [...local.evidence, ...frontier.evidence],

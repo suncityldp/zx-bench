@@ -158,6 +158,9 @@ export interface ModelConfig {
   /** 推理模型标记 — 推理模型(QwQ/DeepSeek-R1等)会消耗大量 token 在思考链上，
    *  系统会自动分配更大的 token 预算 (默认 32768，分 8192→16384→32768→65536 四档重试) */
   reasoningModel?: boolean;  // 默认 false
+  /** 联网/检索能力标记（Judge 模型专用）：当 Judge 具备 web search/tool 检索能力时置 true。
+   *  用于 citation 类幻觉题——Judge 无检索能力时无法验证 DOI/URL/ISBN 真伪，需升级人工复核。 */
+  webSearchEnabled?: boolean;  // 默认 false
 }
 
 /** 模型调用参数 */
@@ -392,6 +395,8 @@ export interface JudgeResult {
   patchCompleteness: number;
   scopeDiscipline: number;
   outputCompleteness: number;
+  /** 幻觉抵抗维度专用：事实正确性 0-1（Judge 语义判断，而非规则匹配） */
+  factuality?: number;
   confidence: number;
   needsEscalation: boolean;
   evidence: string[];

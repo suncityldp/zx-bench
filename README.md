@@ -223,6 +223,13 @@ node scripts/export-scenarios.mjs # 导出
 | 并发题目数 | 滑条 | 并发题数（1–4，默认 4） |
 | 并行模式 | 单选 | 全局并发池 / 维度独立并行 |
 
+> **AI Judge 检索能力提示（幻觉抵抗维度）**
+> 幻觉抵抗维度已改为 **AI Judge 主导**（语义判断）评分，规则仅作兜底。
+> 但 citation 类题目（要求给出 DOI/URL/ISBN/PMID 等可核实引用）的真伪需要联网检索验证，
+> 而 AI Judge 当前是纯 Chat Completions 调用、**不具备检索能力**。当 Judge 无检索能力时，
+> 这类题的引用真伪会**自动标记「需人工复核」**（humanReviewRequired），请用户事后核实。
+> 建议 AI Judge 采用支持联网检索的外部 API；若用本地部署模型作 Judge，请注意该限制。
+
 ### 思考约束（反拖尾）
 
 应对推理模型（QwQ / DeepSeek-R1 等）无限思考导致超时。

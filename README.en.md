@@ -121,6 +121,13 @@ composite score = Σ(dimension average x dimension weight) / Σ(dimension weight
 
 3. **Deterministic + AI Judge dual channel**: per-dimension det/judge weights; unmeasured axes hand their weight to the Judge by coverage; without a Judge and coverage < 0.5, the total is discounted to 0.3x.
 
+> **AI Judge retrieval caveat (hallucination resistance)**
+> Hallucination resistance is now **AI-Judge-led** (semantic judgment), with rules as fallback only.
+> However, citation questions (DOI/URL/ISBN/PMID) require web retrieval to verify that a reference truly exists,
+> and the AI Judge is currently a plain Chat Completions call with **no retrieval capability**.
+> When the Judge lacks retrieval, these questions are automatically flagged **human-review-required** for manual verification.
+> Prefer an external API with web-search for the AI Judge; local judges inherit this limitation.
+
 ### Note on difficulty distribution
 
 Difficulty labels are not uniformly distributed across dimensions: agent_workflow / cli_deep_tasks have 84-86% hard/adversarial questions, while reasoning_math / structured_output have only 32-36%. Cross-dimension score comparison should therefore be made with care — the same score sits on a different difficulty baseline in different dimensions.
