@@ -382,9 +382,15 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   const detScoreVeryLow = (result.totalScore ?? 100) < 25;
   const formatParseFailed = !formatParseSuccess && scenario.schema != null;
 
+  // 有真实执行验证（编译/测试 verified）时，det 低是真实执行失败而非格式盲区，
+  // 不应让 Judge 覆盖真实的编译/测试结果（否则"编译失败但 Judge 说对"会虚增分数）。
+  const hasVerifiedExecution =
+    result.axisEvidence?.compilation === 'verified' ||
+    result.axisEvidence?.test_pass === 'verified';
+
   const formatBlindspot =
-    codeExtractionFailed ||  // 编程维度：代码提取失败
-    (detScoreVeryLow && hasSubstantialOutput) ||  // 通用：有内容但极低分
+    codeExtractionFailed ||  // 编程维度：代码提取失败（无真实执行）
+    ((detScoreVeryLow && hasSubstantialOutput) && !hasVerifiedExecution) ||  // 有内容但极低分，且非真实执行失败
     formatParseFailed;  // 结构化输出：JSON 解析失败
 
   // ===== Stage 6: 硬安全和权限验证（GPT5.6 P0-5 上下文感知） =====
