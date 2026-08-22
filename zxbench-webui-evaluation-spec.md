@@ -24,7 +24,7 @@
         │     packages/core            │
         │  orchestrator (10-stage)     │
         │  evaluators / parsers        │
-        │  sandbox (VM2) / judge       │
+        │  sandbox (subprocess) / judge│
         │  hidden-tests / multi-run    │
         │  parameterize                │
         └──────────────┬──────────────┘
@@ -42,7 +42,7 @@
 | Frontend | React 18 + Vite + TypeScript + Tailwind CSS + Recharts |
 | Backend | Fastify + TypeScript |
 | Database | SQLite via Prisma ORM |
-| Sandbox | VM2 (JavaScript isolation) |
+| Sandbox | Child process (JS/TS/Python) + Docker container (8 languages) |
 | AI Judge | Multi-tier: local model → escalation → frontier model |
 
 ---
@@ -163,7 +163,7 @@ interface Evaluator {
 | Name | Version | Dimension | Mode |
 |------|---------|-----------|------|
 | `bug_finding` | `2.0.0` | bug_finding | Static text analysis |
-| `code_repair_v3` | `3.0.0` | code_repair | Sandbox (JS/TS) + Static (others) |
+| `code_repair_v3` | `3.2.0` | code_repair | Container + Sandbox + Static fallback |
 | `structured_output_v2` | `2.0.0` | structured_output | Format parser + Schema validation |
 
 ---
@@ -194,33 +194,58 @@ interface Evaluator {
 
 ### 5.2 code_repair_v3
 
-**Mode:** Dual-path
+**Mode:** Three-path (container / sandbox / static fallback)
 
-- **Sandbox path** (JavaScript / TypeScript): VM2 sandbox execution of hidden tests → deterministic scoring
-- **Static path** (Python / Java / Go / C / Rust / SQL / etc.): Keyword signal check + AI Judge review
+- **Container path** (go / java / c / cpp / rust / php / csharp / bash / sql, requires `requirements.fixture`): real compile + run tests in Docker → deterministic scoring
+- **Sandbox path** (javascript / typescript / python): subprocess execution of hidden tests → deterministic scoring
+- **Static fallback** (no fixture / compiler unavailable): host compile check + keyword signals + AI Judge review
 
-**Executable languages:** `['javascript', 'typescript']`
+**Executable languages:**
 
-#### 5.2.1 Fix Question — Sandbox Mode (JS/TS)
+| Tier | Languages |
+|------|-----------|
+| Container | `go, java, c, cpp, rust, php, csharp, bash, sql` (needs `requirements.fixture`) |
+| Sandbox | `javascript, typescript, python` (python needs interpreter) |
+
+**Container images & isolation:**
+
+| Language | Image |
+|----------|-------|
+| go | `golang:1.21` (pinned — Go 1.22 loop-var semantics would erase the capture bug) |
+| java | `eclipse-temurin:17-jdk-alpine` |
+| c / cpp | `gcc:13` (ASan, `detect_stack_use_after_return=1`) |
+| rust | `rust:1.75` |
+| php | `php:8.2-cli` |
+| csharp | `mono:6.12` |
+| bash | `bash:5` |
+| sql | `node:22-alpine` (`node:sqlite`, in-memory DB) |
+
+All containers run with `--network none`, `--cap-drop ALL`, non-root `--user 65534:65534`, read-only bind mount.
+
+#### 5.2.1 Fix Question — Executable (container / sandbox)
 
 | Axis | Weight | Calculation |
 |------|--------|-------------|
-| `patch_extraction` | 10% | Code block extracted → 100; else → 0 (**total score = 0 immediately**) |
-| `compilation` | 20% | Source code exists → 100; else → 50 |
-| `test_pass` | 40% | Weighted test pass rate in sandbox |
-| `patch_quality` | 20% | Patch lines ≤ source×1.5 → 90; ≤ source×3 → 70; else → 50 |
-| `scope_discipline` | 10% | Contains minimal-change keywords → 90; else → 70 |
+| `patch_extraction` | 10% | Markdown code block → 100; heuristic → 40; none → 0 |
+| `compilation` | 20% | Real compile result (container / sandbox) → 100 or 0 |
+| `test_pass` | 40% | Weighted test pass rate (§7: security 1.5×, regression 1.25×, others 1.0×) |
+| `patch_quality` | 20% | Diff-based: change ratio < 0.3 → 90; < 0.5 → 80; < 0.8 → 60; else → 40 |
+| `scope_discipline` | 10% | Diff-based: < 0.2 → 95; < 0.4 → 80; < 0.7 → 60; else → 40 |
 
-#### 5.2.2 Fix Question — Static Mode (non-JS/TS)
+SQL and Go `programMode` special-case `test_pass`: single result-set / stdout comparison (100 or 0), no per-test breakdown.
+
+#### 5.2.2 Fix Question — Static fallback (no fixture / compiler unavailable)
 
 | Axis | Weight | Calculation |
 |------|--------|-------------|
-| `patch_extraction` | 15% | Same as sandbox mode |
-| `compilation` | 10% | Fixed 60 (cannot compile) |
-| `test_pass` | 25% | Fixed 50 (neutral, deferred to AI Judge) |
-| `static_signals` | 25% | `requirements` keyword hit rate |
-| `patch_quality` | 15% | Same as sandbox mode |
-| `scope_discipline` | 10% | Same as sandbox mode |
+| `patch_extraction` | 15% | Same as executable |
+| `compile_check` | 25% | Host compiler syntax check (unmeasured → dropped if compiler missing) |
+| `static_signals` | 20% | `requirements` keyword hit rate |
+| `patch_quality` | 20% | Diff-based (same as executable) |
+| `scope_discipline` | 10% | Diff-based (same as executable) |
+| `output_completeness` | 10% | Truncated → 0; else → 100 |
+
+Unmeasured axes (e.g. `compile_check` when the host compiler is absent) are dropped from the denominator and the total is renormalized — a missing compiler does not manufacture a 0.
 
 **static_signals formula:**
 
@@ -272,21 +297,21 @@ static_signals = (matched / requirements.length) × 100
 
 | Property | Value |
 |----------|-------|
-| Engine | VM2 (`new VM()`) |
-| Executable Languages | JavaScript / TypeScript only |
+| Engine | Isolated child process (`node fork`) — replaced VM2 |
+| Executable Languages | JavaScript / TypeScript / Python (sandbox); container languages run in Docker (§5.2) |
 | Default Timeout | 10000ms |
-| Memory Limit | 128MB |
-| Disabled | `eval`, `wasm` |
-| Output Capture | `console.log/error/warn/info` |
+| Memory Limit | 128MB (`--max-old-space-size`) |
+| Output Capture | `stdout` / `stderr` via IPC |
 
 ### Core Functions
 
 | Function | Purpose |
 |----------|---------|
-| `runInSandbox(code, options)` | Execute code, return stdout/stderr/exitCode |
+| `runInSandbox(code, options)` | Execute code in child process, return stdout/stderr/exitCode |
 | `runTestCase(sourceCode, patch, testCase)` | Source + patch + test code combined execution |
 | `runReplacedCodeTest(replacedCode, testCase)` | Full replacement mode (model output + test code concatenated) |
-| `applyPatch(sourceCode, patch)` | Apply unified diff format patch |
+| `runReplacedCodeTestPython(patch, testCase)` | Python interpreter execution (assert-based) |
+| `runTestSuite(sourceCode, patch, tests)` | Run a full hidden-test suite |
 
 ---
 
@@ -295,10 +320,10 @@ static_signals = (matched / requirements.length) × 100
 | Test Type | Weight | Description |
 |-----------|--------|-------------|
 | `normal` | 1.0 | Standard functional test |
-| `boundary` | 0.8 | Boundary condition test |
-| `edge_case` | 0.8 | Edge case test |
-| `exception` | 0.6 | Exception handling test |
-| `regression` | 1.2 | Regression test (higher weight) |
+| `boundary` | 1.0 | Boundary condition test |
+| `edge_case` | 1.0 | Edge case test |
+| `exception` | 1.0 | Exception handling test |
+| `regression` | 1.25 | Regression test (higher weight) |
 | `security` | 1.5 | Security test (highest weight) |
 | `unknown` | 1.0 | Unknown type |
 
