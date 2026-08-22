@@ -100,11 +100,11 @@ const FIX_SIGNALS = [
 
 /** 否定式 no_bug 信号（正则，优先）：明确「没有/无/不存在 bug」或「代码正确/无需修复」。
  *  用否定词前缀避免「没有 bug」被「有 bug」子串误伤。 */
-const NEGATIVE_NO_BUG_RE = /(?:没有|无|不存在|不是|并非|不算|无需|不用|不需要)\s*(?:bug|错误|问题|毛病|缺陷|修复|修改|改动)|(?:代码|逻辑|实现|写法|功能|结果|这段代码)\s*(?:正确|没错|没有问题|没有错误|没问题|是对的|无错)|(?:no|not)\s+(?:bug|issue|error|problem)|nothing\s+to\s+fix|no\s+fix\s+needed|is\s+correct|looks\s+correct|correct\s+as\s+is|already\s+correct/i;
+const NEGATIVE_NO_BUG_RE = /(?:没有|无|不存在|不是|并非|不算)(?:任何|功能|功能性|逻辑|明显|实质)?\s*(?:bug|错误|问题|毛病|缺陷)|(?:无需|不需要|不用|不必要|不必)\s*(?:修复|修改|改动|更正)|(?:代码|逻辑|实现|写法|功能|结果|这段代码)(?:本身|完全|基本)?\s*(?:是)?\s*(?:正确|没错|无错|没问题|没有问题|没有错误|是对的)|no[_ ]?bug|no[_ ]?bugs|not[_ ]a[_ ]bug|is[_ ]correct|looks[_ ]correct|nothing[_ ]to[_ ]fix|no[_ ]fix[_ ]needed|correct[_ ]as[_ ]is|already[_ ]correct|no[_ ]issue|no[_ ]problem|no[_ ]error|nothing[_ ]wrong|works[_ ]correctly|functions[_ ]correctly/i;
 
 /** 肯定式 fix 信号（正则）：明确「存在/有个/出现 bug」或「需要修复」。
- *  用「存在/有个/出现/这里有/代码有」等前缀避免「没有 bug」子串误伤。 */
-const POSITIVE_FIX_RE = /(?:存在|出现|有个|这里有|代码有)\s*(?:bug|错误|问题)|(?:bug|错误|问题)\s*(?:在于|是|出在)|(?:需要|应该|要|应当)\s*(?:修复|修改|改成|改为|更正)|修复\s*成|改成|改为|the\s+bug\s+is|there\s+is\s+a\s+bug|has\s+a\s+bug|needs\s+fixing|needs\s+to\s+be\s+fixed|should\s+be\s+fixed|should\s+fix|should\s+be\s+changed|change\s+to|must\s+change/i;
+ *  用「存在/有个/出现/这里有/代码有」等前缀 + 负向后行断言避免「不存在/没有/不需要」等否定式子串误伤。 */
+const POSITIVE_FIX_RE = /(?<![不没无未非别])(?:存在|出现|有个|这里有|代码有)(?:任何|功能|功能性|逻辑|明显|实质)?\s*(?:bug|错误|问题)|(?<![不没无未非别])(?:bug|错误|问题)\s*(?:在于|是|出在)|(?<![不没无未非别])(?:需要|应该|应当)\s*(?:修复|修改|改成|改为|更正)|(?<![不没无未非别])修复\s*成|(?<![不没无未非别])改成|(?<![不没无未非别])改为|the[_ ]bug[_ ]is|there[_ ]is[_ ]a[_ ]bug|has[_ ]a[_ ]bug|needs[_ ]fixing|needs[_ ]to[_ ]be[_ ]fixed|should[_ ]be[_ ]fixed|should[_ ]fix|should[_ ]be[_ ]changed|change[_ ]to|must[_ ]change/i;
 
 /**
  * 提取最后一个包含 functionName 的有效代码块。
