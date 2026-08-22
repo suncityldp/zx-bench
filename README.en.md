@@ -121,6 +121,13 @@ composite score = Σ(dimension average x dimension weight) / Σ(dimension weight
 
 3. **Deterministic + AI Judge dual channel**: per-dimension det/judge weights; unmeasured axes hand their weight to the Judge by coverage; without a Judge and coverage < 0.5, the total is discounted to 0.3x.
 
+### Note on difficulty distribution
+
+Difficulty labels are not uniformly distributed across dimensions: agent_workflow / cli_deep_tasks have 84-86% hard/adversarial questions, while reasoning_math / structured_output have only 32-36%. Cross-dimension score comparison should therefore be made with care — the same score sits on a different difficulty baseline in different dimensions.
+
+In practice, model scores show no simple inverse correlation with difficulty labels: reasoning_math is relatively easy yet scores low (most models 48-71), while agent/CLI are hard yet score high (78-91). Real capability differences (weak math, strong workflow) dominate the effect. The difficulty distribution is kept as-is, disclosed here.
+
+
 ---
 
 ## Pages

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Spin, Tag, Progress, Row, Col, Card, Statistic, Button, Empty, Tooltip, message, Dropdown, Table } from 'antd';
+import { Spin, Tag, Progress, Row, Col, Card, Statistic, Button, Empty, Tooltip, message, Dropdown, Table, Alert } from 'antd';
 import { ArrowLeftOutlined, TrophyOutlined, WarningOutlined, CheckCircleOutlined, RobotOutlined, ReloadOutlined, DownloadOutlined, FileTextOutlined, FilePdfOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -413,6 +413,19 @@ export default function Report() {
           </Card>
         </Col>
       </Row>
+
+      {/* 难度分布披露：跨维度比较需谨慎 */}
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message={lang === 'en' ? 'Cross-dimension comparison caveat' : '跨维度比较需谨慎'}
+        description={
+          lang === 'en'
+            ? 'Difficulty labels are uneven across dimensions: agent_workflow / cli_deep_tasks are ~84-86% hard/adversarial, while reasoning_math / structured_output are only 32-36%. The same score therefore sits on a different difficulty baseline in different dimensions.'
+            : '各维度难度标签分布不均：agent_workflow / cli_deep_tasks 约 84-86% 为 hard/adversarial，而 reasoning_math / structured_output 仅 32-36%。同一分数在不同维度上的难度基线不同，横向比较需谨慎。'
+        }
+      />
 
       {/* Score Distribution */}
       <Card className="swiss-card" style={{ marginBottom: 16 }}>
