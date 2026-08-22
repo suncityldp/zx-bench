@@ -10,7 +10,7 @@
 // GPT5.6 P1-4: scope_discipline 改为 diff 分析而非关键词
 // ============================================================
 
-import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
+import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence, RuntimeEvaluation } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { runReplacedCodeTest, runReplacedCodeTestPython, summarizeTestResults, calculateTestScore, getPythonBin } from '../hidden-tests/index.js';
 import { runGoTestsInContainer, runGoProgramInContainer, type GoFixture } from '../execution/goRunner.js';
@@ -469,6 +469,7 @@ export const codeRepairEvaluator: Evaluator = {
     const axisEvidence: Record<string, AxisEvidence> = {};
     const evidence: string[] = [];
     const lang = (scenario.language || 'javascript').toLowerCase();
+    let runtimeEval: RuntimeEvaluation | undefined;
     const reqObj = (scenario.requirements ?? {}) as unknown as Record<string, unknown>;
     // Go/Java 有 fixture 时走容器执行（真实编译 + 测试），不再走静态关键词评分
     const goFixture = (lang === 'go' && reqObj.fixture) ? (reqObj.fixture as GoFixture) : undefined;
@@ -597,6 +598,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: bashRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: bashCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`Bash container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -614,6 +616,7 @@ export const codeRepairEvaluator: Evaluator = {
           ? 'SQL container ran successfully'
           : 'SQL container error: ' + sqlRes.stderr.slice(0, 200).replace(/\n/g, ' '));
 
+        runtimeEval = { compilePassed: sqlCompiled, testsPassed: sqlRes.passed ? 1 : 0, testsFailed: sqlRes.passed ? 0 : 1, testsTotal: 1, hiddenTestsPassed: sqlRes.passed ? 1 : 0, hiddenTestsFailed: sqlRes.passed ? 0 : 1, hiddenTestsTotal: 1, details: [{ testId: 'sql_result', testType: 'hidden', passed: sqlRes.passed, stderr: sqlRes.passed ? '' : 'result mismatch' }] };
         axisScores.test_pass = sqlRes.passed ? 100 : 0;
         axisEvidence.test_pass = 'verified';
         evidence.push(sqlRes.passed
@@ -641,6 +644,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: phpRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: phpCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`PHP container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -670,6 +674,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: csRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: csCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`C# container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -699,6 +704,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: rustRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: rustCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`Rust container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -728,6 +734,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: cRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: cCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`C container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -757,6 +764,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: javaRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: javaCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`Java container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -768,8 +776,10 @@ export const codeRepairEvaluator: Evaluator = {
         // ===== Go 容器执行路径（真实编译 + go test） =====
         if (goFixture.programMode && goFixture.expectedOutput) {
           const progRes = runGoProgramInContainer(patch, goFixture.expectedOutput);
-          axisScores.compilation = progRes.exitCode === 0 && !/error/.test(progRes.stderr) ? 100 : 0;
+          const progCompiled = progRes.exitCode === 0 && !/error/.test(progRes.stderr);
+          axisScores.compilation = progCompiled ? 100 : 0;
           axisEvidence.compilation = 'verified';
+          runtimeEval = { compilePassed: progCompiled, testsPassed: progRes.passed ? 1 : 0, testsFailed: progRes.passed ? 0 : 1, testsTotal: 1, hiddenTestsPassed: progRes.passed ? 1 : 0, hiddenTestsFailed: progRes.passed ? 0 : 1, hiddenTestsTotal: 1, details: [{ testId: 'program_output', testType: 'hidden', passed: progRes.passed, stderr: progRes.passed ? '' : 'output mismatch' }] };
           axisScores.test_pass = progRes.passed ? 100 : 0;
           axisEvidence.test_pass = 'verified';
           evidence.push(progRes.passed
@@ -797,6 +807,7 @@ export const codeRepairEvaluator: Evaluator = {
             timedOut: goRes.timedOut,
           }));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: compiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`Go container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -815,6 +826,7 @@ export const codeRepairEvaluator: Evaluator = {
           const runner = PYTHON_LANGS.includes(lang) ? runReplacedCodeTestPython : runReplacedCodeTest;
           const details = await Promise.all(tests.map((tc) => runner(patch, tc)));
           const suiteResult = summarizeTestResults(details);
+          runtimeEval = { compilePassed: !!scenario.sourceCode, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(`Sandbox tests (${lang}): ${suiteResult.passedTests}/${suiteResult.totalTests} passed`);
@@ -900,6 +912,8 @@ export const codeRepairEvaluator: Evaluator = {
       safetyLevel: 'safe',
       evidence,
       codeExtractionFailed,
+      runtimeEvaluation: runtimeEval,
+      extractedPatch: patch ?? undefined,
     };
   },
 };

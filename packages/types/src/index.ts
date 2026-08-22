@@ -293,6 +293,8 @@ export interface ScenarioResult {
   humanReviewNotes?: string;
   /** 代码块提取失败标记 — 模型输出了代码但未使用 Markdown 代码块包裹 */
   codeExtractionFailed?: boolean;
+  /** 评分器提取到的修复 patch（供 Judge 复核，代码修复维度） */
+  extractedPatch?: string;
   /** 思考/输出超限标记 — 思考链过长或超出预算被硬性中断（0 分或降权） */
   reasoningLimitExceeded?: boolean;
 

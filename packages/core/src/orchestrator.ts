@@ -443,9 +443,16 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       candidateAnswer: {
         verdict: (structuredAnswer as Record<string, unknown>)?.verdict as 'fix' | 'no_bug' | undefined,
         rootCause: (structuredAnswer as Record<string, unknown>)?.root_cause as string | undefined,
-        patch: (structuredAnswer as Record<string, unknown>)?.patch as string | null | undefined,
+        patch: result.extractedPatch
+          ?? ((structuredAnswer as Record<string, unknown>)?.patch as string | null | undefined),
       },
       rawModelOutput: modelResponse.content,
+      runtimeTests: result.runtimeEvaluation ? {
+        compilePassed: result.runtimeEvaluation.compilePassed,
+        passed: result.runtimeEvaluation.hiddenTestsPassed ?? result.runtimeEvaluation.testsPassed,
+        failed: result.runtimeEvaluation.hiddenTestsFailed ?? result.runtimeEvaluation.testsFailed,
+        details: result.runtimeEvaluation.details ?? [],
+      } : undefined,
       outputMetadata,
       codeExtractionFailed,
       formatBlindspot,
