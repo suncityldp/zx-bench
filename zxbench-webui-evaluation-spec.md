@@ -47,20 +47,20 @@
 
 ---
 
-## 2. Supported Evaluation Dimensions (11 Total)
+## 2. Supported Evaluation Dimensions (10 Total)
 
 | Short Code | Dimension ID | Description | Registered Grader |
 |------------|-------------|-------------|-------------------|
-| `cr` | `code_repair` | Code repair / programming ability | `code_repair_v3@3.0.0` |
-| `bf` | `bug_finding` | Bug detection in code | `bug_finding@2.0.0` |
+| `cr` | `program` | Code repair / programming (incl. bug_finding as sub-category) | `code_repair_v3@3.2.0` |
 | `so` | `structured_output` | Structured output (JSON/CSV/XML/SQL/HTML/YAML/Regex) | `structured_output_v2@2.0.0` |
 | `de` | `data_extraction` | Data extraction | — (pluggable) |
-| `if` | `instruction_follow` | Instruction following | — (pluggable) |
+| `if` | `instruction_following` | Instruction following | — (pluggable) |
 | `rm` | `reasoning_math` | Reasoning & math | — (pluggable) |
-| `tc` | `tool_cli` | Tool / CLI usage | — (pluggable) |
+| `tc` | `tool_cli_workflow` | Tool / CLI workflow | — (pluggable) |
 | `sa` | `safety_authority` | Safety & authority | — (pluggable) |
 | `aw` | `agent_workflow` | Agent workflow | — (pluggable) |
 | `cli` | `cli_deep_tasks` | CLI deep tasks | — (pluggable) |
+| `hr` | `hallucination_resistance` | Hallucination resistance | — (pluggable) |
 | `all` | _(empty = no filter)_ | Full pack import | — |
 
 ---
@@ -162,15 +162,18 @@ interface Evaluator {
 
 | Name | Version | Dimension | Mode |
 |------|---------|-----------|------|
-| `bug_finding` | `2.0.0` | bug_finding | Static text analysis |
-| `code_repair_v3` | `3.2.0` | code_repair | Container + Sandbox + Static fallback |
+| `bug_finding` | `2.0.0` | program (sub-category) | Static text analysis — merged into program dimension |
+| `code_repair_v3` | `3.2.0` | program | Container + Sandbox + Static fallback |
 | `structured_output_v2` | `2.0.0` | structured_output | Format parser + Schema validation |
+| `hallucination_resistance` | `hallucination_v3` | hallucination_resistance | Static text analysis + AI Judge |
 
 ---
 
 ## 5. Grader Details
 
 ### 5.1 bug_finding v2
+
+> **Note:** bug_finding is now a sub-category of the `program` dimension (via `category` field), no longer a standalone dimension. The evaluator and scoring logic remain unchanged.
 
 **Mode:** Static text analysis (no sandbox execution)
 
