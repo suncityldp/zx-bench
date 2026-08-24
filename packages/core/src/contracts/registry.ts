@@ -89,20 +89,34 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   },
 
   // ---- 幻觉抵抗 ----
+  // v4：verificationMode 十分支（exact_fact/premise_correction/refusal_nonfabrication/
+  // temporal_humility/rag_attribution/fictional_citation/identifier_checksum/
+  // identifier_format/reference_selection/citation_completeness）+ hardVeto 硬否决 +
+  // ISBN/DOI 校验 + RAG 归因 + fabricationAnchors 上下文窗口。
+  // aliases 保留 hallucination_v3/v2/v1：v4 评分器兼容旧题（无 verificationMode 走 v3 兼容路径）。
   hallucination_resistance: {
     grader: 'hallucination_resistance',
-    version: 'hallucination_v3',
+    version: 'hallucination_v4',
     dimension: 'hallucination_resistance',
     consumedFields: [
       'answerability', 'answerKeywords', 'answer', 'correctionKeywords',
       'citationTrap', 'fabricationAnchors', 'referenceAnswer', 'validUntil',
+      // v4 新增消费字段
+      'verificationMode', 'attackLevel', 'temporalPolicy', 'materials',
+      'expected', 'fictionalEntities', 'judgeNotes',
     ],
     declaredFields: [
       'answerability', 'answerKeywords', 'answer', 'correctionKeywords',
       'citationTrap', 'fabricationAnchors', 'referenceAnswer', 'validUntil',
+      'verificationMode', 'attackLevel', 'temporalPolicy', 'materials',
+      'expected', 'fictionalEntities', 'judgeNotes',
+      // expected 子字段（对象结构，health-check 用于深度校验）
+      'expected.answers', 'expected.citations', 'expected.validIdentifiers',
+      'expected.invalidIdentifiers', 'expected.allRequired',
     ],
     requiredFields: ['answerability'],
     capabilities: {},
+    aliases: ['hallucination_v3', 'hallucination_v2', 'hallucination_v1'],
   },
 
   // ---- 工具调用 / CLI 工作流：tool_call_trace ----

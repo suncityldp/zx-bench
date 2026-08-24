@@ -72,8 +72,10 @@ function dimensionLabelFor(dim: string, lang: 'zh' | 'en' = 'zh'): string {
 }
 
 /**
- * 计算难度加权维度均分（DB wrapper）：批量获取题目难度 → 调用纯函数 computeDifficultyWeightedDimAvgsPure
- * 维度均分 = Σ(题目得分 × 难度权重) / Σ(难度权重)；难度越高权重越大（easy=1…adversarial=2.5）
+ * 计算难度加权维度均分（DB wrapper）：批量获取题目难度/攻击等级 → 调用纯函数 computeDifficultyWeightedDimAvgsPure
+ * 维度均分 = Σ(题目得分 × 难度权重 × 攻击等级权重) / Σ(权重)；
+ * 难度越高权重越大（easy=1…adversarial=2.5）；幻觉抵抗 v4 题按 attackLevel 加权（L1=1.0…L4=2.0），
+ * 未标注 attackLevel 的题攻击权重视为 1.0，纯难度加权，与旧版行为一致。
  */
 async function computeDifficultyWeightedDimAvgs(
   results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean }>,
@@ -85,11 +87,16 @@ async function computeDifficultyWeightedDimAvgs(
     select: { id: true, difficulty: true, requirements: true },
   });
   const difficultyLookup = new Map<string, string>();
+  const attackLookup = new Map<string, string>();
   for (const s of scenarios) {
     difficultyLookup.set(s.id, s.difficulty);
+    const attackLevel = (s.requirements as Record<string, unknown> | null | undefined)?.attackLevel;
+    if (typeof attackLevel === 'string' && /^L[1-4]$/.test(attackLevel)) {
+      attackLookup.set(s.id, attackLevel);
+    }
   }
   // 沙箱执行已实现（工作区物化 + 探查转录）：requiresSandbox 调查题结果可参与维度均分
-  return computeDifficultyWeightedDimAvgsPure(results, difficultyLookup);
+  return computeDifficultyWeightedDimAvgsPure(results, difficultyLookup, attackLookup);
 }
 
 /**
