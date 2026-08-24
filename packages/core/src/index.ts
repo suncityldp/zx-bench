@@ -27,7 +27,12 @@ export { instructionChecklistEvaluator } from './evaluators/instructionChecklist
 export { canaryAuthorityEvaluator } from './evaluators/canaryAuthority.js';
 export { toolCallTraceEvaluator } from './evaluators/toolCallTrace.js';
 export { agentTraceEvaluator } from './evaluators/agentTrace.js';
-export { cliCommandEvaluator } from './evaluators/cliCommand.js';
+export { cliCommandEvaluator, registerCLISandboxRunner, getRegisteredCLISandboxRunner, extractPrimaryCommand, canonicalizeCliFlags } from './evaluators/cliCommand.js';
+export type { CLISandboxRunner, CLISandboxResult } from './evaluators/cliCommand.js';
+export { LocalCLISandboxRunner } from './evaluators/cliSandbox.js';
+export type { LocalCLISandboxRunnerOptions } from './evaluators/cliSandbox.js';
+export { registerToolCatalog, getRegisteredToolCatalog, validateToolCall } from './evaluators/toolCatalog.js';
+export type { ToolCatalog, ToolSpec, ToolParamSpec, ToolCallValidation } from './evaluators/toolCatalog.js';
 export { hallucinationResistanceEvaluator } from './evaluators/hallucinationResistance.js';
 export { sandboxEvaluator } from './evaluators/sandbox.js';
 export { llmJudgeEvaluator } from './evaluators/llmJudge.js';
@@ -66,10 +71,10 @@ export type { ReportUserPromptData, CompareReportUserPromptData } from './report
 // 参数化题目引擎
 export { generateVariables, instantiateScenario, createParameterizedInstance } from './parameterize/index.js';
 // 评分/聚合核心
-export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, computeWeightedTotal, getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, computeDifficultyWeightedDimAvgs } from './scoring.js';
+export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, TARGET_DIFFICULTY_DISTRIBUTION, analyzeDifficultyDistribution, computeWeightedTotal, getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, computeConsistencyScore, computeDifficultyWeightedDimAvgs, normalizeDimension, DIMENSION_ALIASES } from './scoring.js';
 
 // 场景契约（Phase 1）
-export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScenario, canonicalizeScenario, hashScenario, hashScenarioShort, checkScenarioEligibility, partitionByEligibility } from './contracts/index.js';
+export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScenario, canonicalizeScenario, hashScenario, hashScenarioShort, checkScenarioEligibility, partitionByEligibility, DIMENSION_DEFINITIONS, recommendDimension, validateDimensionDisjointness } from './contracts/index.js';
 export type { GraderContract } from './contracts/index.js';
 
 // 容器执行后端（Phase 2）

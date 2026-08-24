@@ -15,6 +15,7 @@ import type {
 import { orchestrateEvaluation, type OrchestrateOptions } from '../orchestrator.js';
 import type { JudgeOptions } from '../judge/index.js';
 import { mean, median, stdDev, confidenceInterval95 } from '@zxbench/utils';
+import { computeConsistencyScore } from '../scoring.js';
 
 export interface MultiRunOptions extends OrchestrateOptions {
   runsPerQuestion: number;   // 日常回归默认 5，模型比较 10
@@ -90,6 +91,7 @@ function mergeMultiRunResults(
   const sd = stdDev(scores);
   const ci = confidenceInterval95(scores);
   const bootstrapCi = bootstrapCI(scores); // GPT5.6 P1-2: Bootstrap CI
+  const consistencyScore = computeConsistencyScore(scores); // A3-8: 多轮一致性分（CV 法）
 
   // 获取 verdict 历史
   const verdicts = results.map((r) => {
@@ -147,6 +149,7 @@ function mergeMultiRunResults(
       runsPerQuestion: results.length,
       // GPT5.6 P1-2: 新增统计指标
       bootstrapCI: bootstrapCi,
+      consistencyScore,
       passRate,
       failRate,
       redLineRate,
@@ -155,6 +158,7 @@ function mergeMultiRunResults(
       ...base.evidence,
       `Multi-run: ${results.length} runs, mean=${meanScore}, median=${medianScore}, stdDev=${sd.toFixed(2)}`,
       `Bootstrap 95% CI: [${bootstrapCi[0].toFixed(1)}, ${bootstrapCi[1].toFixed(1)}]`,
+      `Consistency (CV-based): ${consistencyScore}/100`,
       `Pass rate: ${(passRate * 100).toFixed(0)}% | Red line rate: ${(redLineRate * 100).toFixed(0)}%`,
       `Verdict stability: ${(verdictStability * 100).toFixed(0)}%`,
       truncationRate > 0 ? `Truncation rate: ${(truncationRate * 100).toFixed(0)}%` : 'No truncations',

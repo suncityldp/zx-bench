@@ -127,7 +127,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     consumedFields: [
       'tool', 'params', 'commands', 'should_call', 'should_call_first',
       'should_not_call', 'should_not_directly', 'should_not_call_any',
-      'minimal_calls', 'require_patterns',
+      'minimal_calls', 'require_patterns', 'sequence', 'orderMatters',
     ],
     declaredFields: [
       'tool', 'params', 'commands', 'should_call', 'should_call_first',
@@ -158,15 +158,19 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- CLI 深度任务：cli_command（含 6 道 requiresSandbox 实地调查题） ----
   cli_command: {
     grader: 'cli_command',
-    version: 'cli_command_v1',
+    version: 'cli_command_v4', // P0-A1-1：真实执行钩子；P1-A3-2：覆盖率感知（去默认 80）
     dimension: 'cli_deep_tasks',
-    consumedFields: ['requiredCommands', 'requiredFlags', 'pipelineTokens', 'targetKeywords', 'safetyTokens'],
+    consumedFields: [
+      'requiredCommands', 'requiredFlags', 'pipelineTokens', 'targetKeywords', 'safetyTokens',
+      'requiresSandbox', 'workspace', 'endStatePatterns',
+    ],
     declaredFields: [
       'requiredCommands', 'requiredFlags', 'pipelineTokens', 'targetKeywords', 'safetyTokens',
-      'disciplineCapPatterns', 'requiresSandbox', 'workspace', 'explore', 'answer',
+      'requiresSandbox', 'workspace', 'endStatePatterns', 'disciplineCapPatterns', 'explore', 'answer',
     ],
     requiredFields: [],
     capabilities: {},
+    aliases: ['cli_command_v1', 'cli_command_v2'],
   },
 
   // ---- 编程修复：code_repair（requirements 实际是对象，但 evaluator 当 string[] keywords 读 —— 已知缺陷） ----
@@ -246,6 +250,73 @@ export function getGraderContract(grader: string): GraderContract | undefined {
     if (c.aliases?.includes(grader)) return c;
   }
   return undefined;
+}
+
+// ============================================================
+// 维度非重叠定义（A1-2）：明确三个「工具/CLI/工作流」维度各自只测什么，
+// 避免题库作者混淆、或同一能力被重复计量。每个维度有独立的 signature 字段集合。
+// ============================================================
+export const DIMENSION_DEFINITIONS: Record<string, { summary: string; signatureFields: string[] }> = {
+  tool_cli_workflow: {
+    summary: 'API/函数工具调用：模型是否以结构化形态调用了正确的工具、参数正确、顺序正确',
+    signatureFields: [
+      'tool', 'params', 'commands', 'should_call', 'should_call_first', 'should_not_call',
+      'should_not_directly', 'should_not_call_any', 'minimal_calls', 'require_patterns', 'sequence', 'orderMatters',
+    ],
+  },
+  cli_deep_tasks: {
+    summary: 'Shell/CLI 脚本能力：模型是否产出正确可执行的命令行/管道，真实产生正确的端状态',
+    signatureFields: [
+      'requiredCommands', 'requiredFlags', 'pipelineTokens', 'targetKeywords', 'safetyTokens',
+      'requiresSandbox', 'workspace', 'endStatePatterns',
+    ],
+  },
+  agent_workflow: {
+    summary: '多步智能体规划：模型是否展现出规划、按序执行动作、发生状态变化、达成完成态',
+    signatureFields: [
+      'expectedActions', 'expectedStateChanges', 'completionKeywords', 'planningKeywords',
+      'forbiddenActions', 'safetyCapActions', 'stateFixture', 'responseMode',
+    ],
+  },
+};
+
+/** 根据 requirements 字段推荐归属维度（A1-2 防重叠）。无命中返回 null。 */
+export function recommendDimension(requirements: Record<string, unknown>): string | null {
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [dim, def] of Object.entries(DIMENSION_DEFINITIONS)) {
+    const count = def.signatureFields.filter((f) => (requirements as Record<string, unknown>)[f] != null).length;
+    if (count > bestCount) {
+      best = dim;
+      bestCount = count;
+    }
+  }
+  return bestCount > 0 ? best : null;
+}
+
+/**
+ * 校验题集维度互斥（A1-2）：若某题 requirements 同时命中多个维度的 signature 字段，
+ * 说明该题考察点与其他维度重叠，可能重复计量。返回告警列表（空数组=通过）。
+ */
+export function validateDimensionDisjointness(
+  dimension: string,
+  requirements: Record<string, unknown>,
+): string[] {
+  const warnings: string[] = [];
+  const otherSigs = Object.entries(DIMENSION_DEFINITIONS)
+    .filter(([d]) => d !== dimension)
+    .flatMap(([, def]) => def.signatureFields);
+  const collisions = [...new Set(otherSigs.filter((f) => (requirements as Record<string, unknown>)[f] != null))];
+  if (collisions.length > 0) {
+    warnings.push(
+      `dimension "${dimension}" requirements also contain fields from other dimensions: ${collisions.join(', ')}`,
+    );
+  }
+  const rec = recommendDimension(requirements);
+  if (rec && rec !== dimension) {
+    warnings.push(`requirements signature suggests dimension "${rec}" but scenario is labeled "${dimension}"`);
+  }
+  return warnings;
 }
 
 /** 所有已注册 grader 契约 */

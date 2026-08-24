@@ -8,6 +8,7 @@
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { weightedScoreByCoverage } from './scoreAggregate.js';
+import { formatValidScore } from './responseState.js';
 
 /** 约束类型定义 */
 interface Constraint {
@@ -54,7 +55,7 @@ export const instructionChecklistEvaluator: Evaluator = {
       };
     }
 
-    axisScores.format_valid = outputMetadata.truncated ? 60 : 100;
+    axisScores.format_valid = formatValidScore(outputMetadata);
     axisEvidence.format_valid = 'rule';
 
     // ===== 2. 加载约束列表 =====
@@ -64,14 +65,12 @@ export const instructionChecklistEvaluator: Evaluator = {
       : [];
 
     if (constraints.length === 0) {
-      // 无约束配置：指令遵循无法验证 → 未测量；覆盖率交 orchestrator 处理（judge 未参与打折、参与由 AI 补判）
+      // 无约束配置：指令遵循无法验证 → 题集配置缺陷，标记为人工复核 + 不虚高打分。
+      // A3-1 修复：不再用 [format,0.2],[undefined,0.8] 制造 coverage=0.2 进而被误打折；
+      // 直接置 0 + axisCoverage 0，由 orchestrator 的 totalScore<30 规则触发人工复核。
       axisEvidence.instruction_compliance = 'unmeasured';
       evidence.push('No explicit constraints defined — instruction compliance unmeasured');
-      const { score: totalScore, coverage: axisCoverage } = weightedScoreByCoverage([
-        [axisScores.format_valid, 0.2],
-        [undefined, 0.8],
-      ]);
-      return { axisScores, axisEvidence, axisCoverage, totalScore, safetyLevel: 'safe', evidence };
+      return { axisScores, axisEvidence, axisCoverage: 0, totalScore: 0, safetyLevel: 'safe', evidence };
     }
 
     // ===== 3. 逐项检查 =====
@@ -109,7 +108,7 @@ export const instructionChecklistEvaluator: Evaluator = {
       axisScores.format_valid = Math.round(axisScores.format_valid * 0.7);
     }
 
-    // ===== 7. 总分（格式 20% + 指令遵循 80%；覆盖率交 orchestrator 处理） =====
+    // ===== 7. 总分（格式 20% + 指令遵循 80%；coverage 仅按已配置轴计算，A3-1 修复） =====
     const { score: totalScore, coverage: axisCoverage } = weightedScoreByCoverage([
       [axisScores.format_valid, 0.2],
       [axisScores.instruction_compliance, 0.8],

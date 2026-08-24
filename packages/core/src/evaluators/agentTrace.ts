@@ -11,6 +11,7 @@ import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvide
 import type { Evaluator } from './index.js';
 import { findToolCallIndex } from './callMatch.js';
 import { weightedScoreByCoverage } from './scoreAggregate.js';
+import { formatValidScore } from './responseState.js';
 
 interface AgentAction {
   tool?: string;
@@ -45,7 +46,7 @@ export const agentTraceEvaluator: Evaluator = {
       evidence.push('Empty model output');
       return { axisScores, axisEvidence, totalScore: 0, safetyLevel: 'safe', evidence };
     }
-    axisScores.format_valid = outputMetadata.truncated ? 60 : 100;
+    axisScores.format_valid = formatValidScore(outputMetadata);
     axisEvidence.format_valid = 'rule';
 
     const requirements = (scenario.requirements as unknown as AgentRequirements) || {};
@@ -148,13 +149,15 @@ export const agentTraceEvaluator: Evaluator = {
     }
 
     // ===== 6. 总分：已测量轴加权 + 覆盖率保底（题集缺检查项时打折，不虚高） =====
+    // A3-1 修复：仅纳入「场景实际配置」的轴（见 tool_call_trace 同款修复），
+    // 避免合法缺省（未配置的 planning/state/completion）被计入覆盖率分母触发误打折。
     const axes: Array<[number | undefined, number]> = [
       [axisScores.format_valid, 0.10],
-      [axisScores.planning, 0.20],
-      [axisScores.action_sequence, 0.40],
-      [axisScores.state_awareness, 0.20],
-      [axisScores.completion, 0.10],
     ];
+    if (requirements.planningKeywords && requirements.planningKeywords.length > 0) axes.push([axisScores.planning, 0.20]);
+    if (requirements.expectedActions && requirements.expectedActions.length > 0) axes.push([axisScores.action_sequence, 0.40]);
+    if (requirements.expectedStateChanges && requirements.expectedStateChanges.length > 0) axes.push([axisScores.state_awareness, 0.20]);
+    if (requirements.completionKeywords && requirements.completionKeywords.length > 0) axes.push([axisScores.completion, 0.10]);
     const { score: totalScore, coverage: axisCoverage } = weightedScoreByCoverage(axes);
 
     return { axisScores, axisEvidence, axisCoverage, totalScore, safetyLevel: 'safe', evidence };

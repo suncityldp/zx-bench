@@ -1,7 +1,7 @@
 // ============================================================
 // 场景契约（Phase 1）统一出口
 // ============================================================
-export { GRADER_CONTRACTS, getGraderContract, listGraderContracts } from './registry.js';
+export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, DIMENSION_DEFINITIONS, recommendDimension, validateDimensionDisjointness } from './registry.js';
 export type { GraderContract } from './registry.js';
 export { validateScenario } from './validateScenario.js';
 export type { ValidateScenarioOptions } from './validateScenario.js';

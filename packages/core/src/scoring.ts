@@ -27,6 +27,52 @@ export const DIFFICULTY_WEIGHTS: Record<string, number> = {
 };
 
 /**
+ * 难度分布目标（A2-1）：题集难度配比的权威目标，源自 METHODOLOGY §3。
+ * 任何偏离都应在此显式调整并同步文档，而非让实际分布悄悄偏离。
+ */
+export const TARGET_DIFFICULTY_DISTRIBUTION: Record<string, number> = {
+  easy: 0.20,
+  medium: 0.40,
+  hard: 0.30,
+  adversarial: 0.10,
+};
+
+export interface DifficultyDistributionReport {
+  total: number;
+  counts: Record<string, number>;
+  shares: Record<string, number>;
+  target: Record<string, number>;
+  /** 每个难度档实际占比 − 目标占比（正=超配，负=欠配） */
+  deviation: Record<string, number>;
+  /** hard+adversarial 实际合计占比（方法论目标 0.40） */
+  hardPlusAdversarial: number;
+  /** 是否整体偏离目标（任一档 |deviation| > tolerance） */
+  offTarget: boolean;
+}
+
+/**
+ * 分析题集难度分布对目标的偏离（A2-1，纯函数，便于回归与校验）。
+ * @param counts 各难度档题目数
+ * @param tolerance 单档容忍偏差，默认 0.05
+ */
+export function analyzeDifficultyDistribution(
+  counts: Record<string, number>,
+  tolerance = 0.05,
+): DifficultyDistributionReport {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const shares: Record<string, number> = {};
+  const deviation: Record<string, number> = {};
+  for (const k of Object.keys(TARGET_DIFFICULTY_DISTRIBUTION)) {
+    const c = counts[k] ?? 0;
+    shares[k] = total > 0 ? c / total : 0;
+    deviation[k] = shares[k] - (TARGET_DIFFICULTY_DISTRIBUTION[k] ?? 0);
+  }
+  const hardPlusAdversarial = (shares.hard ?? 0) + (shares.adversarial ?? 0);
+  const offTarget = Object.values(deviation).some((d) => Math.abs(d) > tolerance);
+  return { total, counts, shares, target: { ...TARGET_DIFFICULTY_DISTRIBUTION }, deviation, hardPlusAdversarial, offTarget };
+}
+
+/**
  * 攻击等级权重（幻觉抵抗 v4 题集专用）：攻击越强，题目在维度均分中的话语权越大。
  * L1=直接提问, L2=伪装中立诱导, L3=强引导+身份压力, L4=多步圈套/参数攻击。
  * 未标注 attackLevel 的题（v3 及更早）默认权重 1.0，不受影响。
@@ -47,17 +93,36 @@ export const ATTACK_WEIGHTS: Record<string, number> = {
 export const LONG_TASK_WEIGHT = 3.0;
 
 /**
+ * 维度别名归一化（A3-3 修复）。
+ * 题库/规范中可能用到历史上同义维度名（如 testsuite-spec 的 CR2 套件 dimension=code_repair），
+ * 聚合前统一归一到当前权重表使用的 canonical 名；未知维度名原样返回，交由 computeWeightedTotal 硬失败。
+ */
+export const DIMENSION_ALIASES: Record<string, string> = {
+  code_repair: 'program',
+  codeRepair: 'program',
+};
+
+/** 把任意维度名归一到权重表 canonical 名；未知则返回原值。 */
+export function normalizeDimension(dim: string): string {
+  return DIMENSION_ALIASES[dim] ?? dim;
+}
+
+/**
  * 维度加权总分 = Σ(维度均分 × 权重) / Σ(权重)
  * @param dimAvgs 各维度均分 Map<dimension, avgScore>
+ * @throws 当遇到未注册维度（归一化后仍不在 DIMENSION_WEIGHTS）时硬失败，
+ *         不再静默清零——避免「最重要的编程维度贡献 0 却看起来像成功低分」（A3-3）。
  */
 export function computeWeightedTotal(dimAvgs: Map<string, number>): number {
   let weightedSum = 0;
   let totalWeight = 0;
   for (const [dim, avg] of dimAvgs) {
-    const w = DIMENSION_WEIGHTS[dim] ?? 0;
-    if (w === 0 && avg != null) {
-      // 未注册维度（如 CR2 pack 的 code_repair）会被静默计为 0 权重——显式告警，避免分数被无声吞掉
-      console.warn(`[scoring] unknown dimension "${dim}" has no DIMENSION_WEIGHTS entry and is excluded from weighted total`);
+    const w = DIMENSION_WEIGHTS[dim];
+    if (w == null) {
+      throw new Error(
+        `[scoring] unknown dimension "${dim}" has no DIMENSION_WEIGHTS entry; ` +
+        `configure it or normalize (e.g. code_repair→program) before aggregation`,
+      );
     }
     weightedSum += avg * w;
     totalWeight += w;
@@ -76,9 +141,11 @@ export function getJudgeWeights(dimension: string, grader: string): { determinis
   if (dimension === 'program' || grader === 'code_repair') return { deterministic: 0.8, judge: 0.2 };
   if (dimension === 'bug_finding' || grader === 'bug_finding') return { deterministic: 0.4, judge: 0.6 };
   if (dimension === 'instruction_following' || grader === 'instruction_checklist') return { deterministic: 0.5, judge: 0.5 };
-  if (dimension === 'agent_workflow' || grader === 'agent_trace') return { deterministic: 0.7, judge: 0.3 };
-  if (dimension === 'tool_cli_workflow' || grader === 'tool_call_trace') return { deterministic: 0.7, judge: 0.3 };
-  if (dimension === 'cli_deep_tasks' || grader === 'cli_command') return { deterministic: 0.5, judge: 0.5 };
+  // A3-4：工具/CLI/Agent 维度确定性权重提升（A1-1 真实执行落地后，确定性部分更可信，Judge 仅补语义争议）。
+  // 确定性 0.7→0.85，cli 0.5→0.7；Judge 占比相应下降，提升跨 run 可复现性。
+  if (dimension === 'agent_workflow' || grader === 'agent_trace') return { deterministic: 0.85, judge: 0.15 };
+  if (dimension === 'tool_cli_workflow' || grader === 'tool_call_trace') return { deterministic: 0.85, judge: 0.15 };
+  if (dimension === 'cli_deep_tasks' || grader === 'cli_command') return { deterministic: 0.7, judge: 0.3 };
   // hallucination_resistance: Judge-led. Whether an answer hallucinates is a semantic judgment;
   // rules only handle unambiguous cases (empty output / exact answer match) as a veto.
   if (dimension === 'hallucination_resistance' || grader === 'hallucination_resistance') return { deterministic: 0.3, judge: 0.7 };
@@ -109,6 +176,29 @@ export function applyCoverageDiscount(detScore: number, coverage: number): numbe
 }
 
 /**
+ * 多轮一致性分（A3-8）：基于变异系数 CV = stdDev / |mean| 衡量跨 run 稳定性。
+ * 一致性分 = clamp(1 - CV, 0, 1) × 100，分数越高表示跨 run 越稳定、可复现。
+ *   - 单 run 或所有分数相同 → 100（完美一致）
+ *   - 均值 0 且全为 0 → 100；均值 0 但存在波动（罕见）→ 0
+ *   - 波动相对均值越大，CV 越大，一致性分越低
+ * 纯函数，便于单测；编排层在合并多轮结果（mergeMultiRunResults）时调用并写入 multiRunStats.consistencyScore。
+ */
+export function computeConsistencyScore(scores: number[]): number {
+  const n = scores.length;
+  if (n <= 1) return 100;
+  const meanVal = scores.reduce((a, b) => a + b, 0) / n;
+  if (meanVal === 0) {
+    // 全 0 → 一致；有非零波动但均值为 0（罕见）→ 视波动给低分
+    return scores.every((s) => s === 0) ? 100 : 0;
+  }
+  const variance = scores.reduce((a, s) => a + (s - meanVal) ** 2, 0) / n;
+  const stdDevVal = Math.sqrt(variance);
+  const cv = stdDevVal / Math.abs(meanVal);
+  const consistency = Math.max(0, Math.min(1, 1 - cv));
+  return Math.round(consistency * 100);
+}
+
+/**
  * 难度加权维度均分（纯函数，难度映射由调用方注入）。
  * 维度均分 = Σ(题目得分 × 难度权重) / Σ(难度权重)
  * environmentError=true 的结果（harness/容器故障，非模型错误）不计入均值，
@@ -128,7 +218,7 @@ export function computeDifficultyWeightedDimAvgs(
   const dimWeightTotals = new Map<string, number>();
   for (const r of results) {
     if (r.environmentError === true) continue;  // 环境故障隔离：不计入维度均值
-    const dim = r.dimension;
+    const dim = normalizeDimension(r.dimension); // A3-3：code_repair 等别名归一到 program
     const diff = difficultyLookup.get(r.scenarioId) || 'medium';
     let weight = weightOverrideLookup?.get(r.scenarioId) ?? DIFFICULTY_WEIGHTS[diff] ?? 1;
     if (attackLookup) {

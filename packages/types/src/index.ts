@@ -566,6 +566,8 @@ export interface MultiRunStats {
   passRate?: number;
   failRate?: number;
   redLineRate?: number;
+  // A3-8: 多轮一致性分（基于 CV 法），衡量跨 run 稳定性/可复现性，0-100 越高越稳定
+  consistencyScore?: number;
   // 兼容旧字段
   scenarioId?: string;
   runs?: number;

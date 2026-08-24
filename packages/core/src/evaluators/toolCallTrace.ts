@@ -13,7 +13,9 @@
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { findToolCallIndex, findParam } from './callMatch.js';
+import { validateToolCall, getRegisteredToolCatalog } from './toolCatalog.js';
 import { weightedScoreByCoverage } from './scoreAggregate.js';
+import { formatValidScore } from './responseState.js';
 
 interface ToolRequirements {
   tool?: string;
@@ -34,6 +36,10 @@ interface ToolRequirements {
   minimal_calls?: number;
   /** 输出必须包含的模式 */
   require_patterns?: string[];
+  /** 期望的调用顺序（工具名序列）；任一缺失或顺序错乱都计入调用纪律扣分（A1-3 工作流语义落地） */
+  sequence?: string[];
+  /** 是否强制 should_call 声明的顺序（默认 false：只校验"是否调用"，不校验顺序） */
+  orderMatters?: boolean;
 }
 
 /** 命令命中：命令元素可含 "/" 备选（"echo/cat" → echo 或 cat 任一命中）；
@@ -70,7 +76,7 @@ export const toolCallTraceEvaluator: Evaluator = {
       evidence.push('Empty model output');
       return { axisScores, axisEvidence, totalScore: 0, safetyLevel: 'safe', evidence };
     }
-    axisScores.format_valid = outputMetadata.truncated ? 60 : 100;
+    axisScores.format_valid = formatValidScore(outputMetadata);
     axisEvidence.format_valid = 'rule';
 
     // ===== 2. 加载工具需求 =====
@@ -90,23 +96,34 @@ export const toolCallTraceEvaluator: Evaluator = {
       evidence.push('No explicit tool requirement — tool selection unmeasured');
     }
 
-    // ===== 4. 参数检查（key/value 成对匹配） =====
+    // ===== 4. 参数检查（A1-4：优先用集中式 Tool Catalog 做结构校验，否则回退 key/value 子串匹配） =====
     if (requirements.params && Object.keys(requirements.params).length > 0) {
-      let paramMatches = 0;
-      let totalParams = 0;
-      for (const [key, value] of Object.entries(requirements.params)) {
-        totalParams++;
-        if (findParam(modelOutput, key, String(value))) {
-          paramMatches++;
-        } else {
-          evidence.push(`Param mismatch: ${key}=${String(value)}`);
+      const catalog = getRegisteredToolCatalog();
+      const hasCatalogSpec = requirements.tool && catalog[requirements.tool];
+      if (hasCatalogSpec) {
+        const v = validateToolCall(modelOutput, requirements.tool!, catalog);
+        axisScores.param_accuracy = v.paramScore;
+        axisEvidence.param_accuracy = 'rule';
+        if (v.missingRequired.length) evidence.push(`Missing required params: ${v.missingRequired.join(', ')}`);
+        if (v.invalidEnum.length) evidence.push(`Params with invalid enum values: ${v.invalidEnum.join(', ')}`);
+        evidence.push(`Catalog param validation: ${v.matchedParams.length} matched`);
+      } else {
+        let paramMatches = 0;
+        let totalParams = 0;
+        for (const [key, value] of Object.entries(requirements.params)) {
+          totalParams++;
+          if (findParam(modelOutput, key, String(value))) {
+            paramMatches++;
+          } else {
+            evidence.push(`Param mismatch: ${key}=${String(value)}`);
+          }
         }
+        axisScores.param_accuracy = totalParams > 0
+          ? Math.round((paramMatches / totalParams) * 100)
+          : 100;
+        axisEvidence.param_accuracy = 'rule';
+        evidence.push(`Params matched: ${paramMatches}/${totalParams}`);
       }
-      axisScores.param_accuracy = totalParams > 0
-        ? Math.round((paramMatches / totalParams) * 100)
-        : 100;
-      axisEvidence.param_accuracy = 'rule';
-      evidence.push(`Params matched: ${paramMatches}/${totalParams}`);
     } else {
       // 无参数需求：未测量（不再白给 80 分）
       axisEvidence.param_accuracy = 'unmeasured';
@@ -129,7 +146,8 @@ export const toolCallTraceEvaluator: Evaluator = {
       || Array.isArray(requirements.should_not_directly)
       || Array.isArray(requirements.should_call_first)
       || requirements.should_not_call_any === true
-      || typeof requirements.minimal_calls === 'number';
+      || typeof requirements.minimal_calls === 'number'
+      || Array.isArray(requirements.sequence) && requirements.sequence.length > 0;
 
     if (hasDiscipline) {
       const checks: boolean[] = [];
@@ -178,6 +196,30 @@ export const toolCallTraceEvaluator: Evaluator = {
         if (anyCall) evidence.push('Zero-call constraint violated: structured call detected');
       }
 
+      // ===== 6b. 顺序工作流（A1-3）：sequence / orderMatters 真正落地 =====
+      const seq = Array.isArray(requirements.sequence) && requirements.sequence.length > 0
+        ? requirements.sequence
+        : (requirements.orderMatters && Array.isArray(requirements.should_call) ? requirements.should_call : null);
+      if (seq) {
+        const idxs = seq.map((t) => findToolCallIndex(modelOutput, t));
+        idxs.forEach((idx, i) => {
+          if (idx === -1) {
+            checks.push(false);
+            evidence.push(`sequence violated: ${seq[i]} not called`);
+          }
+        });
+        for (let i = 1; i < idxs.length; i++) {
+          if (idxs[i - 1] !== -1 && idxs[i] !== -1) {
+            if (idxs[i] > idxs[i - 1]) {
+              checks.push(true);
+            } else {
+              checks.push(false);
+              evidence.push(`sequence order violated: ${seq[i]} does not appear after ${seq[i - 1]}`);
+            }
+          }
+        }
+      }
+
       if (checks.length > 0) {
         axisScores.call_discipline = Math.round((checks.filter(Boolean).length / checks.length) * 100);
         axisEvidence.call_discipline = 'rule';
@@ -200,14 +242,25 @@ export const toolCallTraceEvaluator: Evaluator = {
     }
 
     // ===== 8. 总分：已测量轴加权 + 覆盖率保底（题集缺检查项时打折，不虚高） =====
+    // A3-1 修复：仅纳入「场景实际配置」的轴，使覆盖率分母只计已配置需求，
+    // 不再把合法缺省（未配置的 commands/discipline/patterns）计入分母。
+    // 否则只配 tool+params 的场景 coverage = 1.00/2.25 = 0.444 < 0.5，
+    // 在 Judge 关闭时把满分答案错误打折为 ×0.3（TC-CN-001/002/005 即此情形）。
     const axes: Array<[number | undefined, number]> = [
       [axisScores.format_valid, 0.15],
-      [axisScores.tool_selection, 0.50],
-      [axisScores.param_accuracy, 0.35],
-      [axisScores.command_coverage, 0.50],
-      [axisScores.call_discipline, 0.50],
-      [axisScores.pattern_coverage, 0.25],
     ];
+    // A3-5：tool_selection 与 command_coverage 互斥，避免 CLI 类场景对同一底层行为重复计量 0.50+0.50。
+    // 仅当配置了 tool 且未配置 commands（纯 API 工具场景）时计入 tool_selection。
+    if (requirements.tool && !(Array.isArray(requirements.commands) && requirements.commands.length > 0)) {
+      axes.push([axisScores.tool_selection, 0.50]);
+    } else if (requirements.tool) {
+      axisEvidence.tool_selection = 'unmeasured';
+      evidence.push('CLI-style scenario (commands configured) — tool_selection excluded to avoid double-counting with command_coverage (A3-5)');
+    }
+    if (requirements.params && Object.keys(requirements.params).length > 0) axes.push([axisScores.param_accuracy, 0.35]);
+    if (Array.isArray(requirements.commands) && requirements.commands.length > 0) axes.push([axisScores.command_coverage, 0.50]);
+    if (hasDiscipline) axes.push([axisScores.call_discipline, 0.50]);
+    if (Array.isArray(requirements.require_patterns) && requirements.require_patterns.length > 0) axes.push([axisScores.pattern_coverage, 0.25]);
     const { score: totalScore, coverage: axisCoverage } = weightedScoreByCoverage(axes);
 
     return { axisScores, axisEvidence, axisCoverage, totalScore, safetyLevel: 'safe', evidence };

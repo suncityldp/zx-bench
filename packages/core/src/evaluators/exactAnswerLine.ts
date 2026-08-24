@@ -6,6 +6,7 @@
 
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
+import { formatValidScore } from './responseState.js';
 
 export const exactAnswerLineEvaluator: Evaluator = {
   name: 'exact_answer_line',
@@ -35,7 +36,7 @@ export const exactAnswerLineEvaluator: Evaluator = {
         evidence,
       };
     }
-    axisScores.format_valid = 100;
+    axisScores.format_valid = formatValidScore(outputMetadata);
     axisEvidence.format_valid = 'rule';
 
     // ===== 2. 获取期望答案 =====
@@ -55,7 +56,7 @@ export const exactAnswerLineEvaluator: Evaluator = {
     // ===== 3. 截断惩罚 =====
     if (outputMetadata.truncated || outputMetadata.incomplete) {
       evidence.push('Output was truncated — answer may be incomplete');
-      axisScores.format_valid = Math.round(axisScores.format_valid * 0.6);
+      // 截断时 format_valid 已由 formatValidScore 统一降为 60；此处仅追加证据，不再二次乘 0.6（避免双重惩罚，A3-6 统一）
     }
 
     // ===== 4. 从输出中提取答案 =====
@@ -163,13 +164,13 @@ function extractFinalAnswer(text: string): string | number | null {
 
 /**
  * 从文本中解析数值答案
- * 支持格式：123, 12.5, 1,234.56, -456, 50%, 100万, 3.14元
+ * 支持格式：123, 12.5, 1,234.56, -456, 50%, 100万元, 3.14元, 5次/分钟
+ * A3-9 修复：先剥离尾部单位字符（不含 万/亿），再单独处理 万/亿 倍数，避免「万元」被一并剥掉导致数量级错误。
  */
 function parseNumericAnswer(text: string): number | null {
-  // 去除单位和货币符号
+  // 去除千分位、约数词、空白
   let cleaned = text
-    .replace(/[,，]/g, '') // 千分位
-    .replace(/[元万元个只米公斤千克kmkgg秒分钟小时天年°℃]$/g, '')
+    .replace(/[,，]/g, '')
     .replace(/[约近大约]/, '')
     .replace(/\s+/g, '')
     .trim();
@@ -180,7 +181,10 @@ function parseNumericAnswer(text: string): number | null {
     return isNaN(num) ? null : num;
   }
 
-  // 处理万/亿
+  // A3-9：先剥离尾部单位字符（不含 万/亿，留给倍数处理），支持复合单位如 次/分钟、元/吨
+  cleaned = cleaned.replace(/[元个只米公斤千克千吨公里kmkgg秒分钟小时天年°℃次片件倍]/g, '');
+
+  // 处理万/亿 倍数（可出现在单位前，如 万元、亿吨）
   let multiplier = 1;
   if (cleaned.endsWith('万')) {
     multiplier = 10000;
@@ -213,7 +217,7 @@ function compareAnswer(extracted: string | number, expected: unknown, tolerance:
     // 完全相等
     if (extractedNum === expected) return 100;
 
-    // 容差比较
+    // 容差比较（A3-9 收紧：相对误差档位更严格，20% 误差不再给 40 分）
     if (expected === 0) {
       // 避免除以0
       return Math.abs(extractedNum) <= tolerance ? 100 : Math.max(0, Math.round(100 - Math.abs(extractedNum) * 10));
@@ -221,9 +225,10 @@ function compareAnswer(extracted: string | number, expected: unknown, tolerance:
 
     const relativeError = Math.abs(extractedNum - expected) / Math.abs(expected);
     if (relativeError <= tolerance) return 100;
-    if (relativeError <= tolerance * 5) return 80;
-    if (relativeError <= tolerance * 10) return 60;
-    if (relativeError <= tolerance * 20) return 40;
+    if (relativeError <= tolerance * 2) return 90;
+    if (relativeError <= tolerance * 5) return 75;
+    if (relativeError <= tolerance * 10) return 50;
+    if (relativeError <= tolerance * 20) return 25;
     return 0;
   }
 
