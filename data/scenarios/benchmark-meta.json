@@ -1,17 +1,17 @@
 {
  "version": "1.0.0",
- "count": 516,
+ "count": 574,
  "dimensions": {
   "agent_workflow": 45,
   "cli_deep_tasks": 56,
   "data_extraction": 35,
   "hallucination_resistance": 78,
   "instruction_following": 42,
-  "program": 92,
+  "program": 150,
   "reasoning_math": 34,
   "safety_authority": 50,
   "structured_output": 28,
   "tool_cli_workflow": 56
  },
- "generatedAt": "2026-08-21T18:04:41.563Z"
+ "generatedAt": "2026-08-24T00:15:03.925Z"
 }
