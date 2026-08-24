@@ -296,6 +296,9 @@ export interface ScenarioResult {
   humanReviewNotes?: string;
   /** 代码块提取失败标记 — 模型输出了代码但未使用 Markdown 代码块包裹 */
   codeExtractionFailed?: boolean;
+  /** 测试基础设施/环境故障标记（如容器 HOME 权限、dotnet workload 校验失败、
+   *  docker daemon 故障）。非模型错误，聚合计算维度均值时必须隔离（不计入）。 */
+  environmentError?: boolean;
   /** 评分器提取到的修复 patch（供 Judge 复核，代码修复维度） */
   extractedPatch?: string;
   /** 思考/输出超限标记 — 思考链过长或超出预算被硬性中断（0 分或降权） */
@@ -670,6 +673,8 @@ export interface QuestionLiveResult {
   totalScore: number;
   safetyLevel: SafetyLevel;
   passed: boolean;           // score >= 60
+  /** 环境/测试基础设施故障（harness 故障非模型错误）：该题已隔离，不计入均值 */
+  environmentError?: boolean;
   durationMs: number;
   stage: EvalStage;
   error?: string;
@@ -703,6 +708,7 @@ export type EvalStage =
   | 'safety_check'
   | 'ai_judge'
   | 'reasoning_limit'
+  | 'environment_error'
   | 'completed'
   | 'failed';
 

@@ -91,14 +91,17 @@ export function applyCoverageDiscount(detScore: number, coverage: number): numbe
 /**
  * 难度加权维度均分（纯函数，难度映射由调用方注入）。
  * 维度均分 = Σ(题目得分 × 难度权重) / Σ(难度权重)
+ * environmentError=true 的结果（harness/容器故障，非模型错误）不计入均值，
+ * 避免测试环境缺陷污染模型分数。
  */
 export function computeDifficultyWeightedDimAvgs(
-  results: Array<{ scenarioId: string; dimension: string; totalScore: number }>,
+  results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean }>,
   difficultyLookup: Map<string, string>,
 ): Map<string, number> {
   const dimWeightedSums = new Map<string, number>();
   const dimWeightTotals = new Map<string, number>();
   for (const r of results) {
+    if (r.environmentError === true) continue;  // 环境故障隔离：不计入维度均值
     const dim = r.dimension;
     const diff = difficultyLookup.get(r.scenarioId) || 'medium';
     const weight = DIFFICULTY_WEIGHTS[diff] ?? 1;

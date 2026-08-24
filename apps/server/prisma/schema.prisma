@@ -79,6 +79,7 @@ model ScenarioResult {
   evidence        String   // JSON: string[]
   humanReviewRequired Boolean @default(false)
   reasoningLimitExceeded Boolean @default(false)  // 思考/输出超限（反拖尾）中断
+  environmentError Boolean @default(false)  // 环境/测试基础设施故障（harness 故障非模型错误），聚合隔离不计入均值
   startedAt       DateTime
   finishedAt      DateTime
 

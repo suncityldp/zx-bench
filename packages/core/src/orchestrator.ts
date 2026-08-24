@@ -430,7 +430,9 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   }
 
   // 当 judge 权重为 0 时，跳过 Judge 调用（节省 API 成本和时间）
-  if (evalConfig.judgeEnabled && judgeOptions && weights.judge > 0) {
+  // 环境/测试基础设施故障（environmentError）同样跳过：harness 无法执行，
+  // AI Judge 没有可评判的执行结果，调用只会浪费 token 且可能覆盖隔离标记。
+  if (evalConfig.judgeEnabled && judgeOptions && weights.judge > 0 && result.environmentError !== true) {
     onProgress?.('ai_judge');
     const judgeInput: JudgeInput = {
       questionId: scenario.id,

@@ -8,9 +8,13 @@
 //   functionName?: string                —— 入口函数（api_stability 用）
 //   explanationKeywords?: string[]       —— 静态信号关键词
 //   image?: string                       —— 覆盖默认容器镜像
-// 模型输出：多文件「完整内容」，每个文件一个代码块，前一行用
-//   「### file: <path>」标注路径。未标注路径的代码块视为对全部文件
-//   的增量描述，忽略。
+// 模型输出：多文件「完整内容」，每个文件一个代码块，前一行用标题行
+//   标注路径。兼容多种自然写法（parseFileBlocks 解析）：
+//     `### file: <path>`          规范格式
+//     `### \`<path>\``             反引号包路径
+//     `### 1. \`<path>\` —— 说明` 编号 + 描述
+//     `#### \`<path>\``           任意标题层级
+//   未标注路径或不像文件路径的标题（如 `### 实现思路`）忽略。
 // 评分轴：test_pass(25) + api_stability(15) + static_signals(30)
 //          + output_completeness(15) + scope_discipline(15)，权重可被
 //          scenario.scoring.weights 覆盖。
@@ -19,6 +23,7 @@
 import type { Scenario, ScenarioResult, ModelResponse, OutputMetadata, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { runInContainer, isDockerAvailable } from '../execution/index.js';
+import { detectEnvironmentError } from './harnessErrors.js';
 
 /** 语言 → 默认容器镜像 */
 const LANG_IMAGE: Record<string, string> = {
@@ -47,38 +52,39 @@ interface ProjectRepairRequirements {
   image?: string;
 }
 
-/** 从模型输出解析「### file: <path> + 代码块」→ {path: content} */
-function parseFileBlocks(output: string): Record<string, string> {
-  const result: Record<string, string> = {};
-  // 匹配行首 ### file: path（可选 ```lang 紧随）
-  const markerRe = /###\s*file\s*:\s*([^\n]+)/gi;
-  let m: RegExpExecArray | null;
-  while ((m = markerRe.exec(output)) !== null) {
-    const path = m[1].trim();
-    const afterMarker = m.index + m[0].length;
-    // 找紧随其后的代码块
-    const fenceRe = /```[\w+-]*\s*\n([\s\S]*?)```/;
-    fenceRe.lastIndex = afterMarker;
-    // 用 slice 找下一个 fence
-    const rest = output.substring(afterMarker);
-    const fm = rest.match(/```[\w+-]*\s*\n([\s\S]*?)```/);
-    if (fm) {
-      result[path] = fm[1].replace(/\n$/, '');
-    }
-  }
-  return result;
-}
+/** 纯解析函数从独立模块导入（零运行时依赖，便于单测与隔离 dockerode）。 */
+import { normalizePath, parseFileBlocks } from './patchParser.js';
 
-/** 物化工作区：初始文件 + 模型替换 + 隐藏测试文件 → ContainerFile[] */
+/** 物化工作区：初始文件 + 模型替换 + 隐藏测试文件 → ContainerFile[]。
+ *  替换按规范化路径匹配 initial 文件 key，避免模型写法（./ 前缀、反斜杠）
+ *  与 initial 不一致时变成「新建一份」而非替换，导致旧错误代码仍被测试。 */
 function buildWorkspaceFiles(
   initial: { path: string; content: string }[],
   replacements: Record<string, string>,
   hidden: { path: string; content: string }[],
 ) {
   const map = new Map<string, string>();
-  for (const f of initial) map.set(f.path, f.content);
-  for (const [path, content] of Object.entries(replacements)) map.set(path, content);
-  for (const f of hidden) map.set(f.path, f.content);
+  const normIdx = new Map<string, string>(); // 规范化路径 -> map key
+  for (const f of initial) {
+    map.set(f.path, f.content);
+    normIdx.set(normalizePath(f.path), f.path);
+  }
+  for (const [rPath, content] of Object.entries(replacements)) {
+    const n = normalizePath(rPath);
+    const existing = normIdx.get(n);
+    if (existing) {
+      map.set(existing, content);  // 命中已有文件 → 替换，保持原始路径 key
+    } else {
+      map.set(rPath, content);    // 新文件
+      normIdx.set(n, rPath);
+    }
+  }
+  for (const f of hidden) {
+    const n = normalizePath(f.path);
+    const existing = normIdx.get(n);
+    if (existing) map.set(existing, f.content);
+    else { map.set(f.path, f.content); normIdx.set(n, f.path); }
+  }
   return [...map.entries()].map(([path, content]) => ({ path, content }));
 }
 
@@ -135,7 +141,7 @@ async function runScript(
 
 export const projectRepairEvaluator: Evaluator = {
   name: 'project_repair',
-  version: '1.0.0',
+  version: '1.1.0',
 
   async evaluate(
     scenario: Scenario,
@@ -165,17 +171,19 @@ export const projectRepairEvaluator: Evaluator = {
 
     // 3. 跑隐藏测试脚本
     if (!(await isDockerAvailable())) {
-      evidence.push('Docker 不可用，跳过容器测试');
+      evidence.push('ENVIRONMENT_ERROR: docker daemon unreachable — harness 故障，非模型错误，已隔离（unmeasured）');
       return {
         axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
         axisEvidence: { test_pass: 'unmeasured', output_completeness: 'rule' },
         totalScore: 0,
         safetyLevel: 'safe',
         evidence,
+        environmentError: true,
       } as Partial<ScenarioResult>;
     }
 
     const results: ScriptRunResult[] = [];
+    let envErrorReason: string | null = null;
     for (const ht of hiddenTests) {
       if (!ht.script || !ht.script.trim()) {
         evidence.push('跳过无 script 的测试: ' + ht.description);
@@ -184,13 +192,22 @@ export const projectRepairEvaluator: Evaluator = {
       const isSql = lang === 'sql' || lang === 'postgresql';
       const r = await runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql });
       results.push(r);
+      const envInfo = detectEnvironmentError(r.stderr);
+      if (envInfo.isEnv && envErrorReason === null) envErrorReason = envInfo.reason ?? null;
       evidence.push((r.passed ? 'PASS' : 'FAIL') + ' [' + ht.description + '] exit=' + r.exitCode + (r.passed ? '' : ' | ' + (r.stderr || r.stdout || '').replace(/\r?\n/g, ' ').slice(0, 300)));
     }
 
-    // 4. test_pass 得分（通过率）
-    const passed = results.filter((r) => r.passed).length;
-    axisScores.test_pass = results.length > 0 ? Math.round((passed / results.length) * 100) : 0;
-    axisEvidence.test_pass = 'rule';
+    // 3b. 环境/测试基础设施故障：test_pass 不可信 → 整题标记隔离，不计入维度均值
+    if (envErrorReason !== null) {
+      axisScores.test_pass = 0;
+      axisEvidence.test_pass = 'unmeasured';
+      evidence.push(`ENVIRONMENT_ERROR: ${envErrorReason} — harness 故障，非模型错误，已隔离（unmeasured）`);
+    } else {
+      // 4. test_pass 得分（通过率）
+      const passed = results.filter((r) => r.passed).length;
+      axisScores.test_pass = results.length > 0 ? Math.round((passed / results.length) * 100) : 0;
+      axisEvidence.test_pass = 'rule';
+    }
 
     // 5. api_stability：入口函数签名是否保留（启发式：替换文件中仍含 functionName）
     const fnName = req.functionName;
@@ -244,6 +261,7 @@ export const projectRepairEvaluator: Evaluator = {
       totalScore,
       safetyLevel: 'safe',
       evidence,
+      environmentError: envErrorReason !== null,
     } as Partial<ScenarioResult>;
   },
 };

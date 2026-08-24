@@ -22,6 +22,7 @@ import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.
 import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
 import { runSqlInContainer, type SqlFixture } from '../execution/sqlRunner.js';
 import { runBashTestsInContainer, type BashFixture } from '../execution/bashRunner.js';
+import { envErrorOf } from './harnessErrors.js';
 import { execAsync } from '../execution/execAsync.js';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -495,6 +496,9 @@ export const codeRepairEvaluator: Evaluator = {
     const evidence: string[] = [];
     const lang = (scenario.language || 'javascript').toLowerCase();
     let runtimeEval: RuntimeEvaluation | undefined;
+    // 环境/测试基础设施故障（容器 HOME 权限、dotnet workload、docker daemon 等）。
+    // 命中 → compilation/test_pass 不判分（unmeasured 隔离），聚合层不计入维度均值。
+    let envErrorReason: string | null = null;
     const reqObj = (scenario.requirements ?? {}) as unknown as Record<string, unknown>;
     // Go/Java 有 fixture 时走容器执行（真实编译 + 测试），不再走静态关键词评分
     const goFixture = (lang === 'go' && reqObj.fixture) ? (reqObj.fixture as GoFixture) : undefined;
@@ -650,6 +654,9 @@ export const codeRepairEvaluator: Evaluator = {
       } else if (bashFixture) {
         // ===== Bash 容器执行路径（脚本断言，退出码判定） =====
         const bashRes = await runBashTestsInContainer(patch, tests, bashFixture);
+        const bashEnv = envErrorOf(bashRes);
+        if (bashEnv.isEnv) { envErrorReason = bashEnv.reason ?? null; }
+        else {
         const bashCompiled = !/syntax error|command not found/.test(bashRes.stderr);
         axisScores.compilation = bashCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -679,9 +686,13 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Bash tests available for verification');
         }
+        }
       } else if (sqlFixture) {
         // ===== SQL 容器执行路径（建表 + 插数 + 查询 + 结果集/计划比对） =====
         const sqlRes = await runSqlInContainer(patch, sqlFixture);
+        const sqlEnv = envErrorOf(sqlRes);
+        if (sqlEnv.isEnv) { envErrorReason = sqlEnv.reason ?? null; }
+        else {
         const sqlCompiled = !/SQLITE_ERROR|SyntaxError/.test(sqlRes.stderr);
         axisScores.compilation = sqlCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -695,9 +706,13 @@ export const codeRepairEvaluator: Evaluator = {
         evidence.push(sqlRes.passed
           ? 'SQL result set matches expected'
           : 'SQL result mismatch: actual=' + JSON.stringify(sqlRes.actual).slice(0, 200));
+        }
       } else if (phpFixture) {
         // ===== PHP 容器执行路径（真实运行 + assert） =====
         const phpRes = await runPhpTestsInContainer(patch, tests, phpFixture);
+        const phpEnv = envErrorOf(phpRes);
+        if (phpEnv.isEnv) { envErrorReason = phpEnv.reason ?? null; }
+        else {
         const phpCompiled = !/Parse error|Fatal error:/.test(phpRes.stderr);
         axisScores.compilation = phpCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -727,9 +742,13 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No PHP tests available for verification');
         }
+        }
       } else if (csharpFixture) {
         // ===== C# 容器执行路径（真实编译 + 运行） =====
         const csRes = await runCsharpTestsInContainer(patch, tests, csharpFixture);
+        const csEnv = envErrorOf(csRes);
+        if (csEnv.isEnv) { envErrorReason = csEnv.reason ?? null; }
+        else {
         const csCompiled = !/error CS\d+/.test(csRes.stderr);
         axisScores.compilation = csCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -759,9 +778,13 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No C# tests available for verification');
         }
+        }
       } else if (lang === 'rust' && reqObj.miri === true) {
         // ===== Rust Miri 健全性压测路径（CP-L3-RS-003：unsafe 越界 + transmute 生命周期） =====
         const miriRes = await runRustMiriInContainer(patch, 180000);
+        const miriEnv = envErrorOf(miriRes);
+        if (miriEnv.isEnv) { envErrorReason = miriEnv.reason ?? null; }
+        else {
         axisScores.compilation = miriRes.compiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(miriRes.compiled
@@ -779,9 +802,13 @@ export const codeRepairEvaluator: Evaluator = {
         axisScores.test_pass = calculateTestScore(suiteResult);
         axisEvidence.test_pass = 'verified';
         evidence.push('Rust Miri: ' + suiteResult.passedTests + '/' + suiteResult.totalTests + ' passed' + (miriRes.miriClean ? '' : ' (UB detected!)'));
+        }
       } else if (rustFixture) {
         // ===== Rust 容器执行路径（真实编译 + assert） =====
         const rustRes = await runRustTestsInContainer(patch, tests, rustFixture);
+        const rustEnv = envErrorOf(rustRes);
+        if (rustEnv.isEnv) { envErrorReason = rustEnv.reason ?? null; }
+        else {
         const rustCompiled = !/error\[?/.test(rustRes.stderr) && !/^error:/.test(rustRes.stderr);
         axisScores.compilation = rustCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -811,9 +838,13 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Rust tests available for verification');
         }
+        }
       } else if (isCppLang && reqObj.tsan === true) {
         // ===== C++ TSan 并发压测路径（CP-L3-CC-005：Treiber 无锁栈内存序） =====
         const tsanRes = await runCppTsanInContainer(patch, 120000);
+        const tsanEnv = envErrorOf(tsanRes);
+        if (tsanEnv.isEnv) { envErrorReason = tsanEnv.reason ?? null; }
+        else {
         const cCompiled = !tsanRes.compileError;
         axisScores.compilation = cCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -832,9 +863,13 @@ export const codeRepairEvaluator: Evaluator = {
         axisScores.test_pass = calculateTestScore(suiteResult);
         axisEvidence.test_pass = 'verified';
         evidence.push('C++ TSan: ' + suiteResult.passedTests + '/' + suiteResult.totalTests + ' passed' + (tsanRes.raceDetected ? ' (data race!)' : ''));
+        }
       } else if (cFixture) {
         // ===== C/C++ 容器执行路径（真实编译 + ASan + assert） =====
         const cRes = isCppLang ? await runCppTestsInContainer(patch, tests, cFixture) : await runCTestsInContainer(patch, tests, cFixture);
+        const cEnv = envErrorOf(cRes);
+        if (cEnv.isEnv) { envErrorReason = cEnv.reason ?? null; }
+        else {
         const cCompiled = !/error:/.test(cRes.stderr);
         axisScores.compilation = cCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -864,9 +899,13 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No C/C++ tests available for verification');
         }
+        }
       } else if (javaFixture) {
         // ===== Java 容器执行路径（真实编译 + JUnit） =====
         const javaRes = await runJavaTestsInContainer(patch, tests, javaFixture);
+        const javaEnv = envErrorOf(javaRes);
+        if (javaEnv.isEnv) { envErrorReason = javaEnv.reason ?? null; }
+        else {
         const javaCompiled = javaRes.tests.length > 0 && !/error:/.test(javaRes.stderr);
         axisScores.compilation = javaCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -896,10 +935,14 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Java tests available for verification');
         }
+        }
       } else if (goFixture) {
         // ===== Go 容器执行路径（真实编译 + go test） =====
         if (goFixture.programMode && goFixture.expectedOutput) {
           const progRes = await runGoProgramInContainer(patch, goFixture.expectedOutput);
+          const progEnv = envErrorOf(progRes);
+          if (progEnv.isEnv) { envErrorReason = progEnv.reason ?? null; }
+          else {
           const progCompiled = progRes.exitCode === 0 && !/error/.test(progRes.stderr);
           axisScores.compilation = progCompiled ? 100 : 0;
           axisEvidence.compilation = 'verified';
@@ -909,8 +952,12 @@ export const codeRepairEvaluator: Evaluator = {
           evidence.push(progRes.passed
             ? 'Go program output matches expected'
             : 'Go program output mismatch: ' + JSON.stringify(progRes.stdout).slice(0, 200));
+          }
         } else {
         const goRes = await runGoTestsInContainer(patch, tests, goFixture);
+        const goEnv = envErrorOf(goRes);
+        if (goEnv.isEnv) { envErrorReason = goEnv.reason ?? null; }
+        else {
         // 只要有 PASS/FAIL 输出即说明编译通过（编译失败不会产生测试结果行）
         const compiled = goRes.tests.length > 0;
         axisScores.compilation = compiled ? 100 : 0;
@@ -940,6 +987,7 @@ export const codeRepairEvaluator: Evaluator = {
         } else {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Go tests available for verification');
+        }
         }
         }
       } else {
@@ -1033,6 +1081,15 @@ export const codeRepairEvaluator: Evaluator = {
       totalScore = Math.round(wsum > 0 ? sum / wsum : 0);
     }
 
+    const isEnvError = envErrorReason !== null;
+    if (isEnvError) {
+      // 环境/测试基础设施故障：不判分（保持轴为空 = unmeasured），标记隔离，
+      // 聚合层（scoring/routes/recalc）识别后不计入维度均值。
+      evidence.push(`ENVIRONMENT_ERROR: ${envErrorReason} — harness 故障，非模型错误，已隔离（unmeasured）`);
+      axisEvidence.test_pass = 'unmeasured';
+      axisEvidence.compilation = 'unmeasured';
+    }
+
     return {
       axisScores,
       axisEvidence,
@@ -1042,6 +1099,7 @@ export const codeRepairEvaluator: Evaluator = {
       codeExtractionFailed,
       runtimeEvaluation: runtimeEval,
       extractedPatch: patch ?? undefined,
+      environmentError: isEnvError,
     };
   },
 };
