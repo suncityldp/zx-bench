@@ -103,6 +103,19 @@ pnpm --filter server start
 
 浏览器访问 http://127.0.0.1:3001。
 
+### macOS 专属说明
+
+本项目是标准 pnpm + Node/TypeScript + Docker monorepo，源码无平台专属依赖，**macOS（Intel 与 Apple Silicon 均支持）可直接运行**。注意以下几点：
+
+- **用 pnpm 脚本启动，不要用 `start.bat` / `start-server.ps1`**：这两个是 Windows 便利脚本，macOS 上不可用。请用：
+  ```bash
+  pnpm install && pnpm build
+  pnpm --filter server start        # 或 pnpm dev 一键起前后端
+  ```
+- **先装 Docker Desktop for Mac**：编程维度所有语言都跑在容器里，评测前请确认 Docker Desktop 已启动（否则编程维度会整体 `Docker unavailable` 跳过）。`node:20-alpine` / `python:3.12-alpine` / `bash:5-alpine` / `postgres:15` 等均为多架构镜像，Apple Silicon 上自动拉取 arm64 原生版本。
+- **Node 版本**：用 nvm / fnm / Homebrew 装 Node ≥ 22.13、pnpm ≥ 11；若系统 Node 过旧，`pnpm install` 会因 `engines` 限制报错。
+- **无需担心 Windows 的 node_modules 符号链接损坏**：macOS 原生支持 symlink，`pnpm install` 不会复现该问题，`pnpm test` 可正常跑（仓库已加 `pretest` 自动构建 TS 库，clone 后直接 `pnpm test` 即可）。
+
 ### 导入基准题集
 
 ```bash
