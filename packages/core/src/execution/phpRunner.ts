@@ -37,12 +37,12 @@ export function buildPhpHarness(
 }
 
 /** 逐测试独立运行（assert 失败 fatal，需隔离才能逐测试判定） */
-export function runPhpTestsInContainer(
+export async function runPhpTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: PhpFixture = {},
   timeoutMs = 30000,
-): PhpRunResult {
+): Promise<PhpRunResult> {
   const tests: { name: string; passed: boolean }[] = [];
   let allStdout = '';
   let allStderr = '';
@@ -52,7 +52,7 @@ export function runPhpTestsInContainer(
 
   for (let i = 0; i < testCases.length; i++) {
     const harness = buildPhpHarness(sourceCode, [testCases[i]], fixture);
-    const res = runInContainer({
+    const res = await runInContainer({
       image: PHP_IMAGE,
       command: ['php', 'main.php'],
       files: [{ path: 'main.php', content: harness['main.php'] }],

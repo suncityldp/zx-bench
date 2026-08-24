@@ -172,7 +172,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   if (scenarioRequirements.requiresSandbox === true) {
     onProgress?.('sandbox_prepare');
     try {
-      const prepared = prepareSandboxEvaluation(scenario.id, scenarioRequirements);
+      const prepared = await prepareSandboxEvaluation(scenario.id, scenarioRequirements);
       userPrompt = userPrompt + '\n\n' + prepared.transcript;
       sandboxEvaluation = prepared.runtimeEvaluation;
       sandboxSummary = prepared.summary;

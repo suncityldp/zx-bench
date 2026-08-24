@@ -73,18 +73,18 @@ export function buildGoTestHarness(
 }
 
 /** 在 golang 容器里跑 Go hidden tests，返回整体结果 + 逐测试解析 */
-export function runGoTestsInContainer(
+export async function runGoTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: GoFixture = {},
   timeoutMs = 30000,
-): GoRunResult {
+): Promise<GoRunResult> {
   const harness = buildGoTestHarness(sourceCode, testCases, fixture);
   const cmd = ['go', 'test', '-p', '1'];
   if (fixture.race) cmd.push('-race');
   cmd.push('-run', 'TestHidden', '-count=1', '-v', './...');
 
-  const res = runInContainer({
+  const res = await runInContainer({
     image: GO_IMAGE,
     command: cmd,
     files: [
@@ -118,12 +118,12 @@ export function runGoTestsInContainer(
 // ============================================================
 
 /** 完整 main 程序执行 + 输出行集合比对（排序后相等，允许顺序差异） */
-export function runGoProgramInContainer(
+export async function runGoProgramInContainer(
   sourceCode: string,
   expectedOutputLines: string[],
   timeoutMs = 30000,
-): { passed: boolean; stdout: string; stderr: string; exitCode: number; timedOut: boolean; durationMs: number } {
-  const res = runInContainer({
+): Promise<{ passed: boolean; stdout: string; stderr: string; exitCode: number; timedOut: boolean; durationMs: number }> {
+  const res = await runInContainer({
     image: GO_IMAGE,
     command: ['go', 'run', 'main.go'],
     files: [{ path: 'main.go', content: sourceCode }],

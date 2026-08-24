@@ -6,7 +6,7 @@
 // drop capabilities、no-new-privileges、CPU/内存/PID 限制。
 // ============================================================
 
-import { spawnSync } from 'node:child_process';
+import { execAsync } from './execAsync.js';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -58,29 +58,29 @@ export const CONTAINER_IMAGES: Record<string, string> = {
 
 /** Docker 是否可用（缓存结果） */
 let dockerAvailableCache: boolean | null = null;
-export function isDockerAvailable(): boolean {
+export async function isDockerAvailable(): Promise<boolean> {
   if (dockerAvailableCache !== null) return dockerAvailableCache;
-  const res = spawnSync('docker', ['version', '--format', '{{.Server.Version}}'], { encoding: 'utf8', timeout: 8000 });
+  const res = await execAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout: 8000 });
   dockerAvailableCache = res.status === 0;
   return dockerAvailableCache;
 }
 
 /** 获取镜像 digest（审计链用；未拉取返回 undefined） */
-export function getImageDigest(image: string): string | undefined {
-  const res = spawnSync('docker', ['inspect', '--format', '{{index .RepoDigests 0}}', image], { encoding: 'utf8', timeout: 15000 });
+export async function getImageDigest(image: string): Promise<string | undefined> {
+  const res = await execAsync('docker', ['inspect', '--format', '{{index .RepoDigests 0}}', image], { timeout: 15000 });
   const out = (res.stdout || '').trim();
   return res.status === 0 && out.length > 0 ? out : undefined;
 }
 
 /** 确保镜像已拉取（未缓存则静默 pull，避免拉取噪音混入执行 stderr） */
-function ensureImage(image: string): void {
-  const inspect = spawnSync('docker', ['image', 'inspect', image], { encoding: 'utf8', timeout: 15000 });
+async function ensureImage(image: string): Promise<void> {
+  const inspect = await execAsync('docker', ['image', 'inspect', image], { timeout: 15000 });
   if (inspect.status === 0) return;
-  spawnSync('docker', ['pull', image], { encoding: 'utf8', timeout: 300000, stdio: 'ignore' });
+  await execAsync('docker', ['pull', image], { timeout: 300000, stdio: 'ignore' });
 }
 
 /** 在隔离容器中执行命令，返回 stdout/stderr/exitCode。工作区只读 bind mount。 */
-export function runInContainer(options: ContainerRunOptions): ContainerRunResult {
+export async function runInContainer(options: ContainerRunOptions): Promise<ContainerRunResult> {
   const {
     image, command, files = [], workdir = '/workspace', timeoutMs = 10000,
     memoryMb = 128, cpuLimit = 1.0, pidsLimit = 64,
@@ -90,11 +90,11 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
 
   const startedAt = Date.now();
 
-  if (!isDockerAvailable()) {
+  if (!(await isDockerAvailable())) {
     return { success: false, stdout: '', stderr: 'Docker unavailable — container execution skipped', exitCode: -1, timedOut: false, durationMs: 0 };
   }
 
-  ensureImage(image);
+  await ensureImage(image);
 
   const hostDir = mkdtempSync(join(tmpdir(), 'zxbench-run-'));
   try {
@@ -128,7 +128,7 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
     }
     args.push(image, ...command);
 
-    const res = spawnSync('docker', args, { encoding: 'utf8', timeout: timeoutMs + 5000, maxBuffer: 8 * 1024 * 1024 });
+    const res = await execAsync('docker', args, { timeout: timeoutMs + 5000, maxBuffer: 8 * 1024 * 1024 });
 
     const timedOut = res.error != null && (res.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     const exitCode = res.status ?? (timedOut ? 124 : 1);

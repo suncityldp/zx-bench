@@ -43,12 +43,12 @@ export function buildBashHarness(
 }
 
 /** 逐测试独立 bash 进程执行（断言失败 exit 非零） */
-export function runBashTestsInContainer(
+export async function runBashTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: BashFixture = {},
   timeoutMs = 30000,
-): BashRunResult {
+): Promise<BashRunResult> {
   const image = fixture.image || BASH_IMAGE;
   const tests: { name: string; passed: boolean }[] = [];
   let allStdout = '';
@@ -59,7 +59,7 @@ export function runBashTestsInContainer(
 
   for (let i = 0; i < testCases.length; i++) {
     const harness = buildBashHarness(sourceCode, [testCases[i]], fixture);
-    const res = runInContainer({
+    const res = await runInContainer({
       image,
       command: ['bash', 'main.sh'],
       files: [{ path: 'main.sh', content: harness['main.sh'] }],

@@ -134,7 +134,7 @@ export const sandboxEvaluator: Evaluator = {
     evidence.push('scope_discipline: ' + (scopeNotes.length ? scopeNotes.join(', ') : '单语句/无DDL/无PLpgSQL 合规'));
 
     // 2. 容器执行（PG 沙箱）
-    const res = runInContainer({
+    const res = await runInContainer({
       image: 'postgres:15',
       command: ['bash', '/workspace/harness.sh'],
       files: [

@@ -62,17 +62,17 @@ export function buildJavaHarness(
   return { 'HiddenTest.java': parts.join('\n') + '\n' };
 }
 
-export function runJavaTestsInContainer(
+export async function runJavaTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: JavaFixture = {},
   timeoutMs = 30000,
-): JavaRunResult {
+): Promise<JavaRunResult> {
   const harness = buildJavaHarness(sourceCode, testCases, fixture);
   const libs = javaLibsDir();
   const cp = '/libs/' + JUNIT_JAR + ':/libs/' + HAMCREST_JAR;
   const shell = 'mkdir -p /tmp/classes && javac -d /tmp/classes -cp ' + cp + ' HiddenTest.java && java -Duser.home=/tmp -Djava.io.tmpdir=/tmp -cp /tmp/classes:' + cp + ' org.junit.runner.JUnitCore HiddenTest';
-  const res = runInContainer({
+  const res = await runInContainer({
     image: JAVA_IMAGE,
     command: ['sh', '-c', shell],
     files: [{ path: 'HiddenTest.java', content: harness['HiddenTest.java'] }],

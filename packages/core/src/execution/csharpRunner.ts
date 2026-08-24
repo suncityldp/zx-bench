@@ -89,12 +89,12 @@ export function buildCsharpHarness(
 }
 
 /** 逐测试独立编译运行（throw 会终止，需隔离） */
-export function runCsharpTestsInContainer(
+export async function runCsharpTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: CsharpFixture = {},
   timeoutMs = 30000,
-): CsharpRunResult {
+): Promise<CsharpRunResult> {
   const tests: { name: string; passed: boolean }[] = [];
   let allStdout = '';
   let allStderr = '';
@@ -104,7 +104,7 @@ export function runCsharpTestsInContainer(
 
   for (let i = 0; i < testCases.length; i++) {
     const harness = buildCsharpHarness(sourceCode, [testCases[i]], fixture);
-    const res = runInContainer({
+    const res = await runInContainer({
       image: CS_IMAGE,
       command: ['sh', '-c', 'dotnet run --project app.csproj'],
       files: [

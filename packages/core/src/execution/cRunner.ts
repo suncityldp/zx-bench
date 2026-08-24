@@ -50,13 +50,13 @@ export function buildCHarness(
 }
 
 /** 逐个测试独立编译运行（assert/ASan 失败会 abort，需隔离才能逐测试判定） */
-export function runCTestsInContainer(
+export async function runCTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: CFixture = {},
   timeoutMs = 30000,
   cpp = false,
-): CRunResult {
+): Promise<CRunResult> {
   const file = cpp ? 'main.cpp' : 'main.c';
   const compiler = cpp ? 'g++ -std=c++17' : 'gcc';
   const tests: { name: string; passed: boolean }[] = [];
@@ -68,7 +68,7 @@ export function runCTestsInContainer(
 
   for (let i = 0; i < testCases.length; i++) {
     const harness = buildCHarness(sourceCode, [testCases[i]], fixture, cpp);
-    const res = runInContainer({
+    const res = await runInContainer({
       image: C_IMAGE,
       command: ['sh', '-c', `${compiler} -g ${file} -o /tmp/a.out && /tmp/a.out`],
       files: [{ path: file, content: harness[file] }],
@@ -96,12 +96,12 @@ export function runCTestsInContainer(
 }
 
 /** C++ 隐藏测试容器执行：g++ -std=c++17 + ASan + assert */
-export function runCppTestsInContainer(
+export async function runCppTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: CFixture = {},
   timeoutMs = 30000,
-): CRunResult {
+): Promise<CRunResult> {
   return runCTestsInContainer(sourceCode, testCases, fixture, timeoutMs, true);
 }
 
@@ -163,13 +163,13 @@ const TREIBER_TSAN_MAIN = `int main() {
 /** C++ 并发题 TSan 压测：Treiber 无锁栈内存序（CP-L3-CC-005）。
  *  编译 g++ -fsanitize=thread，用 setarch -R 关 ASLR（需 seccomp=unconfined）。
  *  正确实现：无 data race 且 ALL_TESTS_PASSED；错误实现：TSan 报 data race（exit 66）。 */
-export function runCppTsanInContainer(sourceCode: string, timeoutMs = 120000): CTsanResult {
+export async function runCppTsanInContainer(sourceCode: string, timeoutMs = 120000): Promise<CTsanResult> {
   const file = 'main.cpp';
   const includes = ['<atomic>', '<thread>', '<vector>', '<cstdio>', '<cassert>'];
   const incBlock = includes.map((i) => '#include ' + i).join('\n');
   const harness = incBlock + '\n\n' + sourceCode.trim() + '\n\n' + TREIBER_TSAN_MAIN;
   const startedAt = Date.now();
-  const res = runInContainer({
+  const res = await runInContainer({
     image: C_IMAGE,
     command: ['sh', '-c', 'g++ -std=c++17 -fsanitize=thread -g ' + file + ' -o /tmp/t && setarch $(uname -m) -R /tmp/t'],
     files: [{ path: file, content: harness }],

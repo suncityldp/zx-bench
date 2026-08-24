@@ -55,9 +55,9 @@ function normalize(v: unknown): unknown {
   return out;
 }
 
-export function runSqlInContainer(query: string, fixture: SqlFixture, timeoutMs = 30000): SqlRunResult {
+export async function runSqlInContainer(query: string, fixture: SqlFixture, timeoutMs = 30000): Promise<SqlRunResult> {
   const harness = buildSqlHarness(query, fixture);
-  const res = runInContainer({
+  const res = await runInContainer({
     image: SQL_IMAGE,
     command: ['node', 'main.mjs'],
     files: [{ path: 'main.mjs', content: harness['main.mjs'] }],

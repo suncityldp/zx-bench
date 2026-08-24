@@ -40,12 +40,12 @@ export function buildRustHarness(
 }
 
 /** 逐测试独立编译运行（assert panic 会 abort，需隔离） */
-export function runRustTestsInContainer(
+export async function runRustTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
   fixture: RustFixture = {},
   timeoutMs = 30000,
-): RustRunResult {
+): Promise<RustRunResult> {
   const tests: { name: string; passed: boolean }[] = [];
   let allStdout = '';
   let allStderr = '';
@@ -55,7 +55,7 @@ export function runRustTestsInContainer(
 
   for (let i = 0; i < testCases.length; i++) {
     const harness = buildRustHarness(sourceCode, [testCases[i]], fixture);
-    const res = runInContainer({
+    const res = await runInContainer({
       image: RUST_IMAGE,
       command: ['sh', '-c', 'rustc main.rs -o /tmp/a.out && /tmp/a.out'],
       files: [{ path: 'main.rs', content: harness['main.rs'] }],
@@ -136,11 +136,11 @@ const RS003_MIRI_TESTS = [
 
 /** Rust Miri 并发/健全性压测（CP-L3-RS-003）：cargo +nightly miri test。
  *  正确实现：Miri 无 UB 且 4 测试全过；错误实现：Miri 报 Undefined Behavior（retag/越界）。 */
-export function runRustMiriInContainer(sourceCode: string, timeoutMs = 180000): RustMiriResult {
+export async function runRustMiriInContainer(sourceCode: string, timeoutMs = 180000): Promise<RustMiriResult> {
   const cargoToml = '[package]\nname = "miri_check"\nversion = "0.1.0"\nedition = "2021"\n\n[lib]\npath = "src/lib.rs"\n';
   const libRs = sourceCode.trim() + '\n\n' + RS003_MIRI_TESTS;
   const startedAt = Date.now();
-  const res = runInContainer({
+  const res = await runInContainer({
     image: RUST_MIRI_IMAGE,
     command: ['sh', '-c', 'cargo +nightly miri test'],
     files: [

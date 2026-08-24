@@ -7,7 +7,7 @@
 // git 作者去重等），而非凭空猜测。
 // ============================================================
 
-import { spawnSync } from 'node:child_process';
+import { execAsync } from '../execution/execAsync.js';
 import {
   existsSync,
   mkdirSync,
@@ -74,20 +74,19 @@ export interface PreparedSandbox {
 
 // ===== 物化 =====
 
-function runGit(args: string[], cwd: string, env: NodeJS.ProcessEnv = {}): string {
-  const res = spawnSync('git', args, {
+async function runGit(args: string[], cwd: string, env: NodeJS.ProcessEnv = {}): Promise<string> {
+  const res = await execAsync('git', args, {
     cwd,
-    encoding: 'utf8',
-    timeout: 30000,
+        timeout: 30000,
     env: { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_SYSTEM: '/dev/null', ...env },
   });
   if (res.error) return '';
   return (res.stdout || '') + (res.stderr || '');
 }
 
-function initGitRepo(repoPath: string, commits: WorkspaceGitCommitSpec[]): void {
+async function initGitRepo(repoPath: string, commits: WorkspaceGitCommitSpec[]): Promise<void> {
   mkdirSync(repoPath, { recursive: true });
-  runGit(['init', '-q', '-b', 'main'], repoPath);
+  await runGit(['init', '-q', '-b', 'main'], repoPath);
 
   for (const c of commits) {
     for (const f of c.files) {
@@ -97,7 +96,7 @@ function initGitRepo(repoPath: string, commits: WorkspaceGitCommitSpec[]): void 
       else if (f.sizeBytes != null) { writeFileSync(full, ''); truncateSync(full, f.sizeBytes); }
       else writeFileSync(full, '');
     }
-    runGit(['add', '-A'], repoPath);
+    await runGit(['add', '-A'], repoPath);
 
     const commitEnv: NodeJS.ProcessEnv = {
       GIT_AUTHOR_NAME: c.authorName,
@@ -110,17 +109,17 @@ function initGitRepo(repoPath: string, commits: WorkspaceGitCommitSpec[]): void 
       commitEnv.GIT_COMMITTER_DATE = c.date;
     }
     // 无文件变更的提交也保留（--allow-empty），保证历史完整
-    runGit(['-c', 'commit.gpgsign=false', 'commit', '-q', '--allow-empty', '-m', c.message], repoPath, commitEnv);
+    await runGit(['-c', 'commit.gpgsign=false', 'commit', '-q', '--allow-empty', '-m', c.message], repoPath, commitEnv);
   }
 }
 
 /**
  * 物化工作区到指定根目录（workspaceRoot 即 /workspace 的映射）
  */
-export function materializeWorkspace(
+export async function materializeWorkspace(
   spec: WorkspaceSpec,
   workspaceRoot: string,
-): { files: number; gitRepos: number } {
+): Promise<{ files: number; gitRepos: number }> {
   mkdirSync(workspaceRoot, { recursive: true });
   let files = 0;
   for (const f of spec.files || []) {
@@ -138,7 +137,7 @@ export function materializeWorkspace(
   }
   let gitRepos = 0;
   for (const repo of spec.gitRepos || []) {
-    initGitRepo(join(workspaceRoot, repo.path), repo.commits);
+    await initGitRepo(join(workspaceRoot, repo.path), repo.commits);
     gitRepos++;
   }
   return { files, gitRepos };
@@ -167,8 +166,8 @@ function toPosix(p: string): string {
   return p.split('\\').join('/');
 }
 
-function gitOutput(cwd: string, args: string[]): string {
-  const res = spawnSync('git', args, { cwd, encoding: 'utf8', timeout: 30000 });
+async function gitOutput(cwd: string, args: string[]): Promise<string> {
+  const res = await execAsync('git', args, { cwd, timeout: 30000 });
   if (res.error || res.status !== 0) return '';
   return (res.stdout || '').trim();
 }
@@ -176,7 +175,7 @@ function gitOutput(cwd: string, args: string[]): string {
 /**
  * 执行探查步骤，生成转录文本（输出全部来自真实物化的工作区）
  */
-export function exploreWorkspace(steps: ExploreStep[], workspaceRoot: string): string {
+export async function exploreWorkspace(steps: ExploreStep[], workspaceRoot: string): Promise<string> {
   const lines: string[] = [];
   const ws = workspaceRoot;
 
@@ -217,11 +216,11 @@ export function exploreWorkspace(steps: ExploreStep[], workspaceRoot: string): s
       case 'git_log_authors': {
         const repoPath = join(ws, step.path);
         lines.push(`$ git -C /workspace/${step.path} log --format='%h %an <%ae>'`);
-        const log = gitOutput(repoPath, ['log', "--format=%h %an <%ae>"]);
+        const log = await gitOutput(repoPath, ['log', "--format=%h %an <%ae>"]);
         lines.push(log || '(空历史)');
         lines.push('');
         lines.push(`$ git -C /workspace/${step.path} log --format='%ae' | sort -u`);
-        const emails = gitOutput(repoPath, ['log', "--format=%ae"]);
+        const emails = await gitOutput(repoPath, ['log', "--format=%ae"]);
         if (emails) {
           const unique = [...new Set(emails.split('\n').filter((l) => l.trim()))].sort();
           lines.push(unique.join('\n'));
@@ -234,7 +233,7 @@ export function exploreWorkspace(steps: ExploreStep[], workspaceRoot: string): s
       case 'git_log_committers': {
         const repoPath = join(ws, step.path);
         lines.push(`$ git -C /workspace/${step.path} log --format='%h %cn <%ce>'`);
-        const log = gitOutput(repoPath, ['log', "--format=%h %cn <%ce>"]);
+        const log = await gitOutput(repoPath, ['log', "--format=%h %cn <%ce>"]);
         lines.push(log || '(空历史)');
         lines.push('');
         break;
@@ -257,18 +256,18 @@ const TRANSCRIPT_HEADER = `=== 沙箱工作区探查记录（真实执行） ===
  * 为 requiresSandbox 题目准备沙箱探查：
  * 物化工作区 → 执行探查 → 生成转录（工作区临时目录随后清理，仅保留转录）
  */
-export function prepareSandboxEvaluation(
+export async function prepareSandboxEvaluation(
   scenarioId: string,
   requirements: Record<string, unknown>,
-): PreparedSandbox {
+): Promise<PreparedSandbox> {
   const spec = (requirements.workspace ?? {}) as WorkspaceSpec;
   const steps = (requirements.explore ?? []) as ExploreStep[];
 
   const base = mkdtempSync(join(tmpdir(), 'zxbench-ws-'));
   const workspaceRoot = join(base, 'workspace');
   try {
-    const { files, gitRepos } = materializeWorkspace(spec, workspaceRoot);
-    const body = exploreWorkspace(steps, workspaceRoot);
+    const { files, gitRepos } = await materializeWorkspace(spec, workspaceRoot);
+    const body = await exploreWorkspace(steps, workspaceRoot);
     const transcript = TRANSCRIPT_HEADER + '\n' + body;
 
     const runtimeEvaluation: RuntimeEvaluation = {

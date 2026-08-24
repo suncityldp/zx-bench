@@ -92,13 +92,13 @@ interface ScriptRunResult {
 }
 
 /** 在容器中跑单个测试脚本（脚本是 shell 命令，如 'pytest -q tests/hidden/x.py'） */
-function runScript(
+async function runScript(
   image: string,
   files: { path: string; content: string }[],
   script: string,
   timeoutMs: number,
   opts?: { pg?: boolean },
-): ScriptRunResult {
+): Promise<ScriptRunResult> {
   let command = script;
   let user: string | undefined;
   let memoryMb = 512;
@@ -112,7 +112,7 @@ function runScript(
     user = 'postgres';
     memoryMb = 1024;
   }
-  const res = runInContainer({
+  const res = await runInContainer({
     image,
     command: ['sh', '-c', command],
     files,
@@ -164,7 +164,7 @@ export const projectRepairEvaluator: Evaluator = {
     const workspaceFiles = buildWorkspaceFiles(initialFiles, replacements, hiddenFiles);
 
     // 3. 跑隐藏测试脚本
-    if (!isDockerAvailable()) {
+    if (!(await isDockerAvailable())) {
       evidence.push('Docker 不可用，跳过容器测试');
       return {
         axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
@@ -182,7 +182,7 @@ export const projectRepairEvaluator: Evaluator = {
         continue;
       }
       const isSql = lang === 'sql' || lang === 'postgresql';
-      const r = runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql });
+      const r = await runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql });
       results.push(r);
       evidence.push((r.passed ? 'PASS' : 'FAIL') + ' [' + ht.description + '] exit=' + r.exitCode + (r.passed ? '' : ' | ' + (r.stderr || r.stdout || '').replace(/\r?\n/g, ' ').slice(0, 300)));
     }

@@ -22,7 +22,7 @@ import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.
 import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
 import { runSqlInContainer, type SqlFixture } from '../execution/sqlRunner.js';
 import { runBashTestsInContainer, type BashFixture } from '../execution/bashRunner.js';
-import { spawnSync } from 'node:child_process';
+import { execAsync } from '../execution/execAsync.js';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -62,7 +62,7 @@ async function compileCheck(code: string, language: string): Promise<{ score: nu
   const file = join(dir, `check.${spec.ext}`);
   try {
     writeFileSync(file, code, 'utf8');
-    const res = spawnSync(spec.bin, spec.args(file), { encoding: 'utf8', timeout: 15000 });
+    const res = await execAsync(spec.bin, spec.args(file), { timeout: 15000 });
     if (res.error) {
       // 编译器不存在（如 ENOENT）→ 无法验证
       return { score: null, evidence: `Compiler "${spec.bin}" unavailable — compile check skipped` };
@@ -508,7 +508,7 @@ export const codeRepairEvaluator: Evaluator = {
     const bashFixture = (lang === 'bash' && reqObj.fixture) ? (reqObj.fixture as BashFixture) : undefined;
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
-      ? getPythonBin() != null
+      ? (await getPythonBin()) != null
       : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null || bashFixture != null || reqObj.tsan === true || reqObj.miri === true);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
@@ -649,7 +649,7 @@ export const codeRepairEvaluator: Evaluator = {
         evidence.push('TS type-level + runtime tests: ' + tsSuite.passedTests + '/' + tsSuite.totalTests + ' passed');
       } else if (bashFixture) {
         // ===== Bash 容器执行路径（脚本断言，退出码判定） =====
-        const bashRes = runBashTestsInContainer(patch, tests, bashFixture);
+        const bashRes = await runBashTestsInContainer(patch, tests, bashFixture);
         const bashCompiled = !/syntax error|command not found/.test(bashRes.stderr);
         axisScores.compilation = bashCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -681,7 +681,7 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else if (sqlFixture) {
         // ===== SQL 容器执行路径（建表 + 插数 + 查询 + 结果集/计划比对） =====
-        const sqlRes = runSqlInContainer(patch, sqlFixture);
+        const sqlRes = await runSqlInContainer(patch, sqlFixture);
         const sqlCompiled = !/SQLITE_ERROR|SyntaxError/.test(sqlRes.stderr);
         axisScores.compilation = sqlCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -697,7 +697,7 @@ export const codeRepairEvaluator: Evaluator = {
           : 'SQL result mismatch: actual=' + JSON.stringify(sqlRes.actual).slice(0, 200));
       } else if (phpFixture) {
         // ===== PHP 容器执行路径（真实运行 + assert） =====
-        const phpRes = runPhpTestsInContainer(patch, tests, phpFixture);
+        const phpRes = await runPhpTestsInContainer(patch, tests, phpFixture);
         const phpCompiled = !/Parse error|Fatal error:/.test(phpRes.stderr);
         axisScores.compilation = phpCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -729,7 +729,7 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else if (csharpFixture) {
         // ===== C# 容器执行路径（真实编译 + 运行） =====
-        const csRes = runCsharpTestsInContainer(patch, tests, csharpFixture);
+        const csRes = await runCsharpTestsInContainer(patch, tests, csharpFixture);
         const csCompiled = !/error CS\d+/.test(csRes.stderr);
         axisScores.compilation = csCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -761,7 +761,7 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else if (lang === 'rust' && reqObj.miri === true) {
         // ===== Rust Miri 健全性压测路径（CP-L3-RS-003：unsafe 越界 + transmute 生命周期） =====
-        const miriRes = runRustMiriInContainer(patch, 180000);
+        const miriRes = await runRustMiriInContainer(patch, 180000);
         axisScores.compilation = miriRes.compiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(miriRes.compiled
@@ -781,7 +781,7 @@ export const codeRepairEvaluator: Evaluator = {
         evidence.push('Rust Miri: ' + suiteResult.passedTests + '/' + suiteResult.totalTests + ' passed' + (miriRes.miriClean ? '' : ' (UB detected!)'));
       } else if (rustFixture) {
         // ===== Rust 容器执行路径（真实编译 + assert） =====
-        const rustRes = runRustTestsInContainer(patch, tests, rustFixture);
+        const rustRes = await runRustTestsInContainer(patch, tests, rustFixture);
         const rustCompiled = !/error\[?/.test(rustRes.stderr) && !/^error:/.test(rustRes.stderr);
         axisScores.compilation = rustCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -813,7 +813,7 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else if (isCppLang && reqObj.tsan === true) {
         // ===== C++ TSan 并发压测路径（CP-L3-CC-005：Treiber 无锁栈内存序） =====
-        const tsanRes = runCppTsanInContainer(patch, 120000);
+        const tsanRes = await runCppTsanInContainer(patch, 120000);
         const cCompiled = !tsanRes.compileError;
         axisScores.compilation = cCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -834,7 +834,7 @@ export const codeRepairEvaluator: Evaluator = {
         evidence.push('C++ TSan: ' + suiteResult.passedTests + '/' + suiteResult.totalTests + ' passed' + (tsanRes.raceDetected ? ' (data race!)' : ''));
       } else if (cFixture) {
         // ===== C/C++ 容器执行路径（真实编译 + ASan + assert） =====
-        const cRes = isCppLang ? runCppTestsInContainer(patch, tests, cFixture) : runCTestsInContainer(patch, tests, cFixture);
+        const cRes = isCppLang ? await runCppTestsInContainer(patch, tests, cFixture) : await runCTestsInContainer(patch, tests, cFixture);
         const cCompiled = !/error:/.test(cRes.stderr);
         axisScores.compilation = cCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -866,7 +866,7 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else if (javaFixture) {
         // ===== Java 容器执行路径（真实编译 + JUnit） =====
-        const javaRes = runJavaTestsInContainer(patch, tests, javaFixture);
+        const javaRes = await runJavaTestsInContainer(patch, tests, javaFixture);
         const javaCompiled = javaRes.tests.length > 0 && !/error:/.test(javaRes.stderr);
         axisScores.compilation = javaCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
@@ -899,7 +899,7 @@ export const codeRepairEvaluator: Evaluator = {
       } else if (goFixture) {
         // ===== Go 容器执行路径（真实编译 + go test） =====
         if (goFixture.programMode && goFixture.expectedOutput) {
-          const progRes = runGoProgramInContainer(patch, goFixture.expectedOutput);
+          const progRes = await runGoProgramInContainer(patch, goFixture.expectedOutput);
           const progCompiled = progRes.exitCode === 0 && !/error/.test(progRes.stderr);
           axisScores.compilation = progCompiled ? 100 : 0;
           axisEvidence.compilation = 'verified';
@@ -910,7 +910,7 @@ export const codeRepairEvaluator: Evaluator = {
             ? 'Go program output matches expected'
             : 'Go program output mismatch: ' + JSON.stringify(progRes.stdout).slice(0, 200));
         } else {
-        const goRes = runGoTestsInContainer(patch, tests, goFixture);
+        const goRes = await runGoTestsInContainer(patch, tests, goFixture);
         // 只要有 PASS/FAIL 输出即说明编译通过（编译失败不会产生测试结果行）
         const compiled = goRes.tests.length > 0;
         axisScores.compilation = compiled ? 100 : 0;

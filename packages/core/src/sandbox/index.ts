@@ -46,7 +46,8 @@ function toRunnableJs(code: string): string {
 // 每个代码任务在独立进程中运行，具备超时/内存/文件系统隔离
 // ============================================================
 
-import { fork, spawnSync, type ChildProcess } from 'node:child_process';
+import { fork, type ChildProcess } from 'node:child_process';
+import { execAsync } from '../execution/execAsync.js';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -368,11 +369,11 @@ export async function runTestSuite(
 let pythonBinCache: string | null | undefined;
 
 /** 探测可用的 Python 解释器（python → python3）；无则返回 null（缓存结果） */
-export function getPythonBin(): string | null {
+export async function getPythonBin(): Promise<string | null> {
   if (pythonBinCache !== undefined) return pythonBinCache;
   for (const bin of ['python', 'python3']) {
     try {
-      const res = spawnSync(bin, ['--version'], { encoding: 'utf8', timeout: 8000 });
+      const res = await execAsync(bin, ['--version'], { timeout: 8000 });
       if (!res.error && res.status === 0) {
         pythonBinCache = bin;
         return bin;
@@ -395,7 +396,7 @@ export async function runReplacedCodeTestPython(
   options: SandboxOptions = {},
 ): Promise<TestDetail> {
   const startedAt = new Date().toISOString();
-  const bin = getPythonBin();
+  const bin = await getPythonBin();
   if (!bin) {
     return {
       testId: testCase.id,
@@ -418,15 +419,13 @@ export async function runReplacedCodeTestPython(
 
   try {
     writeFileSync(file, fullCode, 'utf8');
-    const res = spawnSync(bin, [file], {
-      encoding: 'utf8',
+    const res = await execAsync(bin, [file], {
       timeout,
       maxBuffer: 8 * 1024 * 1024,
       cwd: dir,
       env: { PATH: process.env.PATH || '', SYSTEMROOT: process.env.SYSTEMROOT || '', HOME: process.env.HOME || '' },
     });
-    const timedOut = res.error != null && (res.error as NodeJS.ErrnoException).code === 'ETIMEDOUT'
-      || res.signal === 'SIGTERM';
+    const timedOut = res.error != null && (res.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     const exitCode = res.status ?? (timedOut ? 124 : 1);
     const stdout = (res.stdout || '').trim();
     const stderr = (res.stderr || '').trim();
@@ -513,7 +512,7 @@ export async function runTestCaseInContainer(
   const fullCode = `\n${modifiedCode}\n\n// ===== 测试代码 =====\n${testCase.testCode}\n`;
   const runnable = toRunnableJs(fullCode);
 
-  const res = runInContainer({
+  const res = await runInContainer({
     image: CONTAINER_IMAGES.javascript,
     command: ['node', 'main.mjs'],
     files: [{ path: 'main.mjs', content: runnable }],
@@ -553,7 +552,7 @@ export async function runReplacedCodeTestPythonInContainer(
 ): Promise<TestDetail> {
   const startedAt = new Date().toISOString();
   const fullCode = `${replacedCode}\n\n# ===== 测试代码 =====\n${testCase.testCode}\n`;
-  const res = runInContainer({
+  const res = await runInContainer({
     image: CONTAINER_IMAGES.python,
     command: ['python', 'main.py'],
     files: [{ path: 'main.py', content: fullCode }],
