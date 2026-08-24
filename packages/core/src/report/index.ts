@@ -226,6 +226,31 @@ function generateFallbackReport(data: ReportUserPromptData): ReportResult {
     lines.push('');
   }
 
+  // 长任务工程能力专项（编程维度子项）
+  if (data.longTaskStats) {
+    const lt = data.longTaskStats;
+    lines.push('## 五、长任务工程能力（编程维度子项）');
+    lines.push('');
+    lines.push(`> 多文件/多步骤/跨轮上下文管理（agentic coding 核心）；聚合权重 3.0，单独出分。`);
+    lines.push('');
+    lines.push(`| 指标 | 数值 |`);
+    lines.push(`|------|------|`);
+    lines.push(`| 题数 | ${lt.count} |`);
+    lines.push(`| 均分 | ${lt.averageScore} |`);
+    lines.push(`| 通过率 | ${lt.passRate}% |`);
+    lines.push('');
+    if (lt.subCategories.length > 0) {
+      lines.push('| 子类目 | 题数 | 均分 |');
+      lines.push('|--------|------|------|');
+      for (const c of lt.subCategories) {
+        lines.push(`| ${c.category} | ${c.count} | ${c.averageScore} |`);
+      }
+      lines.push('');
+    }
+    lines.push(`分数分布：${Object.entries(lt.distribution).map(([k, v]) => `${k}分 ${v} 题`).join('，')}`);
+    lines.push('');
+  }
+
   const markdown = lines.join('\n');
 
   return {

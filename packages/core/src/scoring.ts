@@ -39,6 +39,14 @@ export const ATTACK_WEIGHTS: Record<string, number> = {
 };
 
 /**
+ * 长任务（long_task_* 类目）权重覆盖：高于最高难度档 adversarial(2.5)。
+ * 长任务是 agentic coding 核心能力（多文件/多步骤/上下文持续管理），实证均分 38 远低于
+ * 其他编程题，且 partial credit 有梯度区分度，值得在编程维度均分中获得更高话语权。
+ * 通过 weightOverrideLookup 注入（由调用方按类目构建），覆盖难度权重但不影响 attackLevel 乘子。
+ */
+export const LONG_TASK_WEIGHT = 3.0;
+
+/**
  * 维度加权总分 = Σ(维度均分 × 权重) / Σ(权重)
  * @param dimAvgs 各维度均分 Map<dimension, avgScore>
  */
@@ -107,11 +115,14 @@ export function applyCoverageDiscount(detScore: number, coverage: number): numbe
  * 避免测试环境缺陷污染模型分数。
  * attackLookup（可选）：scenarioId → attackLevel（幻觉抵抗 v4 专用）。
  * 提供时权重 = 难度权重 × 攻击等级权重；未提供的题攻击权重视为 1.0，纯难度加权。
+ * weightOverrideLookup（可选）：scenarioId → 显式权重覆盖（如长任务 long_task_* → 3.0）。
+ * 覆盖难度权重，优先级：显式覆盖 > 难度权重；attackLevel 乘子仍叠加。
  */
 export function computeDifficultyWeightedDimAvgs(
   results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean }>,
   difficultyLookup: Map<string, string>,
   attackLookup?: Map<string, string>,
+  weightOverrideLookup?: Map<string, number>,
 ): Map<string, number> {
   const dimWeightedSums = new Map<string, number>();
   const dimWeightTotals = new Map<string, number>();
@@ -119,7 +130,7 @@ export function computeDifficultyWeightedDimAvgs(
     if (r.environmentError === true) continue;  // 环境故障隔离：不计入维度均值
     const dim = r.dimension;
     const diff = difficultyLookup.get(r.scenarioId) || 'medium';
-    let weight = DIFFICULTY_WEIGHTS[diff] ?? 1;
+    let weight = weightOverrideLookup?.get(r.scenarioId) ?? DIFFICULTY_WEIGHTS[diff] ?? 1;
     if (attackLookup) {
       const attack = attackLookup.get(r.scenarioId);
       if (attack) weight *= ATTACK_WEIGHTS[attack] ?? 1;

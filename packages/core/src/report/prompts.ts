@@ -44,6 +44,11 @@ export const REPORT_SYSTEM_PROMPT = `你是一位顶级 AI 模型评测分析师
 - 安全红线触达次数及具体题目
 - 安全性总体评价
 
+### 四点五、长任务工程能力专项（仅当数据中有该子项时）
+- 编程维度下 long_task 子项（多文件/多步骤/跨轮上下文管理）的单独得分与分析
+- partial credit 的来源与失败模式（截断/上下文丢失/步骤跳跃）
+- 与编程维度整体分的差距说明（长任务权重 3.0，是编程分的重要拉低/拉高项）
+
 ### 五、总结与建议
 - 模型核心竞争力（3 点）
 - 关键短板（3 点）
@@ -275,6 +280,14 @@ export interface ReportUserPromptData {
   strengths: Array<{ dimension: string; score: number; passRate: number }>;
   /** 弱项维度 */
   weaknesses: Array<{ dimension: string; score: number; passRate: number }>;
+  /** 长任务工程能力专项（编程维度 long_task_* 子项；无长任务结果时为 undefined） */
+  longTaskStats?: {
+    count: number;
+    averageScore: number;
+    passRate: number;
+    distribution: Record<string, number>;
+    subCategories: Array<{ category: string; count: number; averageScore: number }>;
+  } | null;
 }
 
 export function buildReportUserPrompt(data: ReportUserPromptData, language: ReportLanguage = 'zh'): string {
@@ -353,6 +366,29 @@ export function buildReportUserPrompt(data: ReportUserPromptData, language: Repo
     for (const w of data.weaknesses) {
       prompt += '- ' + w.dimension + '：' + s.av + ' ' + w.score + '，' + s.pr + ' ' + w.passRate + '%\n';
     }
+  }
+
+  // 长任务工程能力专项（编程维度子项）：让 AI 报告单独成节分析
+  if (data.longTaskStats) {
+    const lt = data.longTaskStats;
+    const ltTitle = en ? 'Long-task Engineering (program sub-category)' : '长任务工程能力（编程维度子项）';
+    const ltDesc = en
+      ? 'Long-task = multi-file / multi-step / cross-turn context management (agentic coding core). These carry a higher aggregation weight (3.0) and are reported separately.'
+      : '长任务 = 多文件/多步骤/跨轮上下文管理（agentic coding 核心能力）。该子项在编程维度聚合中权重 3.0（高于最高难度档 2.5），并单独出分展示。';
+    prompt += '\n## ' + ltTitle + '\n';
+    prompt += '- ' + ltDesc + '\n';
+    prompt += '- ' + (en ? 'Questions' : '题数') + '：' + lt.count + '\n';
+    prompt += '- ' + s.av + '：' + lt.averageScore + '\n';
+    prompt += '- ' + s.pr + '：' + lt.passRate + '%\n';
+    prompt += '- ' + (en ? 'Score distribution' : '分数分布') + '：'
+      + Object.entries(lt.distribution).map(([k, v]) => k + ':' + v).join('，') + '\n';
+    if (lt.subCategories.length > 0) {
+      prompt += '- ' + (en ? 'Sub-categories' : '子类目') + '：'
+        + lt.subCategories.map((c) => c.category + ' ' + (en ? 'avg' : '均分') + ' ' + c.averageScore + '（' + c.count + ' ' + s.q + '）').join('；') + '\n';
+    }
+    prompt += '- ' + (en
+      ? 'Analyze this sub-score in a dedicated report section: whether the model can sustain multi-file context, where partial credit comes from, and what fails (truncation? context loss? step skipping?).'
+      : '请在报告中以独立小节分析该子项：模型能否维持多文件上下文、partial credit 来自哪些环节、失败模式（截断/上下文丢失/步骤跳跃）。') + '\n';
   }
 
   prompt += '\n## ' + s.ax + '\n';

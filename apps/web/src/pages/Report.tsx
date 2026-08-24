@@ -62,6 +62,14 @@ interface ReportData {
     answerableCount: number;
     labelDistribution: Record<string, number>;
   } | null;
+  /** 长任务工程能力专项（编程维度 long_task_* 子项；仅当有长任务结果时存在） */
+  longTaskStats?: {
+    count: number;
+    averageScore: number;
+    passRate: number;
+    distribution: Record<string, number>;
+    subCategories: Array<{ category: string; count: number; averageScore: number }>;
+  } | null;
   tokenStats?: {
     totalInputTokens: number;
     totalOutputTokens: number;
@@ -485,6 +493,84 @@ export default function Report() {
                 ))}
               </Col>
             </Row>
+          </Card>
+        );
+      })()}
+
+      {/* 长任务工程能力专项（编程维度子项） */}
+      {report.longTaskStats && (() => {
+        const lt = report.longTaskStats;
+        const distMeta: Array<{ key: string; label: string; color: string }> = [
+          { key: '0-20', label: '0-20', color: '#f5222d' },
+          { key: '21-40', label: '21-40', color: '#fa541c' },
+          { key: '41-60', label: '41-60', color: '#faad14' },
+          { key: '61-80', label: '61-80', color: '#a0d911' },
+          { key: '81-100', label: '81-100', color: '#52c41a' },
+        ];
+        return (
+          <Card className="swiss-card" style={{ marginBottom: 16 }}>
+            <div className="swiss-card-title">
+              {lang === 'en' ? 'Long-task Engineering (Program Sub-category)' : '长任务工程能力（编程维度子项）'}
+              <span style={{ fontSize: 12, color: 'var(--text-helper)', marginLeft: 12, fontWeight: 400 }}>
+                {lang === 'en'
+                  ? 'Multi-file / multi-step / cross-turn context management — agentic coding core; aggregation weight 3.0'
+                  : '多文件/多步骤/跨轮上下文管理（agentic coding 核心）；聚合权重 3.0，单独出分'}
+              </span>
+            </div>
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={8}>
+                <Statistic
+                  title={lang === 'en' ? 'Long-task Score' : '长任务工程能力分'}
+                  value={lt.averageScore}
+                  suffix={lang === 'en' ? '' : '分'}
+                  precision={1}
+                  valueStyle={{ color: scoreColor(lt.averageScore), fontSize: 30 }}
+                />
+                <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
+                  {lang === 'en' ? `${lt.count} long-task scenarios (debug / implement / refactor)` : `共 ${lt.count} 道长任务题（调试 / 实现 / 重构）`}
+                </div>
+              </Col>
+              <Col span={8}>
+                <Statistic
+                  title={lang === 'en' ? 'Pass Rate' : '通过率'}
+                  value={lt.passRate}
+                  suffix="%"
+                  valueStyle={{ color: scoreColor(lt.passRate), fontSize: 30 }}
+                />
+                <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
+                  {lang === 'en' ? 'Partial credit gradient shows how far the model gets' : 'partial credit 有梯度，反映模型能走多远'}
+                </div>
+              </Col>
+              <Col span={8}>
+                <div style={{ fontSize: 13, color: 'var(--text-helper)', marginBottom: 8 }}>{lang === 'en' ? 'Score Distribution' : '分数分布'}</div>
+                {distMeta.map((m) => (
+                  <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ width: 14, height: 14, background: m.color, borderRadius: 3, display: 'inline-block' }} />
+                    <span style={{ fontSize: 13, minWidth: 100 }}>{m.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{lt.distribution[m.key] ?? 0}</span>
+                  </div>
+                ))}
+              </Col>
+            </Row>
+            {lt.subCategories.length > 0 && (
+              <Row gutter={16}>
+                {lt.subCategories.map((c) => (
+                  <Col span={8} key={c.category}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 14, minWidth: 90 }}>{c.category}</span>
+                      <Progress
+                        percent={Math.round(c.averageScore)}
+                        size="small"
+                        strokeColor={scoreColor(c.averageScore)}
+                        style={{ flex: 1, margin: 0 }}
+                        format={() => c.averageScore.toFixed(1)}
+                      />
+                      <span style={{ fontSize: 12, color: 'var(--text-helper)' }}>{c.count} {lang === 'en' ? 'questions' : '题'}</span>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            )}
           </Card>
         );
       })()}

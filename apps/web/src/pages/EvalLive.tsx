@@ -11,6 +11,7 @@ import {
   CalculatorOutlined, SafetyOutlined, RobotOutlined, ClockCircleOutlined,
   ExclamationCircleOutlined, EyeOutlined, PauseCircleOutlined, PlayCircleOutlined,
   StopOutlined, ThunderboltFilled, PlusOutlined, ForkOutlined, DashboardOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import type { EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage } from '@zxbench/types';
 import { useTheme } from '../theme';
@@ -56,6 +57,7 @@ const STAGE_CONFIG: Record<EvalStage, { label: { zh: string; en: string }; icon:
   safety_check:        { label: { zh: '安全检查', en: 'Safety check' },    icon: <SafetyOutlined />,              color: '#f5222d' },
   ai_judge:            { label: { zh: 'AI Judge', en: 'AI Judge' },        icon: <RobotOutlined />,               color: '#eb2f96' },
   reasoning_limit:     { label: { zh: '思考超限', en: 'Reasoning limit' }, icon: <ClockCircleOutlined />,         color: '#fa541c' },
+  environment_error:   { label: { zh: '环境故障', en: 'Environment error' }, icon: <ApiOutlined />,               color: '#fa8c16' },
   completed:           { label: { zh: '完成', en: 'Completed' },           icon: <CheckCircleOutlined />,         color: '#52c41a' },
   failed:              { label: { zh: '失败', en: 'Failed' },              icon: <CloseCircleOutlined />,         color: '#f5222d' },
 };

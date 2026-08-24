@@ -6,6 +6,7 @@ import {
   mixDeterministicJudge,
   applyCoverageDiscount,
   computeDifficultyWeightedDimAvgs,
+  LONG_TASK_WEIGHT,
 } from './scoring.js';
 
 describe('computeWeightedTotal', () => {
@@ -121,5 +122,32 @@ describe('computeDifficultyWeightedDimAvgs (pure)', () => {
     const avgs = computeDifficultyWeightedDimAvgs(results, lookup);
     expect(avgs.get('program')).toBe(100);
     expect(avgs.get('reasoning_math')).toBe(50);
+  });
+
+  it('weightOverrideLookup overrides difficulty weight (long_task 3.0 > adversarial 2.5)', () => {
+    // 长任务 a 得 0 分（权重 3.0），普通 adversarial b 得 100 分（权重 2.5）
+    const results = [
+      { scenarioId: 'a', dimension: 'program', totalScore: 0 },
+      { scenarioId: 'b', dimension: 'program', totalScore: 100 },
+    ];
+    const lookup = new Map([['a', 'adversarial'], ['b', 'adversarial']]);
+    const override = new Map([['a', LONG_TASK_WEIGHT]]);
+    const avgs = computeDifficultyWeightedDimAvgs(results, lookup, undefined, override);
+    // 均分 = (0*3.0 + 100*2.5) / 5.5
+    expect(avgs.get('program')).toBeCloseTo((100 * 2.5) / 5.5, 5);
+    // 无覆盖时两者同为 adversarial 2.5 → 均分 50
+    const avgsNoOverride = computeDifficultyWeightedDimAvgs(results, lookup);
+    expect(avgsNoOverride.get('program')).toBe(50);
+  });
+
+  it('weightOverrideLookup does not interfere with attackLevel multiplier', () => {
+    // attackLevel 乘子与显式覆盖独立：覆盖题不应再吃难度权重
+    const results = [{ scenarioId: 'a', dimension: 'hallucination_resistance', totalScore: 60 }];
+    const lookup = new Map([['a', 'hard']]);
+    const attack = new Map([['a', 'L4']]);
+    const override = new Map([['a', 3.0]]);
+    const avgs = computeDifficultyWeightedDimAvgs(results, lookup, attack, override);
+    // 权重 = 3.0 × 2.0(L4) = 6.0；均分仍为 60（单题）
+    expect(avgs.get('hallucination_resistance')).toBe(60);
   });
 });

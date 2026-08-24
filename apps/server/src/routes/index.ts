@@ -9,7 +9,7 @@ import { generateId, generateRunId } from '@zxbench/utils';
 import { orchestrateEvaluation, generateManifest, callModel } from '@zxbench/core';
 import { generateReport, generateCompareReport } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
-import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, validateScenario } from '@zxbench/core';
+import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, LONG_TASK_WEIGHT, validateScenario } from '@zxbench/core';
 import { broadcastProgress, getLatestProgress } from '../ws/index.js';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
@@ -72,10 +72,12 @@ function dimensionLabelFor(dim: string, lang: 'zh' | 'en' = 'zh'): string {
 }
 
 /**
- * 计算难度加权维度均分（DB wrapper）：批量获取题目难度/攻击等级 → 调用纯函数 computeDifficultyWeightedDimAvgsPure
+ * 计算难度加权维度均分（DB wrapper）：批量获取题目难度/攻击等级/类目 → 调用纯函数 computeDifficultyWeightedDimAvgsPure
  * 维度均分 = Σ(题目得分 × 难度权重 × 攻击等级权重) / Σ(权重)；
  * 难度越高权重越大（easy=1…adversarial=2.5）；幻觉抵抗 v4 题按 attackLevel 加权（L1=1.0…L4=2.0），
  * 未标注 attackLevel 的题攻击权重视为 1.0，纯难度加权，与旧版行为一致。
+ * 长任务（long_task_* 类目）显式覆盖权重为 LONG_TASK_WEIGHT=3.0（高于 adversarial 2.5）：
+ * 长任务是 agentic coding 核心能力且实证区分度好，在编程维度中获得更高话语权。
  */
 async function computeDifficultyWeightedDimAvgs(
   results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean }>,
@@ -84,19 +86,87 @@ async function computeDifficultyWeightedDimAvgs(
   const scenarioIds = [...new Set(results.map((r) => r.scenarioId))];
   const scenarios = await prisma.scenarioDefinition.findMany({
     where: { id: { in: scenarioIds } },
-    select: { id: true, difficulty: true, requirements: true },
+    select: { id: true, difficulty: true, category: true, requirements: true },
   });
   const difficultyLookup = new Map<string, string>();
   const attackLookup = new Map<string, string>();
+  const weightOverrideLookup = new Map<string, number>();
   for (const s of scenarios) {
     difficultyLookup.set(s.id, s.difficulty);
+    if (s.category && s.category.startsWith('long_task')) {
+      weightOverrideLookup.set(s.id, LONG_TASK_WEIGHT);
+    }
     const attackLevel = (s.requirements as Record<string, unknown> | null | undefined)?.attackLevel;
     if (typeof attackLevel === 'string' && /^L[1-4]$/.test(attackLevel)) {
       attackLookup.set(s.id, attackLevel);
     }
   }
   // 沙箱执行已实现（工作区物化 + 探查转录）：requiresSandbox 调查题结果可参与维度均分
-  return computeDifficultyWeightedDimAvgsPure(results, difficultyLookup, attackLookup);
+  return computeDifficultyWeightedDimAvgsPure(results, difficultyLookup, attackLookup, weightOverrideLookup);
+}
+
+/**
+ * 长任务工程能力专项统计（编程维度子项报告）：
+ * long_task_* 类目（debug/implement/refactor 共 20 题）单独出分。
+ * 长任务 = 多文件/多步骤/跨轮上下文管理的 agentic coding 能力，实证均分远低于其他编程题
+ * 且 partial credit 有梯度区分度；单独展示避免在编程维度均分中被稀释。
+ * 无编程维度结果或无长任务结果时返回 null（报告中不渲染该卡片）。
+ */
+async function computeLongTaskStats(
+  results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean | null }>,
+): Promise<{
+  count: number;
+  averageScore: number;
+  passRate: number;
+  distribution: Record<string, number>;
+  subCategories: Array<{ category: string; count: number; averageScore: number }>;
+} | null> {
+  const programResults = results.filter((r) => r.dimension === 'program' && r.environmentError !== true);
+  if (programResults.length === 0) return null;
+  const programIds = programResults.map((r) => r.scenarioId);
+  const programDefs = await prisma.scenarioDefinition.findMany({
+    where: { id: { in: programIds } },
+    select: { id: true, category: true },
+  });
+  const longTaskIds = new Set(programDefs.filter((d) => d.category?.startsWith('long_task')).map((d) => d.id));
+  const ltResults = programResults.filter((r) => longTaskIds.has(r.scenarioId));
+  if (ltResults.length === 0) return null;
+  const ltScores = ltResults.map((r) => r.totalScore);
+  const ltDist = { '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0 };
+  for (const s of ltScores) {
+    if (s <= 20) ltDist['0-20']++;
+    else if (s <= 40) ltDist['21-40']++;
+    else if (s <= 60) ltDist['41-60']++;
+    else if (s <= 80) ltDist['61-80']++;
+    else ltDist['81-100']++;
+  }
+  // 子类目（long_task_debug / implement / refactor）分别出分
+  const catMap = new Map(programDefs.filter((d) => longTaskIds.has(d.id)).map((d) => [d.id, d.category as string]));
+  const subCatAgg = new Map<string, { sum: number; n: number }>();
+  for (const r of ltResults) {
+    const cat = catMap.get(r.scenarioId) || 'long_task';
+    const cur = subCatAgg.get(cat) || { sum: 0, n: 0 };
+    cur.sum += r.totalScore; cur.n += 1;
+    subCatAgg.set(cat, cur);
+  }
+  const SUBCAT_LABEL: Record<string, string> = {
+    long_task_debug: '长任务调试',
+    long_task_implement: '长任务实现',
+    long_task_refactor: '长任务重构',
+  };
+  return {
+    count: ltResults.length,
+    averageScore: Math.round((ltScores.reduce((a, b) => a + b, 0) / ltScores.length) * 100) / 100,
+    passRate: Math.round((ltScores.filter((s) => s >= 60).length / ltScores.length) * 100),
+    distribution: ltDist,
+    subCategories: Array.from(subCatAgg.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([category, v]) => ({
+        category: SUBCAT_LABEL[category] || category,
+        count: v.n,
+        averageScore: Math.round((v.sum / v.n) * 100) / 100,
+      })),
+  };
 }
 
 /**
@@ -2028,6 +2098,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       };
     }
 
+    // ===== 编程维度长任务专项统计：长任务工程能力（long_task_* 20 题单独出分） =====
+    const longTaskStats = await computeLongTaskStats(results);
+
     // 全局统计 — 维度加权总分（使用引擎定义的 DIMENSION_WEIGHTS）；单次 run 口径直接用 summary.averageScore
     const allScores = results.filter((r) => r.environmentError !== true).map((r) => r.totalScore);
     const totalAvg = (summaryJson && typeof summaryJson.averageScore === 'number')
@@ -2112,6 +2185,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         globalDistribution: globalDist,
         dimensions: dimensionReports,
         hallucinationStats,
+        // 长任务工程能力专项（仅当编程维度有 long_task 结果时存在）
+        longTaskStats,
         // 全局证据强度摘要（全部结果的轴证据类型分布）
         evidenceSummary: dimensionReports.reduce<Record<string, number>>(
           (acc, d) => {
@@ -2317,6 +2392,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           qualityReport: qualityReport as ReportUserPromptData['overview']['qualityReport'],
         },
         dimensions: dimensionReports,
+        longTaskStats: await computeLongTaskStats(results),
         failedScenarios,
         radarData: dimensionReports.map((d) => ({ name: d.dimensionLabel, value: d.averageScore })),
         strengths: strengths.map((s) => ({ dimension: s.dimensionLabel, score: s.averageScore, passRate: s.passRate })),

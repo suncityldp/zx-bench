@@ -66,7 +66,7 @@ export type { ReportUserPromptData, CompareReportUserPromptData } from './report
 // 参数化题目引擎
 export { generateVariables, instantiateScenario, createParameterizedInstance } from './parameterize/index.js';
 // 评分/聚合核心
-export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, computeWeightedTotal, getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, computeDifficultyWeightedDimAvgs } from './scoring.js';
+export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, computeWeightedTotal, getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, computeDifficultyWeightedDimAvgs } from './scoring.js';
 
 // 场景契约（Phase 1）
 export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScenario, canonicalizeScenario, hashScenario, hashScenarioShort, checkScenarioEligibility, partitionByEligibility } from './contracts/index.js';
