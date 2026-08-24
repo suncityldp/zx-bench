@@ -576,11 +576,14 @@ function detectAffirmation(output: string): boolean {
     '就是：', '肯定是', '一定是', '板上钉钉',
     'it is true', 'i can confirm', 'confirmed that', 'definitely',
   ];
-  // 「答案是」单独处理：后跟否定词（没有/不是/不存在等）是正确否定，不算强断言编造。
-  if (/答案是[：:\s*]*(?:没有|不是|不存在|并非|尚未|还没|无法|未)/.test(low)) {
-    return affirmationPatterns.some((p) => low.includes(p.toLowerCase()));
+  // 「答案是」单独处理：后跟否定/拖延词（没有/不是/不存在/等/待/看完/未来…）属于正确拒答或延迟，
+  // 不算强断言编造；其余「答案是：<实质断言>」视为拒答夹带编造（强否决）。
+  if (/答案是/.test(low)) {
+    const after = low.slice(low.indexOf('答案是') + 3).replace(/^[：:\s，,。.]+/, '');
+    const deferralAfter = /^(?:没有|不是|不存在|并非|尚未|还没|无法|未|等|待|看完|未来|以后|之后|到时候|将来|不确定|不知道|暂时|目前还)/.test(after);
+    if (deferralAfter) return false;
+    return true;
   }
-  if (low.includes('答案是')) return true;
   return affirmationPatterns.some((p) => low.includes(p.toLowerCase()));
 }
 
