@@ -31,7 +31,7 @@ ZxBench 的编程题不是「模型输出一段代码、用关键词判断像不
 | Python | 子进程沙箱 | assert 断言 |
 | Go | golang:1.21 容器 | go test（并发题开 -race） |
 | Java | eclipse-temurin:17-jdk-alpine 容器 | javac + JUnit |
-| C / C++ | gcc:13 容器 | -fsanitize=address 检内存越界/悬垂指针 |
+| C / C++ | gcc:13 容器 | 编译 + 运行隐藏测试（受限容器禁 ASan，内存安全由 Valgrind / 断言覆盖） |
 | Rust | rust:1.75 容器 | rustc + assert（borrow 错误 = 编译失败） |
 | PHP | php:8.2-cli 容器 | assert（内置 mbstring） |
 | C# | mono:6.12 容器 | 编译 + 自定义 Assert |
@@ -56,13 +56,30 @@ ZxBench 的编程题不是「模型输出一段代码、用关键词判断像不
 - pnpm ≥ 11
 - **Docker**（编程题容器执行必需）
 
-首次评测前会自动拉取所需镜像；也可手动预热：
+首次评测前会自动拉取所需镜像；也可手动预热。编程题有**两套执行后端**：
+
+**① 单文件修复题（code_repair / sandbox）**
 
 ```bash
 docker pull golang:1.21 eclipse-temurin:17-jdk-alpine gcc:13 rust:1.75 php:8.2-cli mono:6.12 bash:5 node:22-alpine
 ```
 
-> Java 题所需的 JUnit jar 已内置在 data/java-libs/，随仓库分发，无需额外下载。
+**② 多文件工程修复题（project_repair，CP-L4）**
+
+```bash
+docker pull python:3.12-alpine node:20-alpine golang:1.22-alpine maven:3.9-eclipse-temurin-17-alpine rust:1-alpine gcc:13 mcr.microsoft.com/dotnet/sdk:8.0 php:8.2-cli-alpine bash:5 postgres:15
+```
+
+> 环境要点（Environment Notes）：
+> - project_repair 容器以**非 root（UID 65534）**运行，grader 注入 `HOME=/tmp` 保证 dotnet / go / npm 的缓存目录可写（否则 `HOME=/nonexistent` 会 EACCES）。
+> - Java 工程题使用预构建镜像 `zxbench/java-spring:3.2.5`（首次由场景脚本自建）；C/C++ 内存检查使用 `zxbench/cpp:gcc13-valgrind`。
+> - 受限容器（非 root + cap-drop + no-new-privileges）下 **AddressSanitizer 不可用**（会 DEADLYSIGNAL），C/C++ 内存安全改由 Valgrind / 测试断言覆盖。
+> - Java 单文件题的 JUnit jar 已内置在 data/java-libs/，随仓库分发，无需额外下载。
+>
+> The programming dimension has **two execution backends**:
+> ① Single-file repair (code_repair / sandbox): first `docker pull` list above.
+> ② Multi-file project repair (project_repair, CP-L4): second list above.
+> project_repair containers run as **non-root (UID 65534)** and the grader injects `HOME=/tmp` so dotnet/go/npm caches stay writable. Java project scenarios use prebuilt `zxbench/java-spring:3.2.5`; C/C++ memory checks use `zxbench/cpp:gcc13-valgrind`. ASan is disabled under the restricted container (would DEADLYSIGNAL), replaced by Valgrind / asserts.
 
 ### 安装与启动
 

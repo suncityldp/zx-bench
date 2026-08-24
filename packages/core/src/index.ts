@@ -19,6 +19,7 @@ export { registerEvaluator, getEvaluator, listEvaluators } from './evaluators/in
 export type { Evaluator } from './evaluators/index.js';
 export { bugFindingEvaluator } from './evaluators/bugFinding.js';
 export { codeRepairEvaluator } from './evaluators/codeRepair.js';
+export { projectRepairEvaluator } from './evaluators/projectRepair.js';
 export { structuredOutputEvaluator } from './evaluators/structuredOutput.js';
 export { dataExtractionEvaluator } from './evaluators/dataExtraction.js';
 export { exactAnswerLineEvaluator } from './evaluators/exactAnswerLine.js';
@@ -28,6 +29,8 @@ export { toolCallTraceEvaluator } from './evaluators/toolCallTrace.js';
 export { agentTraceEvaluator } from './evaluators/agentTrace.js';
 export { cliCommandEvaluator } from './evaluators/cliCommand.js';
 export { hallucinationResistanceEvaluator } from './evaluators/hallucinationResistance.js';
+export { sandboxEvaluator } from './evaluators/sandbox.js';
+export { llmJudgeEvaluator } from './evaluators/llmJudge.js';
 
 // 沙箱执行
 export { runInSandbox, runTestCase, runTestSuite, runReplacedCodeTest, runReplacedCodeTestPython, runTestCaseInContainer, runReplacedCodeTestPythonInContainer } from './sandbox/index.js';
@@ -70,5 +73,5 @@ export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScena
 export type { GraderContract } from './contracts/index.js';
 
 // 容器执行后端（Phase 2）
-export { runInContainer, isDockerAvailable, getImageDigest, CONTAINER_IMAGES, buildGoTestHarness, runGoTestsInContainer, runGoProgramInContainer, buildJavaHarness, runJavaTestsInContainer, buildCHarness, runCTestsInContainer, buildRustHarness, runRustTestsInContainer, buildPhpHarness, runPhpTestsInContainer, buildCsharpHarness, runCsharpTestsInContainer, buildSqlHarness, runSqlInContainer, buildBashHarness, runBashTestsInContainer } from './execution/index.js';
-export type { ContainerRunOptions, ContainerRunResult, ContainerFile } from './execution/index.js';
+export { runInContainer, isDockerAvailable, getImageDigest, CONTAINER_IMAGES, buildGoTestHarness, runGoTestsInContainer, runGoProgramInContainer, buildJavaHarness, runJavaTestsInContainer, buildCHarness, runCTestsInContainer, runCppTestsInContainer, runCppTsanInContainer, buildRustHarness, runRustTestsInContainer, runRustMiriInContainer, buildPhpHarness, runPhpTestsInContainer, buildCsharpHarness, runCsharpTestsInContainer, buildSqlHarness, runSqlInContainer, buildBashHarness, runBashTestsInContainer, runTypeScriptTypeCheck } from './execution/index.js';
+export type { ContainerRunOptions, ContainerRunResult, ContainerFile, TypeCheckCase, TypeCheckResult, RustMiriResult } from './execution/index.js';

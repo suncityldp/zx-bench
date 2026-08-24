@@ -7,7 +7,7 @@
 // ============================================================
 
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -29,6 +29,10 @@ export interface ContainerRunOptions {
   networkDisabled?: boolean;
   readOnly?: boolean;
   runAsNonRoot?: boolean;
+  /** 覆盖 --user（如 'postgres'），优先级高于 runAsNonRoot */
+  user?: string;
+  /** TSan 需要关闭 ASLR（setarch -R），需 seccomp=unconfined 允许 personality() */
+  seccompUnconfined?: boolean;
   /** 容器内环境变量（如 GOCACHE/GOPATH 指向可写 tmpfs） */
   env?: Record<string, string>;
   /** 额外 bind mount（host 路径 → 容器路径），用于挂载依赖 jar 等 */
@@ -80,8 +84,8 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
   const {
     image, command, files = [], workdir = '/workspace', timeoutMs = 10000,
     memoryMb = 128, cpuLimit = 1.0, pidsLimit = 64,
-    networkDisabled = true, readOnly = true, runAsNonRoot = true,
-    env = {}, mounts = [],
+    networkDisabled = true, readOnly = true, runAsNonRoot = true, user,
+    seccompUnconfined = false, env = {}, mounts = [],
   } = options;
 
   const startedAt = Date.now();
@@ -98,6 +102,9 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
       const full = join(hostDir, f.path);
       mkdirSync(dirname(full), { recursive: true });
       writeFileSync(full, f.content, 'utf8');
+      if (f.content.startsWith('#!')) {
+        chmodSync(full, 0o755);
+      }
     }
 
     const src = hostDir.split('\\\\').join('/');
@@ -109,10 +116,12 @@ export function runInContainer(options: ContainerRunOptions): ContainerRunResult
       '--pids-limit', String(pidsLimit),
       '--cap-drop', 'ALL',
       '--security-opt', 'no-new-privileges',
+      ...(seccompUnconfined ? ['--security-opt', 'seccomp=unconfined'] : []),
       '--mount', 'type=bind,src=' + src + ',dst=' + workdir + (readOnly ? ',readonly' : ''),
       '-w', workdir,
     ];
-    if (runAsNonRoot) args.push('--user', '65534:65534');
+    if (user) args.push('--user', user);
+    else if (runAsNonRoot) args.push('--user', '65534:65534');
     for (const [k, v] of Object.entries(env)) args.push('-e', k + '=' + v);
     for (const m of mounts) {
       args.push('--mount', 'type=bind,src=' + m.src.split('\\').join('/') + ',dst=' + m.dst + (m.readonly === false ? '' : ',readonly'));

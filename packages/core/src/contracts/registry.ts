@@ -170,6 +170,20 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     aliases: ['code_repair_v3'],
   },
 
+  // ---- 多文件项目修复：project_repair（长任务，多文件工作区 + 容器测试套件） ----
+  project_repair: {
+    grader: 'project_repair',
+    version: '1.0.0',
+    dimension: 'program',
+    consumedFields: ['files', 'hiddenTestFiles', 'hiddenTests', 'publicTests', 'functionName', 'explanationKeywords', 'image'],
+    declaredFields: ['files', 'hiddenTestFiles', 'hiddenTests', 'publicTests', 'functionName', 'explanationKeywords', 'image'],
+    requiredFields: ['files'],
+    capabilities: {
+      supportedLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash'],
+      executableLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash'],
+    },
+  },
+
   // ---- 缺陷定位：bug_finding（有 evaluator，主题库暂无题） ----
   bug_finding: {
     grader: 'bug_finding',
@@ -179,6 +193,34 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     declaredFields: [],
     requiredFields: [],
     capabilities: {},
+  },
+
+  // ---- 单条 SQL 沙箱执行：sandbox（CP-L3-SQL-007 wcte 去重） ----
+  sandbox: {
+    grader: 'sandbox',
+    version: '1.0.0',
+    dimension: 'program',
+    consumedFields: ['prompt', 'category', 'schema', 'scoring'],
+    declaredFields: ['prompt', 'category', 'schema', 'scoring', 'hiddenTests'],
+    requiredFields: ['prompt'],
+    capabilities: {
+      supportedLanguages: ['sql', 'postgresql'],
+      executableLanguages: ['sql', 'postgresql'],
+    },
+  },
+
+  // ---- PR 评审质量：llm_judge（PR-ELITE-012/013） ----
+  llm_judge: {
+    grader: 'llm_judge',
+    version: '1.0.0',
+    dimension: 'program',
+    consumedFields: ['diff', 'prompt', 'judge_config', 'judge_ground_truth', 'scoring'],
+    declaredFields: ['diff', 'prompt', 'judge_config', 'judge_ground_truth', 'scoring'],
+    requiredFields: ['diff', 'judge_ground_truth'],
+    capabilities: {
+      supportedLanguages: ['pr_review'],
+      executableLanguages: [],
+    },
   },
 };
 

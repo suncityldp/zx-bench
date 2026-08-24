@@ -22,7 +22,7 @@ export interface PhpRunResult {
   tests: { name: string; passed: boolean }[];
 }
 
-const PHP_IMAGE = 'php:8.2-cli';
+const PHP_IMAGE = 'php:8.2-cli-alpine';
 
 export function buildPhpHarness(
   sourceCode: string,

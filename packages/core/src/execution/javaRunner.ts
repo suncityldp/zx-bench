@@ -24,7 +24,7 @@ export interface JavaRunResult {
   tests: { name: string; passed: boolean }[];
 }
 
-const JAVA_IMAGE = 'eclipse-temurin:17-jdk-alpine';
+const JAVA_IMAGE = 'maven:3.9-eclipse-temurin-17-alpine';
 const JUNIT_JAR = 'junit-4.13.2.jar';
 const HAMCREST_JAR = 'hamcrest-core-1.3.jar';
 function javaLibsDir(): string {
@@ -41,7 +41,7 @@ export function buildJavaHarness(
   const imports = fixture.imports ?? [];
   const wrap = fixture.wrapInClass ?? false;
   const testMethods = testCases
-    .map((tc, i) => '    @Test public void t' + i + '() { ' + tc.testCode.trim() + ' }')
+    .map((tc, i) => '    @Test public void t' + i + '() throws Exception { ' + tc.testCode.trim() + ' }')
     .join('\n');
   const parts: string[] = [
     'import org.junit.Test;',
@@ -71,7 +71,7 @@ export function runJavaTestsInContainer(
   const harness = buildJavaHarness(sourceCode, testCases, fixture);
   const libs = javaLibsDir();
   const cp = '/libs/' + JUNIT_JAR + ':/libs/' + HAMCREST_JAR;
-  const shell = 'mkdir -p /tmp/classes && javac -d /tmp/classes -cp ' + cp + ' HiddenTest.java && java -cp /tmp/classes:' + cp + ' org.junit.runner.JUnitCore HiddenTest';
+  const shell = 'mkdir -p /tmp/classes && javac -d /tmp/classes -cp ' + cp + ' HiddenTest.java && java -Duser.home=/tmp -Djava.io.tmpdir=/tmp -cp /tmp/classes:' + cp + ' org.junit.runner.JUnitCore HiddenTest';
   const res = runInContainer({
     image: JAVA_IMAGE,
     command: ['sh', '-c', shell],
@@ -80,6 +80,7 @@ export function runJavaTestsInContainer(
     timeoutMs,
     memoryMb: 384,
     pidsLimit: 64,
+    env: { HOME: '/tmp', TMPDIR: '/tmp' },
   });
 
   const tests: { name: string; passed: boolean }[] = testCases.map((_, i) => ({ name: 't' + i, passed: true }));

@@ -10,7 +10,7 @@ import fastifyWebSocket from '@fastify/websocket';
 import { PrismaClient } from '@prisma/client';
 import { registerRoutes } from './routes/index.js';
 import { registerWebSocket } from './ws/index.js';
-import { registerEvaluator, bugFindingEvaluator, codeRepairEvaluator, structuredOutputEvaluator, dataExtractionEvaluator, exactAnswerLineEvaluator, instructionChecklistEvaluator, canaryAuthorityEvaluator, toolCallTraceEvaluator, agentTraceEvaluator, cliCommandEvaluator, hallucinationResistanceEvaluator } from '@zxbench/core';
+import { registerEvaluator, bugFindingEvaluator, codeRepairEvaluator, projectRepairEvaluator, structuredOutputEvaluator, dataExtractionEvaluator, exactAnswerLineEvaluator, instructionChecklistEvaluator, canaryAuthorityEvaluator, toolCallTraceEvaluator, agentTraceEvaluator, cliCommandEvaluator, hallucinationResistanceEvaluator, sandboxEvaluator, llmJudgeEvaluator } from '@zxbench/core';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync } from 'node:fs';
@@ -86,6 +86,7 @@ async function main() {
   // 注册评分器
   registerEvaluator(bugFindingEvaluator);
   registerEvaluator(codeRepairEvaluator);
+  registerEvaluator(projectRepairEvaluator);
   registerEvaluator(structuredOutputEvaluator);
   registerEvaluator(dataExtractionEvaluator);
   registerEvaluator(exactAnswerLineEvaluator);
@@ -95,6 +96,8 @@ async function main() {
   registerEvaluator(agentTraceEvaluator);
   registerEvaluator(cliCommandEvaluator);
   registerEvaluator(hallucinationResistanceEvaluator);
+  registerEvaluator(sandboxEvaluator);
+  registerEvaluator(llmJudgeEvaluator);
 
   // API 路由
   await registerRoutes(app);

@@ -35,7 +35,7 @@ export interface GoRunResult {
   tests: { name: string; passed: boolean }[];
 }
 
-const GO_IMAGE = 'golang:1.21';
+const GO_IMAGE = 'zxbench/go:1.21-gcc';
 
 /** 生成完整可编译的 Go 测试 harness（main_test.go + go.mod） */
 export function buildGoTestHarness(

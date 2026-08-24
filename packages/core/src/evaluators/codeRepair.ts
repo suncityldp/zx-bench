@@ -13,10 +13,11 @@
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence, RuntimeEvaluation } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { runReplacedCodeTest, runReplacedCodeTestPython, summarizeTestResults, calculateTestScore, getPythonBin } from '../hidden-tests/index.js';
+import { runTypeScriptTypeCheck, type TypeCheckCase } from '../execution/tsTypeCheck.js';
 import { runGoTestsInContainer, runGoProgramInContainer, type GoFixture } from '../execution/goRunner.js';
 import { runJavaTestsInContainer, type JavaFixture } from '../execution/javaRunner.js';
-import { runCTestsInContainer, type CFixture } from '../execution/cRunner.js';
-import { runRustTestsInContainer, type RustFixture } from '../execution/rustRunner.js';
+import { runCTestsInContainer, runCppTestsInContainer, runCppTsanInContainer, type CFixture } from '../execution/cRunner.js';
+import { runRustTestsInContainer, runRustMiriInContainer, type RustFixture } from '../execution/rustRunner.js';
 import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.js';
 import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
 import { runSqlInContainer, type SqlFixture } from '../execution/sqlRunner.js';
@@ -388,6 +389,11 @@ function calculateDiffQuality(sourceCode: string | undefined, patch: string): {
   const changedLines = totalUniqueLines - commonLines;
   const changeRatio = totalUniqueLines > 0 ? changedLines / totalUniqueLines : 0;
 
+  // 零改动 = 未修复：不给 patch_quality 高分（否则 buggy 源码基线被软轴抬高、压缩区分度）
+  if (changedLines === 0) {
+    return { changedLines: 0, totalSourceLines, changeRatio: 0, score: 0, evidence: 'No change: fix not applied' };
+  }
+
   // 评分逻辑：
   // 改动 < 30% → 90（精准修复）
   // 改动 < 50% → 80（合理修复）
@@ -448,6 +454,11 @@ function calculateScopeDiscipline(sourceCode: string | undefined, patch: string)
   // 如果改动行数占源码比例很小，说明范围纪律好
   const changeRatio = sourceLen > 0 ? totalChanges / sourceLen : 0;
 
+  // 零改动 = 未修复
+  if (totalChanges === 0) {
+    return { score: 0, evidence: 'No change: fix not applied' };
+  }
+
   let score: number;
   let evidence: string;
 
@@ -488,7 +499,8 @@ export const codeRepairEvaluator: Evaluator = {
     // Go/Java 有 fixture 时走容器执行（真实编译 + 测试），不再走静态关键词评分
     const goFixture = (lang === 'go' && reqObj.fixture) ? (reqObj.fixture as GoFixture) : undefined;
     const javaFixture = (lang === 'java' && reqObj.fixture) ? (reqObj.fixture as JavaFixture) : undefined;
-    const cFixture = (lang === 'c' && reqObj.fixture) ? (reqObj.fixture as CFixture) : undefined;
+    const isCppLang = lang === 'cpp' || lang === 'c++' || lang === 'c/c++';
+    const cFixture = ((lang === 'c' || isCppLang) && reqObj.fixture) ? (reqObj.fixture as CFixture) : undefined;
     const rustFixture = (lang === 'rust' && reqObj.fixture) ? (reqObj.fixture as RustFixture) : undefined;
     const phpFixture = (lang === 'php' && reqObj.fixture) ? (reqObj.fixture as PhpFixture) : undefined;
     const csharpFixture = (lang === 'csharp' && reqObj.fixture) ? (reqObj.fixture as CsharpFixture) : undefined;
@@ -497,7 +509,7 @@ export const codeRepairEvaluator: Evaluator = {
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
       ? getPythonBin() != null
-      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null || bashFixture != null);
+      : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null || bashFixture != null || reqObj.tsan === true || reqObj.miri === true);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
     if (scenario.expectedVerdict === 'no_bug') {
@@ -607,7 +619,35 @@ export const codeRepairEvaluator: Evaluator = {
         ? scenario.hiddenTests
         : scenario.publicTests || [];
 
-      if (bashFixture) {
+      // ===== TypeScript 类型级校验路径（CP-L3-TS-003/004/006/007：修类型定义） =====
+      if (lang === 'typescript' && reqObj.typeLevel === true) {
+        const typeCases = (reqObj.typeTests as TypeCheckCase[]) || [];
+        const typeResult = runTypeScriptTypeCheck(patch, typeCases);
+        axisScores.compilation = typeResult.compiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(typeResult.compiled
+          ? 'TypeScript strict type-check: passed'
+          : 'TypeScript strict type-check: FAILED — ' + typeResult.compileErrors.slice(0, 3).join(' | '));
+        const rtDetails = tests.length > 0 ? await Promise.all(tests.map((tc) => runReplacedCodeTest(patch, tc))) : [];
+        const allDetails = [...typeResult.details, ...rtDetails];
+        if (reqObj.forbidAs === true) {
+          allDetails.push({ testId: 'no_as_assertion', testType: 'static', name: 'no as assertion', passed: !/\bas\b/.test(patch) });
+        }
+        const tsSuite = summarizeTestResults(allDetails);
+        runtimeEval = {
+          compilePassed: typeResult.compiled,
+          testsPassed: tsSuite.passedTests,
+          testsFailed: tsSuite.failedTests,
+          testsTotal: tsSuite.totalTests,
+          hiddenTestsPassed: tsSuite.passedTests,
+          hiddenTestsFailed: tsSuite.failedTests,
+          hiddenTestsTotal: tsSuite.totalTests,
+          details: allDetails,
+        };
+        axisScores.test_pass = calculateTestScore(tsSuite);
+        axisEvidence.test_pass = 'verified';
+        evidence.push('TS type-level + runtime tests: ' + tsSuite.passedTests + '/' + tsSuite.totalTests + ' passed');
+      } else if (bashFixture) {
         // ===== Bash 容器执行路径（脚本断言，退出码判定） =====
         const bashRes = runBashTestsInContainer(patch, tests, bashFixture);
         const bashCompiled = !/syntax error|command not found/.test(bashRes.stderr);
@@ -719,6 +759,26 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No C# tests available for verification');
         }
+      } else if (lang === 'rust' && reqObj.miri === true) {
+        // ===== Rust Miri 健全性压测路径（CP-L3-RS-003：unsafe 越界 + transmute 生命周期） =====
+        const miriRes = runRustMiriInContainer(patch, 180000);
+        axisScores.compilation = miriRes.compiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(miriRes.compiled
+          ? 'Rust Miri test compiled successfully'
+          : 'Rust Miri compile failed: ' + miriRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+        const details = [
+          { testId: 'miri_clean', testType: 'hidden', name: 'Miri 无 Undefined Behavior', passed: miriRes.miriClean, stderr: miriRes.miriClean ? '' : 'Miri 检测到 UB（越界/retag/别名违反）' },
+          { testId: 'functional', testType: 'hidden', name: 'split_two 边界 + 越界 panic（4 测试全过）', passed: miriRes.testsPassed === miriRes.testsTotal, stderr: miriRes.testsPassed === miriRes.testsTotal ? '' : miriRes.testsPassed + '/' + miriRes.testsTotal + ' passed' },
+        ];
+        if (reqObj.forbidTransmute === true) {
+          details.push({ testId: 'no_transmute', testType: 'static', name: '删除 reborrow_long 的 transmute 生命周期伪造', passed: !/\btransmute\b/.test(patch), stderr: '' });
+        }
+        const suiteResult = summarizeTestResults(details);
+        runtimeEval = { compilePassed: miriRes.compiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
+        axisScores.test_pass = calculateTestScore(suiteResult);
+        axisEvidence.test_pass = 'verified';
+        evidence.push('Rust Miri: ' + suiteResult.passedTests + '/' + suiteResult.totalTests + ' passed' + (miriRes.miriClean ? '' : ' (UB detected!)'));
       } else if (rustFixture) {
         // ===== Rust 容器执行路径（真实编译 + assert） =====
         const rustRes = runRustTestsInContainer(patch, tests, rustFixture);
@@ -751,15 +811,36 @@ export const codeRepairEvaluator: Evaluator = {
           axisEvidence.test_pass = 'unmeasured';
           evidence.push('No Rust tests available for verification');
         }
+      } else if (isCppLang && reqObj.tsan === true) {
+        // ===== C++ TSan 并发压测路径（CP-L3-CC-005：Treiber 无锁栈内存序） =====
+        const tsanRes = runCppTsanInContainer(patch, 120000);
+        const cCompiled = !tsanRes.compileError;
+        axisScores.compilation = cCompiled ? 100 : 0;
+        axisEvidence.compilation = 'verified';
+        evidence.push(cCompiled
+          ? 'C++ TSan compile passed'
+          : 'C++ TSan compile failed: ' + tsanRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+        const details = [
+          { testId: 'tsan_clean', testType: 'hidden', name: 'TSan zero data race', passed: cCompiled && !tsanRes.raceDetected, stderr: tsanRes.raceDetected ? 'data race detected (memory order not paired)' : '' },
+          { testId: 'functional', testType: 'hidden', name: 'LIFO order + empty pop + MPSC stress multiset', passed: tsanRes.passed, stderr: tsanRes.passed ? '' : 'assert failed or race halted run' },
+        ];
+        if (reqObj.forbidMutex === true) {
+          details.push({ testId: 'no_mutex', testType: 'static', name: 'lock-free preserved (no mutex)', passed: !/std::mutex|lock_guard|unique_lock|scoped_lock|pthread_mutex/.test(patch), stderr: '' });
+        }
+        const suiteResult = summarizeTestResults(details);
+        runtimeEval = { compilePassed: cCompiled, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
+        axisScores.test_pass = calculateTestScore(suiteResult);
+        axisEvidence.test_pass = 'verified';
+        evidence.push('C++ TSan: ' + suiteResult.passedTests + '/' + suiteResult.totalTests + ' passed' + (tsanRes.raceDetected ? ' (data race!)' : ''));
       } else if (cFixture) {
-        // ===== C 容器执行路径（真实编译 + ASan + assert） =====
-        const cRes = runCTestsInContainer(patch, tests, cFixture);
+        // ===== C/C++ 容器执行路径（真实编译 + ASan + assert） =====
+        const cRes = isCppLang ? runCppTestsInContainer(patch, tests, cFixture) : runCTestsInContainer(patch, tests, cFixture);
         const cCompiled = !/error:/.test(cRes.stderr);
         axisScores.compilation = cCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(cCompiled
-          ? 'C container compiled successfully'
-          : 'C container compile failed: ' + cRes.stderr.slice(0, 200).replace(/\n/g, ' '));
+          ? 'C/C++ container compiled successfully'
+          : 'C/C++ container compile failed: ' + cRes.stderr.slice(0, 200).replace(/\n/g, ' '));
 
         if (tests.length > 0) {
           const details = cRes.tests.map((t) => ({
@@ -777,11 +858,11 @@ export const codeRepairEvaluator: Evaluator = {
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(suiteResult.totalTests > 0
-            ? `C container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
+            ? `C/C++ container tests: ${suiteResult.passedTests}/${suiteResult.totalTests} passed`
             : 'C compile failed — tests not run');
         } else {
           axisEvidence.test_pass = 'unmeasured';
-          evidence.push('No C tests available for verification');
+          evidence.push('No C/C++ tests available for verification');
         }
       } else if (javaFixture) {
         // ===== Java 容器执行路径（真实编译 + JUnit） =====

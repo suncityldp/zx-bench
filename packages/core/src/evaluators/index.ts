@@ -2,7 +2,7 @@
 // 评分器基类接口
 // ============================================================
 
-import type { Scenario, ScenarioResult, ModelResponse, OutputMetadata } from '@zxbench/types';
+import type { Scenario, ScenarioResult, ModelResponse, OutputMetadata, ModelConfig } from '@zxbench/types';
 
 /** 评分器接口 */
 export interface Evaluator {
@@ -16,6 +16,7 @@ export interface Evaluator {
     modelOutput: string,
     outputMetadata: OutputMetadata,
     modelResponse?: ModelResponse,
+    judgeModel?: ModelConfig,
   ): Promise<Partial<ScenarioResult>>;
 }
 
