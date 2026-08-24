@@ -12,6 +12,7 @@
     "build:server": "pnpm --filter server build",
     "lint": "pnpm -r run lint",
     "type-check": "pnpm -r run type-check",
+    "pretest": "pnpm -r --filter \"./packages/*\" run build",
     "test": "vitest run",
     "db:generate": "pnpm --filter server prisma:generate",
     "db:push": "pnpm --filter server prisma:push",
