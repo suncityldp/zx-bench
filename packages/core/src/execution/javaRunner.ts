@@ -62,6 +62,35 @@ export function buildJavaHarness(
   return { 'HiddenTest.java': parts.join('\n') + '\n' };
 }
 
+/**
+ * 剔除 maven 镜像 entrypoint 的良性噪音。
+ *
+ * 取证（2026-08-28）：`maven:3.9-eclipse-temurin-17-alpine` 的 ENTRYPOINT
+ * （/usr/local/bin/mvn-entrypoint.sh）在容器启动时无条件执行 `mkdir /root`
+ * 并写 `/root/.m2/copy_reference_file.log`。以非 root（65534）运行时必然抛
+ *   mkdir: cannot create directory ‘/root’: Permission denied
+ * 但 javac / java 本身完全正常（实测 exit=0）。
+ *
+ * 该噪音混进 stderr 后会被 harnessErrors 的 `HOME=/root unwritable` 模式命中，
+ * 误判为环境故障 → test_pass / compilation 被标记 unmeasured → Java 题退化为
+ * 纯规则分（实测恒为 80），编译与测试结果全部丢失。
+ *
+ * 注意：只剥离这两条已知的 entrypoint 噪音，其余 stderr 原样保留，
+ * 真正的编译/运行错误不受影响。
+ */
+const MAVEN_ENTRYPOINT_NOISE: RegExp[] = [
+  /^\s*mkdir:\s*cannot create directory\s*['"`\u2018\u2019]?\/root['"`\u2018\u2019]?\s*:\s*permission denied\s*$/i,
+  /^\s*can not write to\s+\/root\/\.m2\/copy_reference_file\.log\..*$/i,
+];
+
+function stripMavenEntrypointNoise(stderr: string): string {
+  if (!stderr) return stderr;
+  return stderr
+    .split('\n')
+    .filter((ln) => !MAVEN_ENTRYPOINT_NOISE.some((re) => re.test(ln)))
+    .join('\n');
+}
+
 export async function runJavaTestsInContainer(
   sourceCode: string,
   testCases: HiddenTestCase[],
@@ -83,8 +112,12 @@ export async function runJavaTestsInContainer(
     env: { HOME: '/tmp', TMPDIR: '/tmp' },
   });
 
+  // 先剥离 maven entrypoint 良性噪音，再做结果解析与环境错误判定，
+  // 否则该噪音会让 envErrorOf 误判、把 Java 题的编译/测试分整块丢掉。
+  const stderr = stripMavenEntrypointNoise(res.stderr);
+
   const tests: { name: string; passed: boolean }[] = testCases.map((_, i) => ({ name: 't' + i, passed: true }));
-  const out = res.stdout + '\n' + res.stderr;
+  const out = res.stdout + '\n' + stderr;
   const okMatch = /OK \((\d+) tests?\)/.test(out);
   const failNames = new Set<string>();
   for (const ln of out.split('\n')) {
@@ -101,7 +134,7 @@ export async function runJavaTestsInContainer(
   return {
     success: res.success,
     stdout: res.stdout,
-    stderr: res.stderr,
+    stderr,
     exitCode: res.exitCode,
     timedOut: res.timedOut,
     durationMs: res.durationMs,

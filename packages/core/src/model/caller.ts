@@ -141,13 +141,49 @@ async function fetchAndParseStream(
   return parseStreamResponse(response, requestStartTime, timeoutMs);
 }
 
+/**
+ * 带空闲超时的 stream read。
+ * 后端 stall（连接未断但不再推送）时抛出可诊断错误，而不是静默阻塞到整体截止。
+ */
+async function readWithIdleTimeout(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  idleMs: number,
+  requestStartTime: number,
+): Promise<{ done: boolean; value?: Uint8Array }> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const idle = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(
+        `Model stream idle for ${idleMs}ms (elapsed ${Date.now() - requestStartTime}ms) — 后端已连接但停止推送`,
+      ));
+    }, idleMs);
+  });
+  try {
+    return await Promise.race([reader.read(), idle]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function parseStreamResponse(
   response: Response,
   requestStartTime: number,
-  _timeoutMs: number,
+  timeoutMs: number,
 ): Promise<ModelResponse> {
   if (!response.body) {
     throw new Error('Streaming response has no body');
+  }
+
+  // 空闲超时：两次 chunk 之间允许的最大间隔。
+  // 原先该形参被写成 _timeoutMs（未使用），读流循环完全没有超时保护：后端一旦
+  // 「开了流但不关闭」（本地推理引擎中止、代理挂起等常见故障），await reader.read()
+  // 会一直阻塞到外层 AbortController 的整体截止（默认 10 分钟），期间不产生任何日志，
+  // 排障时表现为「无任何输出的静默挂起」，极易被误判为死循环。
+  // 补一个空闲上限，让 stall 尽快显性化为可诊断的错误。
+  // 取值：给推理模型留出充分的思考停顿，同时不超过整体硬超时。
+  const idleMs = Math.max(30_000, Math.min(timeoutMs, 180_000));
+  if (process.env.ZXB_CALLER_TRACE) {
+    console.error(`[caller] parseStreamResponse timeoutMs=${timeoutMs} idleMs=${idleMs}`);
   }
 
   const reader = response.body.getReader();
@@ -164,7 +200,7 @@ async function parseStreamResponse(
 
   try {
     while (true) {
-      const { done, value } = await reader.read();
+      const { done, value } = await readWithIdleTimeout(reader, idleMs, requestStartTime);
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });

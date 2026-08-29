@@ -346,13 +346,24 @@ async function checkPause(runId: string): Promise<'continue' | 'cancelled'> {
   const stateBefore = ctrl.state as string;
   if (stateBefore === 'cancelled') return 'cancelled';
   if (stateBefore === 'paused') {
-    // 等待 resume 信号
-    ctrl.resumePromise = new Promise<void>((resolve) => {
-      ctrl.resumeResolve = resolve;
-    });
+    // 所有 worker 必须共享同一个 resume 信号。
+    //
+    // 原实现每个 worker 各自 new Promise 并赋给 ctrl.resumeResolve，后到的会
+    // 覆盖先到的；而 resumeEvaluation / cancelEvaluation 只 resolve 一次。
+    // 结果并发 ≥2 时，只有最后一个 worker 被唤醒，其余永久悬挂 —— 进程活着、
+    // CPU 为 0、无任何日志，表现为「服务端莫名卡死」。
+    // 取证：2026-08-29 Phase A 事故；processQuestion 的硬性错误兜底
+    // （isHardQuotaError → pauseEvaluation）正是这条路径的触发点之一。
+    //
+    // Promise 的 resolve 会唤醒全部 awaiter，因此共享一个即可。
+    // 清理交给 resumeEvaluation / cancelEvaluation，worker 侧不再置空，
+    // 否则先醒的 worker 会把别的 worker 还在等的信号抹掉。
+    if (!ctrl.resumePromise) {
+      ctrl.resumePromise = new Promise<void>((resolve) => {
+        ctrl.resumeResolve = resolve;
+      });
+    }
     await ctrl.resumePromise;
-    ctrl.resumePromise = null;
-    ctrl.resumeResolve = null;
   }
   // Re-read state after potentially being resumed
   return ctrl.state === 'cancelled' ? 'cancelled' : 'continue';
@@ -699,6 +710,11 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
       const runId = generateRunId();
       const config = { ...DEFAULT_EVAL_CONFIG, ...body.config };
+
+      // 题目子集白名单：固化进 config，保证断点续跑/重跑还原同一子集
+      if (Array.isArray(body.scenarioIds) && body.scenarioIds.length > 0) {
+        config.scenarioIds = body.scenarioIds;
+      }
 
       // 拉齐评测配置：推理模型强制 maxTokens 下限
       // （防止同一排行榜下不同模型评测条件不一致导致排名失真，如 27B 推理模型被 8192 预算系统性压低）
@@ -3138,6 +3154,16 @@ async function runEvaluation(
   let filteredScenarios = dimensionFilter && dimensionFilter.length > 0
     ? scenarios.filter(s => dimensionFilter!.includes(s.dimension))
     : scenarios;
+
+  // 应用题目子集白名单（实验用：方差基线 / 分层抽样 / 快速冒烟）
+  // 取自 config 而非入参，使断点续跑路径也能还原同一子集
+  const subsetIds: string[] | undefined = (config as { scenarioIds?: string[] }).scenarioIds;
+  if (Array.isArray(subsetIds) && subsetIds.length > 0) {
+    const subset = new Set(subsetIds);
+    const before = filteredScenarios.length;
+    filteredScenarios = filteredScenarios.filter((s) => subset.has(s.id));
+    console.log(`[Eval ${runId}] 题目子集白名单生效: ${subset.size} 指定 -> 命中 ${filteredScenarios.length}/${before}`);
+  }
 
   // 时效护栏：跳过已过 validUntil 的题目（如时事题参考答案过期），避免过期答案导致误判
   const beforeExpireFilter = filteredScenarios.length;

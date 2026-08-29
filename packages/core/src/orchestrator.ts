@@ -29,7 +29,7 @@ import type {
 } from '@zxbench/types';
 import { callModelWithRetry } from './model/caller.js';
 import { buildOutputMetadata } from '@zxbench/utils';
-import { runTieredJudge, type JudgeOptions } from './judge/index.js';
+import { runTieredJudge, runJudgeEnsemble, computeJudgeScore, type JudgeOptions } from './judge/index.js';
 import { getEvaluator } from './evaluators/index.js';
 import { prepareSandboxEvaluation } from './sandbox/workspace.js';
 import { checkSafetyRedLines } from './safety/index.js';
@@ -169,6 +169,31 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   let sandboxEvaluation: RuntimeEvaluation | undefined;
   let sandboxSummary: string | null = null;
   const scenarioRequirements = (scenario.requirements ?? {}) as Record<string, unknown>;
+
+  // ===== Stage 1.55: 多文件仓库题（project_repair）——注入仓库文件内容 =====
+  // P4 事故修复：AG 系列新题的 promptTemplate 是通用英文模板（不内嵌源码），而
+  // requiresSandbox 仅在实地调查题开（#26 修复后）。若不注入 files，模型视角里
+  // 只有一句"inspect the multi-file repository"，看不到任何代码 → 只能拒绝作答。
+  // 这里对 project_repair 且带 files 的题，把文件树 + 全文注入 userPrompt，
+  // 并要求以 `### file: <path>` 块输出完整修改内容（parseFileBlocks 兼容格式）。
+  const repoFiles = Array.isArray(scenarioRequirements.files)
+    ? (scenarioRequirements.files as { path: string; content: string }[])
+    : [];
+  if (scenario.grader === 'project_repair' && repoFiles.length > 0 && scenarioRequirements.requiresSandbox !== true) {
+    const fileTree = repoFiles.map((f) => `- ${f.path}`).join('\n');
+    const fileBodies = repoFiles
+      .map((f) => `### file: ${f.path}\n\`\`\`\n${f.content}\n\`\`\``)
+      .join('\n\n');
+    userPrompt =
+      userPrompt +
+      '\n\n===== 仓库文件 =====\n' +
+      fileTree +
+      '\n\n' +
+      fileBodies +
+      '\n\n===== 输出要求 =====\n对每个需要修改的文件，输出完整新内容，用 `### file: <相对路径>` 标注路径：';
+    console.log(`[orchestrator] Injected ${repoFiles.length} repo files into prompt for ${scenario.id}`);
+  }
+
   if (scenarioRequirements.requiresSandbox === true) {
     onProgress?.('sandbox_prepare');
     try {
@@ -413,6 +438,9 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   let frontierJudge: ScenarioResult['frontierJudge'];
   let finalJudge: ScenarioResult['finalJudge'];
   let escalated = false;
+  // P1：hoist 出 judge 集成历史，供最终落库 scoreHistory/runCount（避免被 612-613 字面量覆盖丢失）
+  let judgeScoreHistoryArr: number[] | null = null;
+  let ensembleRunCount = 1;
 
   // 按维度/题型定义权重
   let weights = getJudgeWeights(scenario.dimension, scenario.grader);
@@ -463,9 +491,14 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
 
     // Judge 容错：调用失败不连坐丢弃生成结果，降级为纯确定性评分并标记人工复核
     let judgeFailedReason = '';
-    let judgeResult: { localJudge: JudgeResult; frontierJudge?: JudgeResult; finalJudge: JudgeResult; escalated: boolean } | null = null;
+    let judgeResult: { localJudge: JudgeResult; frontierJudge?: JudgeResult; finalJudge: JudgeResult; escalated: boolean; runs?: JudgeResult[] } | null = null;
     try {
-      judgeResult = await runTieredJudge(judgeInput, judgeOptions);
+      // P0：judgeEnsembleRuns>1 时对同一候选输出重复判分 K 次取均，降低评分器噪声
+      // P1：program 维度默认 3× 集成（降低 judge 噪声 √3）；其余维度沿用 evalConfig.judgeEnsembleRuns 或单跑
+      const ensembleRuns = evalConfig.judgeEnsembleRuns ?? (scenario.dimension === 'program' ? 3 : 1);
+      judgeResult = ensembleRuns > 1
+        ? await runJudgeEnsemble(judgeInput, judgeOptions, ensembleRuns)
+        : await runTieredJudge(judgeInput, judgeOptions);
     } catch (judgeErr) {
       judgeFailedReason = judgeErr instanceof Error ? judgeErr.message : String(judgeErr);
       console.error(`[orchestrator] Judge 调用失败，降级为确定性评分 (${scenario.id}): ${judgeFailedReason}`);
@@ -490,13 +523,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       const isHallucination = scenario.dimension === 'hallucination_resistance';
       const judgeScore = (isHallucination && finalJudge.factuality != null)
         ? Math.round(finalJudge.factuality * 100)
-        : (
-            finalJudge.bugDetection * 25 +
-            finalJudge.rootCause * 25 +
-            finalJudge.patchCorrectness * 30 +
-            finalJudge.scopeDiscipline * 10 +
-            finalJudge.outputCompleteness * 10
-          );
+        : computeJudgeScore(finalJudge);
 
       // 幻觉抵抗维度 Judge 参与后，factuality 轴证据从 rule 升级为 llm
       if (isHallucination) {
@@ -506,6 +533,11 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       // 保存混合前的确定性分数和 Judge 分数
       result.deterministicScore = result.totalScore;
       result.judgeScore = judgeScore;
+      // P1：记录 Judge 集成各次分数（runJudgeEnsemble 提供 runs），落库到 scoreHistory/runCount 供方差分析
+      if (judgeResult?.runs && judgeResult.runs.length > 1) {
+        judgeScoreHistoryArr = judgeResult.runs.map((r) => computeJudgeScore(r));
+        ensembleRunCount = judgeResult.runs.length;
+      }
 
       // 覆盖率感知合并：确定性评分器未测量轴（题集缺检查项）的权重让渡给 AI Judge 补判
       // 例：tool_cli 缺 tool 配置（coverage=0.15）→ det 仅按已测轴计权，其余由 Judge 语义判分
@@ -607,13 +639,18 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     frontierJudge,
     finalJudge,
     escalated,
-    runCount: 1,
-    scoreHistory: [result.totalScore ?? 0],
+    runCount: judgeScoreHistoryArr ? ensembleRunCount : 1,
+    scoreHistory: judgeScoreHistoryArr ?? [result.totalScore ?? 0],
     verdictHistory: [(structuredAnswer as Record<string, unknown>)?.verdict as string || 'unknown'],
     graderVersion: `${scenario.grader}@${scenario.graderVersion}`,
     evidence: result.evidence || [],
     humanReviewRequired: escalated || (result.totalScore ?? 0) < 30,
     codeExtractionFailed,
+    // 环境/测试基础设施故障标志必须透传：评分器置位后，编排层据此跳过 Judge，
+    // 落库与聚合层再据此把该题排除出维度均值。此前本字段在构造返回对象时漏传，
+    // 导致「Judge 已跳过、轴已标 unmeasured，但 environmentError 落库为 0」，
+    // 退化的规则分仍被计入均分（2026-08-28 修）。
+    environmentError: result.environmentError === true,
     startedAt,
     finishedAt,
   };

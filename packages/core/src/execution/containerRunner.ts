@@ -90,13 +90,20 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
 
   const startedAt = Date.now();
 
+  const T = !!process.env.ZXB_PR_TRACE;
+  if (T) console.log('[CT] 进入 runInContainer image=' + image + ' files=' + files.length + ' timeoutMs=' + timeoutMs);
   if (!(await isDockerAvailable())) {
+    if (T) console.log('[CT] Docker 不可用，短路返回');
     return { success: false, stdout: '', stderr: 'Docker unavailable — container execution skipped', exitCode: -1, timedOut: false, durationMs: 0 };
   }
 
+  if (T) console.log('[CT] ensureImage 开始');
   await ensureImage(image);
+  if (T) console.log('[CT] ensureImage 完成');
 
+  if (T) console.log('[CT] 物化临时目录开始');
   const hostDir = mkdtempSync(join(tmpdir(), 'zxbench-run-'));
+  if (T) console.log('[CT] 临时目录=' + hostDir);
   try {
     for (const f of files) {
       const full = join(hostDir, f.path);
@@ -127,8 +134,10 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
       args.push('--mount', 'type=bind,src=' + m.src.split('\\').join('/') + ',dst=' + m.dst + (m.readonly === false ? '' : ',readonly'));
     }
     args.push(image, ...command);
+    if (T) console.log('[CT] docker run 开始: ' + args.join(' ').slice(0, 220));
 
     const res = await execAsync('docker', args, { timeout: timeoutMs + 5000, maxBuffer: 8 * 1024 * 1024 });
+    if (T) console.log('[CT] docker run 返回 status=' + res.status + ' err=' + (res.error && res.error.code));
 
     const timedOut = res.error != null && (res.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     const exitCode = res.status ?? (timedOut ? 124 : 1);

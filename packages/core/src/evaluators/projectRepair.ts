@@ -161,16 +161,23 @@ export const projectRepairEvaluator: Evaluator = {
     const image = req.image ?? LANG_IMAGE[lang] ?? 'python:3.12-alpine';
 
     // 1. 解析模型输出的多文件替换
+    if (process.env.ZXB_PR_TRACE) console.log('[PR] 1 parseFileBlocks 开始');
     const replacements = parseFileBlocks(modelOutput);
+    if (process.env.ZXB_PR_TRACE) console.log('[PR] 1 完成 replacements=' + Object.keys(replacements).length);
     axisScores.output_completeness = Object.keys(replacements).length > 0 ? 100 : 0;
     axisEvidence.output_completeness = 'rule';
     evidence.push('解析到 ' + Object.keys(replacements).length + ' 个文件替换');
 
     // 2. 物化工作区
+    if (process.env.ZXB_PR_TRACE) console.log('[PR] 2 buildWorkspaceFiles 开始');
     const workspaceFiles = buildWorkspaceFiles(initialFiles, replacements, hiddenFiles);
+    if (process.env.ZXB_PR_TRACE) console.log('[PR] 2 完成 files=' + workspaceFiles.length);
 
     // 3. 跑隐藏测试脚本
-    if (!(await isDockerAvailable())) {
+    if (process.env.ZXB_PR_TRACE) console.log('[PR] 3 isDockerAvailable 开始');
+    const dockerOk = await isDockerAvailable();
+    if (process.env.ZXB_PR_TRACE) console.log('[PR] 3 isDockerAvailable=' + dockerOk);
+    if (!dockerOk) {
       evidence.push('ENVIRONMENT_ERROR: docker daemon unreachable — harness 故障，非模型错误，已隔离（unmeasured）');
       return {
         axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
@@ -190,7 +197,9 @@ export const projectRepairEvaluator: Evaluator = {
         continue;
       }
       const isSql = lang === 'sql' || lang === 'postgresql';
+      if (process.env.ZXB_PR_TRACE) console.log('[PR] 4 runScript 开始 image=' + image + ' timeout=' + (isSql ? 180000 : 120000));
       const r = await runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql });
+      if (process.env.ZXB_PR_TRACE) console.log('[PR] 4 runScript 完成 passed=' + r.passed + ' exit=' + r.exitCode);
       results.push(r);
       const envInfo = detectEnvironmentError(r.stderr);
       if (envInfo.isEnv && envErrorReason === null) envErrorReason = envInfo.reason ?? null;

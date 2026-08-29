@@ -282,6 +282,8 @@ export interface ScenarioResult {
   frontierJudge?: JudgeResult;
   finalJudge?: JudgeResult;
   escalated: boolean;
+  /** P0：Judge 集成各次的 judgeScore 序列（runJudgeEnsemble 写入），用于方差分析 */
+  judgeScoreHistory?: number[];
 
   // 多轮统计
   runCount: number;
@@ -511,6 +513,12 @@ export interface EvalRunConfig {
   parallelMode?: 'global' | 'per_dimension';  // 并行模式: global=全局并发池, per_dimension=维度独立并行, 默认global
   /** 思考/输出约束策略（反拖尾）：先答案后原因、token 上限、硬时间上限、超限处置 */
   constraints?: EvalConstraints;
+  /** P0：Judge 集成次数。>1 时对同一候选输出重复判分 K 次取均，降低评分器噪声。
+   *  默认 1（单次，与历史行为一致）。仅影响 Judge 调用，不重跑候选模型。 */
+  judgeEnsembleRuns?: number;
+  /** 题目子集白名单。非空时只评测这些 scenarioId（用于方差基线、分层抽样、快速冒烟）。
+   *  随 config 一起落库，因此断点续跑/重跑可还原同一子集，保证实验可复现。 */
+  scenarioIds?: string[];
 }
 
 // ----- 评测摘要 -----
@@ -590,6 +598,8 @@ export interface CreateEvalRunRequest {
   config: Partial<EvalRunConfig>;
   parentRunId?: string;           // 父运行ID（多维度并行）
   groupName?: string;             // 并行组名
+  /** 题目子集白名单，非空时只评测这些 scenarioId（实验用，会固化进 config 便于复现） */
+  scenarioIds?: string[];
 }
 
 /** 多模型并行评测：一次请求并发启动多个不同模型的评测任务 */
@@ -600,6 +610,8 @@ export interface CreateBatchEvalRunRequest {
   dimensionIds: string[];         // 维度过滤（所有模型共享）
   config: Partial<EvalRunConfig>; // 共享评测配置
   groupName?: string;             // 并行组名（不传则自动生成）
+  /** 题目子集白名单，所有模型共享同一子集（配对实验必须一致） */
+  scenarioIds?: string[];
 }
 
 /** 批量评测中子运行的信息 */

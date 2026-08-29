@@ -247,3 +247,73 @@ export async function runTieredJudge(
 
   return { localJudge, finalJudge: localJudge, escalated: false };
 }
+
+/** 计算 Judge 综合分（与 orchestrator / rescore 共用，避免重复加权逻辑） */
+export function computeJudgeScore(j: JudgeResult): number {
+  return Math.round(
+    j.bugDetection * 25 +
+    j.rootCause * 25 +
+    j.patchCorrectness * 30 +
+    j.scopeDiscipline * 10 +
+    j.outputCompleteness * 10,
+  );
+}
+
+/**
+ * 集成判分（P0）：对同一候选输出重复调用分层 Judge K 次，对各连续子分取均值，
+ * 降低评分器随机性带来的方差（K 次平均使评分器噪声分量 ÷√K）。
+ * 仅对「同一候选输出」重复判分（候选模型只调用一次），不引入额外候选方差。
+ *
+ * 返回聚合后的 finalJudge，以及每次运行的 finalJudge 列表（供方差分析 /
+ * 写回 judgeScoreHistory）。runs 为空时退化为单次 runTieredJudge。
+ */
+export async function runJudgeEnsemble(
+  input: JudgeInput,
+  options: JudgeOptions,
+  K = 3,
+): Promise<{
+  localJudge: JudgeResult;
+  frontierJudge?: JudgeResult;
+  finalJudge: JudgeResult;
+  escalated: boolean;
+  runs: JudgeResult[];
+}> {
+  const n = Math.max(1, Math.floor(K));
+  const runs: JudgeResult[] = [];
+  let localJudge: JudgeResult | undefined;
+  let frontierJudge: JudgeResult | undefined;
+  let escalated = false;
+
+  for (let i = 0; i < n; i++) {
+    const r = await runTieredJudge(input, options);
+    runs.push(r.finalJudge);
+    if (!localJudge) localJudge = r.localJudge;
+    if (r.frontierJudge) frontierJudge = r.frontierJudge;
+    if (r.escalated) escalated = true;
+  }
+
+  const avgNum = (sel: (j: JudgeResult) => number): number =>
+    runs.reduce((a, j) => a + sel(j), 0) / runs.length;
+
+  const averaged: JudgeResult = {
+    ...runs[0],
+    bugDetection: avgNum((j) => j.bugDetection),
+    rootCause: avgNum((j) => j.rootCause),
+    patchCorrectness: avgNum((j) => j.patchCorrectness),
+    patchCompleteness: avgNum((j) => j.patchCompleteness),
+    scopeDiscipline: avgNum((j) => j.scopeDiscipline),
+    outputCompleteness: avgNum((j) => j.outputCompleteness),
+    factuality: runs[0].factuality != null ? avgNum((j) => j.factuality ?? 0) : undefined,
+    confidence: avgNum((j) => j.confidence),
+    evidence: runs.flatMap((j) => j.evidence),
+    notes: runs.flatMap((j) => j.notes),
+  };
+
+  return {
+    localJudge: localJudge!,
+    frontierJudge,
+    finalJudge: averaged,
+    escalated,
+    runs,
+  };
+}

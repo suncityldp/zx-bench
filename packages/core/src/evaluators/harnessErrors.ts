@@ -27,6 +27,15 @@ const ENV_ERROR_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   // docker 守护进程不可达 / 错误响应
   { re: /cannot connect to the docker daemon/i, reason: 'docker daemon unreachable' },
   { re: /error response from daemon/i, reason: 'docker daemon error' },
+  // containerRunner 在 isDockerAvailable() 为假时的短路返回（containerRunner.ts）。
+  // 取证：2026-08-28 P0′ 冒烟，Docker Desktop 未运行导致 Go 题
+  //   "Go container compile failed: Docker unavailable — container execution skipped"
+  //   deterministicScore 由 94 跌至 32，被误判为模型缺陷。
+  // 注意措辞必须与 containerRunner 的常量逐字一致，否则隔离失效。
+  { re: /docker unavailable\s*[—-]\s*container execution skipped/i, reason: 'docker daemon unavailable — container execution skipped' },
+  // 镜像拉取失败（容器冷启动 / registry 不可达）
+  { re: /(?:manifest|image|repository)[^\n]*not found/i, reason: 'container image unavailable' },
+  { re: /error pulling image|toomanyrequests|pull access denied/i, reason: 'container image pull failed' },
   // OCI 运行时创建/启动容器失败
   { re: /oci runtime (?:exec|create|start) failed/i, reason: 'OCI runtime failure' },
   // 磁盘空间不足（镜像/容器写层）
