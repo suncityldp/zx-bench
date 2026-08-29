@@ -8,8 +8,56 @@
 
 import { execAsync } from './execAsync.js';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
+import { rm as rmAsync } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+
+/**
+ * 异步清理工作区目录（带重试与超时放弃）。
+ *
+ * ⚠️ 根因修复（2026-08-30 诊断 run 插桩实锤）：原先在 finally 里同步 rmSync
+ * 删除 docker 刚 bind-mount 过的临时目录。容器 --rm 退出瞬间，Docker daemon /
+ * WSL2 还残留文件句柄时，rmSync 会在内核调用里永久卡住（不抛异常，catch 拦不住），
+ * 把 Node 主线程同步钉死 —— 整个 server 静默冻结、HTTP 全无响应。
+ * 这解释了 v3 全部四次冻结：只在 PR 评估（每题多个容器）时发生，与 n_ctx、
+ * parallelism、单/双 run 均无关；P4 当时跑通只是竞态没撞上。
+ * 因此：绝不在主线程同步等待这类目录删除，改异步 + 重试 + 到点放弃。
+ */
+let sweepWarned = 0;
+async function cleanupHostDir(hostDir: string): Promise<void> {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      await rmAsync(hostDir, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
+      return;
+    } catch {
+      await new Promise((r) => setTimeout(r, attempt * 1000));
+    }
+  }
+  // 重试仍失败：留下让启动清扫处理，绝不死等。
+  if (sweepWarned < 20) {
+    sweepWarned++;
+    console.warn(`[CT] cleanup abandoned (will be swept on startup): ${hostDir}`);
+  }
+}
+
+/** 启动时清扫遗留的 zxbench-run-* 临时目录（异步、不阻塞）。 */
+export function sweepStaleRunDirs(): void {
+  void (async () => {
+    try {
+      const { readdir } = await import('node:fs/promises');
+      const tmp = tmpdir();
+      const entries = await readdir(tmp);
+      let n = 0;
+      for (const e of entries) {
+        if (e.startsWith('zxbench-run-')) {
+          await cleanupHostDir(join(tmp, e));
+          n++;
+        }
+      }
+      if (n > 0) console.log(`[CT] startup sweep: cleaned ${n} stale run dirs`);
+    } catch { /* ignore */ }
+  })();
+}
 
 export interface ContainerFile {
   /** 相对工作区的路径，如 main.js */
@@ -150,6 +198,9 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
       durationMs: Date.now() - startedAt,
     };
   } finally {
-    try { rmSync(hostDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    // 关键：异步、不 await 完成（不阻塞返回值路径）。旧实现用同步 rmSync 删
+    // docker 刚卸载的目录，会与 Docker/WSL2 句柄释放竞态，把主线程钉死（v3 四次冻结根因）。
+    if (T) console.log('[CT] finally 发起异步清理 ' + hostDir);
+    void cleanupHostDir(hostDir).catch(() => { /* 启动清扫兜底 */ });
   }
 }
