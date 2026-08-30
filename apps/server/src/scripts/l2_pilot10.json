@@ -1,0 +1,19 @@
+{
+  "version": "l2-pilot-10",
+  "scenarioIds": [
+    "L2-PILOT-001",
+    "L2-PILOT-002",
+    "L2-PILOT-003",
+    "L2-PILOT-004",
+    "L2-PILOT-005",
+    "L2-PILOT-006",
+    "L2-PILOT-007",
+    "L2-PILOT-008",
+    "L2-PILOT-009",
+    "L2-PILOT-010"
+  ],
+  "dimensionFilter": [
+    "program"
+  ],
+  "note": "I7 Level 2 pilot：多文件修复+测试驱动，n=10，用于测 ornith vs qwen 的 Δ 稳定性"
+}

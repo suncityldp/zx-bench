@@ -1,0 +1,82 @@
+{
+  "L2-PILOT-001": [
+    {
+      "path": "client.py",
+      "content": "from config import MAX_RETRIES, TIMEOUT_SEC\n\n\ndef send(payload, attempts=0):\n    \"\"\"返回 (ok, attempts_used)。超过 MAX_RETRIES 次即放弃。\"\"\"\n    while attempts < MAX_RETRIES:\n        attempts += 1\n        if payload.get(\"ok\"):\n            return True, attempts\n    return False, attempts\n"
+    }
+  ],
+  "L2-PILOT-002": [
+    {
+      "path": "audit.py",
+      "content": "from store import put\n\n\ndef audit_write(key, value):\n    _k, old, _new = put(key, value)\n    return {\"changed\": old != value, \"old\": old}\n"
+    }
+  ],
+  "L2-PILOT-003": [
+    {
+      "path": "state.py",
+      "content": "registry = {}\n_defaults = {\"mode\": \"safe\", \"limit\": 10}\n\n\ndef init(**overrides):\n    # 原地更新同一 dict 对象：任何持有 registry 引用的模块都能看到最新状态\n    registry.clear()\n    registry.update(_defaults)\n    registry.update(overrides)\n    return registry\n\n\ndef snapshot():\n    return dict(registry)\n"
+    }
+  ],
+  "L2-PILOT-004": [
+    {
+      "path": "loader.py",
+      "content": "from parser import parse_int\n\n\ndef load_value(raw):\n    # 不再吞异常：解析失败向上抛，由调用方决定如何处理\n    return parse_int(raw)\n"
+    },
+    {
+      "path": "aggregate.py",
+      "content": "from loader import load_value\n\n\ndef total(raws):\n    \"\"\"求和；遇到无法解析的项向上抛 ValueError（不静默跳过）。\"\"\"\n    s = 0\n    for r in raws:\n        s += load_value(r)\n    return s\n"
+    }
+  ],
+  "L2-PILOT-005": [
+    {
+      "path": "service.py",
+      "content": "from cache import set_value, get_value\nfrom keys import make_key\n\n\ndef expensive(user_id, region):\n    k = make_key(\"user\", user_id, region)\n    hit = get_value(k)\n    if hit is not None:\n        return hit\n    v = {\"user\": user_id, \"region\": region, \"score\": user_id * 2}\n    set_value(k, v)\n    return v\n"
+    },
+    {
+      "path": "facade.py",
+      "content": "from cache import get_value\nfrom keys import make_key\nfrom service import expensive\n\n\ndef lookup(user_id, region):\n    k = make_key(\"user\", user_id, region)\n    cached = get_value(k)\n    if cached is not None:\n        return dict(cached, hit=True)\n    return dict(expensive(user_id, region), hit=False)\n"
+    }
+  ],
+  "L2-PILOT-006": [
+    {
+      "path": "collector.py",
+      "content": "_buffer = []\n\n\ndef reset():\n    _buffer.clear()\n\n\ndef collect(item):\n    _buffer.append(item)\n    return len(_buffer)\n\n\ndef drain():\n    # 返回副本：调用方就地修改不会污染 collector 的内部状态\n    return list(_buffer)\n"
+    }
+  ],
+  "L2-PILOT-007": [
+    {
+      "path": "slicing.py",
+      "content": "def window(seq, start, size):\n    \"\"\"返回 [start, start+size) 的窗口；越界时在末尾截断（可短于 size）。\"\"\"\n    if start < 0:\n        start = 0\n    end = start + size\n    if end > len(seq):\n        end = len(seq)\n    return seq[start:end]\n"
+    }
+  ],
+  "L2-PILOT-008": [
+    {
+      "path": "money.py",
+      "content": "from decimal import Decimal, ROUND_HALF_UP\n\n\ndef to_cents(amount):\n    \"\"\"把金额（元）转为整数分，四舍五入避免浮点截断误差。\"\"\"\n    return int((Decimal(str(amount)) * 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP))\n"
+    },
+    {
+      "path": "cart.py",
+      "content": "from decimal import Decimal\n\n\ndef line_total(price, qty):\n    \"\"\"单价 × 数量，保持 Decimal 精度（不再降级为 float）。\"\"\"\n    return Decimal(str(price)) * qty\n"
+    }
+  ],
+  "L2-PILOT-009": [
+    {
+      "path": "a_mod.py",
+      "content": "import b_mod\n\nNAME = \"a\"\n\n\ndef describe():\n    # 延迟到调用时再读取对方属性，避开导入期的半初始化\n    return f\"{NAME}<->{b_mod.NAME}\"\n"
+    },
+    {
+      "path": "b_mod.py",
+      "content": "NAME = \"b\"\n\n\ndef describe():\n    import a_mod\n    return f\"{NAME}<->{a_mod.NAME}\"\n"
+    }
+  ],
+  "L2-PILOT-010": [
+    {
+      "path": "opener.py",
+      "content": "_opened = []\n\n\ndef open_many(paths):\n    handles = []\n    for p in paths:\n        h = open(p, \"w\", encoding=\"utf-8\")\n        _opened.append(h)\n        handles.append(h)\n    return handles\n\n\ndef close_many(handles):\n    for h in handles:\n        if not h.closed:\n            h.close()\n\n\ndef pending():\n    return len([h for h in _opened if not h.closed])\n"
+    },
+    {
+      "path": "writer.py",
+      "content": "from opener import open_many, close_many, pending\n\n\ndef write_all(paths, content):\n    hs = open_many(paths)\n    try:\n        for h in hs:\n            h.write(content)\n            h.flush()\n    finally:\n        close_many(hs)\n    return pending()\n"
+    }
+  ]
+}
