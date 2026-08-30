@@ -360,7 +360,15 @@ function fillExtraParams(body: Record<string, unknown>, params: ModelParams): vo
 }
 
 function buildHeaders(config: ModelConfig): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // Connection: close —— 禁用 undici keep-alive 连接复用（2026-08-30 K2/K3 事故根因）。
+  // 本地后端（LM Studio / llama.cpp）发生 stall 或重载后，连接池里会残留半关闭 socket；
+  // 之后每个 fetch 都复用这个坏连接 → 全量 "fetch failed"（code=UND_ERR_CONNECT_TIMEOUT），
+  // 重试也走同一池、永不恢复，表现为 run 前段正常、某一刻起连败到结束（ornith K2 24 题后连败 34 题）。
+  // 评测每题调用间隔秒级、且目标是本地服务，长连接收益小、毒化风险大，一律短连接。
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Connection: 'close',
+  };
   if (config.apiKey) {
     headers['Authorization'] = `Bearer ${config.apiKey}`;
   }
