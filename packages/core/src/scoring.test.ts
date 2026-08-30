@@ -60,7 +60,7 @@ describe('getJudgeWeights', () => {
   }
 });
 
-describe('mixDeterministicJudge (coverage-aware handoff)', () => {
+describe('mixDeterministicJudge (coverage-aware handoff, I1 judge cap)', () => {
   it('preserves total weight across coverage levels', () => {
     for (const c of [0, 0.15, 0.5, 0.8, 1]) {
       const m = mixDeterministicJudge(0.7, 0.3, c);
@@ -68,10 +68,33 @@ describe('mixDeterministicJudge (coverage-aware handoff)', () => {
     }
   });
 
-  it('hands off unmeasured deterministic weight to judge at low coverage', () => {
+  it('caps judge weight at JUDGE_WEIGHT_CAP (0.3), excess handed back to deterministic', () => {
+    // 低覆盖 0.15：rawJudgeW = 0.3 + 0.7×0.85 = 0.895 → 封顶 0.3，detW = 0.7
     const m = mixDeterministicJudge(0.7, 0.3, 0.15);
-    expect(m.detW).toBeCloseTo(0.7 * 0.15, 5);
-    expect(m.judgeW).toBeCloseTo(0.3 + 0.7 * (1 - 0.15), 5);
+    expect(m.judgeW).toBeCloseTo(0.3, 5);
+    expect(m.detW).toBeCloseTo(0.7, 5);
+  });
+
+  it('keeps raw judge weight when below cap (high coverage)', () => {
+    // 覆盖 0.9：rawJudgeW = 0.3 + 0.7×0.1 = 0.37 > 0.3 → 仍封顶
+    const m = mixDeterministicJudge(0.7, 0.3, 0.9);
+    expect(m.judgeW).toBeCloseTo(0.3, 5);
+    expect(m.detW).toBeCloseTo(0.7, 5);
+  });
+
+  it('does not cap when raw judge weight is naturally below cap', () => {
+    // program 维度 det=0.8 judge=0.2, coverage=1 → rawJudgeW = 0.2 < 0.3，原样保留
+    const m = mixDeterministicJudge(0.8, 0.2, 1);
+    expect(m.judgeW).toBeCloseTo(0.2, 5);
+    expect(m.detW).toBeCloseTo(0.8, 5);
+  });
+
+  it('I1 regression: program AG 场景 judge 权重从 57% 压回 30%', () => {
+    // 实测 AG 覆盖 0.53：修复前 judgeW = 0.2 + 0.8×0.47 ≈ 0.576 → 修复后 0.3
+    const m = mixDeterministicJudge(0.8, 0.2, 0.53);
+    expect(m.judgeW).toBeCloseTo(0.3, 5);
+    expect(m.detW).toBeCloseTo(0.7, 5);
+    expect(m.detW + m.judgeW).toBeCloseTo(1.0, 5);
   });
 });
 

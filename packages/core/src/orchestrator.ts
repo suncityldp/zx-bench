@@ -53,6 +53,13 @@ function resolveConstraints(
   runConstraints?: EvalConstraints,
 ): EvalConstraints {
   const c: EvalConstraints = { ...(runConstraints || {}) };
+  // I3（2026-08-31）：program 维度 answerFirst 默认开启——推理模型在 maxTokens 耗尽时
+  // 会把全部预算耗在 reasoning 上、content 为空被判 0 分（REASONING_TOKEN_BUDGET 误伤，
+  // 实测 AG1-005/AG1-010 两题 0 分、answerFirst 重试后救回 45/40 分）。
+  // 优先级：题目级显式字段 > 运行级 constraints > 维度默认。
+  if (c.answerFirst == null && scenario.dimension === 'program') {
+    c.answerFirst = true;
+  }
   // 题目级字段覆盖运行级
   if (scenario.answerFirst != null) c.answerFirst = scenario.answerFirst;
   if (scenario.maxAnswerTokens != null) c.maxAnswerTokens = scenario.maxAnswerTokens;
@@ -234,6 +241,12 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     }
     throw err; // 其他错误照常抛出
   }
+
+  // I3（2026-08-31）：caller 层 reasoning 硬截断已生效的场景——
+  // maxReasoningTokens 超预算后流被主动停止、已产出 content 保留。此时不再判 0，
+  // 而是标记 truncated 证据后进入正常评分流程（修复"思考超限误伤真实能力"，
+  // 实测 AG1-005/AG1-010 判 0 → answerFirst+硬截断下救回 45/40 分）。
+  const reasoningHardCapped = (modelResponse.raw as Record<string, unknown> | undefined)?.reasoningHardCapped === true;
 
   // 约束开启时：finish_reason=length 且内容为空 → 思考/输出超限，直接中断判分
   // （模型把预算全花在思考上、无有效答案——不再升级预算让无底洞思考继续）
@@ -597,6 +610,14 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   }
   if (outputMetadata.incomplete) {
     result.evidence = [...(result.evidence || []), 'Sample marked as incomplete (truncated)'];
+  }
+  // I3：reasoning 硬截断标记入证据（内容已保留、正常评分，仅供报告层追溯）
+  if (reasoningHardCapped) {
+    const budget = (modelResponse.raw as Record<string, unknown> | undefined)?.maxReasoningTokens;
+    result.evidence = [
+      ...(result.evidence || []),
+      `REASONING_HARD_CAPPED: reasoning exceeded maxReasoningTokens=${budget}, stream stopped early; partial content scored`,
+    ];
   }
 
   const finishedAt = new Date().toISOString();

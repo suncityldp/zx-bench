@@ -153,18 +153,30 @@ export function getJudgeWeights(dimension: string, grader: string): { determinis
 }
 
 /**
+ * AI Judge 权重硬上限（I1 修复）。
+ * 背景：覆盖率感知让渡公式 judgeW = judge + det×(1−coverage) 在低覆盖题集上失控——
+ * 实测 program 维度 CP/PR 覆盖 0.68 → judge 实际权重 45%，AG 覆盖 0.53 → 57%，
+ * 远超设计的 20%，且 judge 给分呈方向性偏袒（PR 题 judge 差达 +52.6 分），
+ * 足以翻转子类目结论。故 judgeW 封顶 0.3：超出部分让渡回确定性分（等价于
+ * 低覆盖轴按已测轴归一），总分重回客观主导。
+ */
+export const JUDGE_WEIGHT_CAP = 0.3;
+
+/**
  * 覆盖率感知合并：确定性评分器未测量轴的权重让渡给 AI Judge 补判。
  * detW + judgeW 恒等于 deterministic + judge。
+ * I1：judgeW 封顶 JUDGE_WEIGHT_CAP（0.3），超出部分归 detW——
+ * 未测量轴不再放大 judge 话语权，而是由已测确定性轴归一代表。
  */
 export function mixDeterministicJudge(
   deterministic: number,
   judge: number,
   coverage: number,
 ): { detW: number; judgeW: number } {
-  return {
-    detW: deterministic * coverage,
-    judgeW: judge + deterministic * (1 - coverage),
-  };
+  const rawJudgeW = judge + deterministic * (1 - coverage);
+  const judgeW = Math.min(rawJudgeW, JUDGE_WEIGHT_CAP);
+  const detW = deterministic + judge - judgeW;
+  return { detW, judgeW };
 }
 
 /**

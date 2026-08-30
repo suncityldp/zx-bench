@@ -113,7 +113,7 @@ async function callModelStreaming(options: CallModelOptions): Promise<ModelRespo
       throw new Error(`Model API error ${response.status}: ${errorText}`);
     }
 
-    return await parseStreamResponse(response, requestStartTime, timeoutMs);
+    return await parseStreamResponse(response, requestStartTime, timeoutMs, constraints?.maxReasoningTokens);
   } catch (err) {
     throw wrapTimeoutError(err, timeoutMs);
   } finally {
@@ -169,6 +169,7 @@ async function parseStreamResponse(
   response: Response,
   requestStartTime: number,
   timeoutMs: number,
+  maxReasoningTokens?: number,
 ): Promise<ModelResponse> {
   if (!response.body) {
     throw new Error('Streaming response has no body');
@@ -197,6 +198,12 @@ async function parseStreamResponse(
   let firstTokenTime = 0;
   let lastTokenTime = 0;
   let buffer = '';
+  // I3（2026-08-31）：maxReasoningTokens 硬截断标志。
+  // 此前该约束只是 prompt 软提示，模型完全无视（实测限 8192 实际耗 58192，7.1 倍），
+  // 思考耗尽全部 maxTokens 后 content 为空 → orchestrator 判 REASONING_TOKEN_BUDGET 0 分。
+  // 现在流式观察 reasoning 增量（字符数/3 估算 token，与下方 usage 兜底口径一致），
+  // 超预算即主动停止读流：已产出的 content 保留进入正常评分，避免"判 0 误伤真实能力"。
+  let reasoningHardCapped = false;
 
   try {
     while (true) {
@@ -231,6 +238,19 @@ async function parseStreamResponse(
           const rc = delta?.reasoning_content || delta?.reasoning;
           if (rc) {
             reasoningContent += String(rc);
+            // I3 硬截断：reasoning 估算 token 超预算 → 停止读流，保留已有 content
+            if (
+              maxReasoningTokens != null &&
+              !reasoningHardCapped &&
+              Math.ceil(reasoningContent.length / 3) > maxReasoningTokens
+            ) {
+              reasoningHardCapped = true;
+              console.warn(
+                `[caller] maxReasoningTokens=${maxReasoningTokens} exceeded (est ${Math.ceil(reasoningContent.length / 3)} tokens) — hard-capping stream, keeping partial content`,
+              );
+              finishReason = 'length';
+              break;
+            }
           }
 
           if (choice.finish_reason) {
@@ -245,6 +265,7 @@ async function parseStreamResponse(
           // 跳过无法解析的 chunk
         }
       }
+      if (reasoningHardCapped) break;
     }
 
     // 处理 buffer 中可能残留的最后一行
@@ -293,7 +314,15 @@ async function parseStreamResponse(
     ttftMs,
     generationMs,
     tokensPerSecond,
-    raw: { streamed: true, contentLength: finalContent.length, timings: lastTimings },
+    // I3：reasoning 硬截断标记——orchestrator 据此不把"思考超限"判 0，
+    // 而是用已产出 content 正常评分（附 truncated 证据）。
+    raw: {
+      streamed: true,
+      contentLength: finalContent.length,
+      timings: lastTimings,
+      reasoningHardCapped: reasoningHardCapped || undefined,
+      maxReasoningTokens: reasoningHardCapped ? maxReasoningTokens : undefined,
+    },
   };
 }
 
