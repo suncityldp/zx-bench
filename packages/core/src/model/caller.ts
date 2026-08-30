@@ -279,8 +279,13 @@ async function parseStreamResponse(
     ? Math.round(usage.outputTokens / (generationMs / 1000))
     : (totalTime > 0 ? Math.round(usage.outputTokens / (totalTime / 1000)) : 0);
 
+  // LM Studio 对 reasoning 模型的流式响应只输出 reasoning_content、不输出 content。
+  // 当 content 为空但 reasoningContent 非空时，把 reasoningContent 作为 content 的 fallback，
+  // 避免 modelOutput 假空响应（2026-08-30 根因定位）。
+  const finalContent = content || reasoningContent;
+
   return {
-    content,
+    content: finalContent,
     reasoningContent: reasoningContent || undefined,
     finishReason,
     usage,
@@ -288,7 +293,7 @@ async function parseStreamResponse(
     ttftMs,
     generationMs,
     tokensPerSecond,
-    raw: { streamed: true, contentLength: content.length, timings: lastTimings },
+    raw: { streamed: true, contentLength: finalContent.length, timings: lastTimings },
   };
 }
 
@@ -399,9 +404,11 @@ function parseNonStreamingResponse(data: Record<string, unknown>, latencyMs: num
     || undefined;
 
   const content = (message?.content as string) || '';
+  // LM Studio reasoning 模型：content 可能为空而 reasoning_content 非空，fallback 防止假空响应
+  const finalContent = content || reasoningContent || '';
   const finishReason = mapFinishReason(choice?.finish_reason as string);
   return {
-    content,
+    content: finalContent,
     reasoningContent,
     finishReason,
     usage: extractTokenUsage(data),
