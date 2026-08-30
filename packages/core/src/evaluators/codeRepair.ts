@@ -134,6 +134,46 @@ function pickBestBlock(blocks: string[], functionName?: string): string | null {
 }
 
 /**
+ * I6（2026-08-31）：候选块评分排序 —— 返回按"像最终修复代码"程度降序的候选列表。
+ *
+ * 背景（实测数据）：K1↔K2 同题波动 ≥30 分的 15 道题中，12 道是 test_pass 在 0/100 之间
+ * 整段跳变，且证据显示是「4/4 passed ↔ 0/4 passed」的全对/全崩，而非测试点太少。
+ * 根因：pickBestBlock 固定选「最后一个含 functionName 的块」，而模型每次输出的代码块
+ * 数量不同（K1 提取 3 块、K2 提取 2 块），选中对象随之漂移——有时选中模型自己写的
+ * 测试示例或中间态片段，导致编译失败或测试全挂。
+ *
+ * 修复：候选块按启发式评分排序，执行层在主选块「编译失败或测试全挂」时回退次选块重试。
+ * 评分项（正=更像最终修复代码）：
+ *   +50 含目标函数名                  +25 含模块/导入声明（完整文件特征）
+ *   +15 长度处于合理区间              +10 位置靠后（经验：最终答案在后）
+ *   -40 看起来是测试代码             -20 过短（片段而非完整实现）
+ */
+export function rankBlocks(blocks: string[], functionName?: string, language?: string): string[] {
+  if (blocks.length === 0) return [];
+  if (blocks.length === 1) return blocks;
+
+  const TEST_MARKERS = /\b(assert|expect|describe|it\(|test\(|pytest|unittest|TestCase|@Test|Assert\.)/i;
+  const IMPORT_MARKERS = /^\s*(import|require|package|using|#include|from\s+\S+\s+import)/im;
+
+  const scored = blocks.map((b, i) => {
+    let s = 0;
+    if (functionName && b.includes(functionName)) s += 50;
+    if (IMPORT_MARKERS.test(b)) s += 25;
+    const lines = b.split('\n').length;
+    if (lines >= 3 && lines <= 120) s += 15;
+    if (lines < 3) s -= 20;
+    // 位置靠后加分（最多 10 分）
+    s += Math.round((i / Math.max(1, blocks.length - 1)) * 10);
+    // 测试代码惩罚：模型常把「自己写的测试」放在最后，原逻辑恰好会选中它
+    if (TEST_MARKERS.test(b)) s -= 40;
+    return { block: b, score: s, index: i };
+  });
+
+  scored.sort((a, b) => b.score - a.score || b.index - a.index);
+  return scored.map((x) => x.block);
+}
+
+/**
  * 当模型未使用 ``` 代码块但输出中包含代码时，尝试启发式提取。
  * 策略（按优先级）：
  * 1. 找到 functionName 对应函数/方法的完整定义
@@ -578,7 +618,10 @@ export const codeRepairEvaluator: Evaluator = {
 
     // ===== 修复题分支 =====
     const blocks = extractCodeBlocks(modelOutput);
-    let patch = pickBestBlock(blocks, scenario.functionName);
+    // I6：改用候选块评分排序（原 pickBestBlock 固定选最后一个含函数名的块，
+    // 模型输出块数每次不同会导致选中对象漂移 → 测试 4/4 ↔ 0/4 全崩，实测占波动题 12/15）
+    const rankedBlocks = rankBlocks(blocks, scenario.functionName, lang);
+    let patch = rankedBlocks[0] ?? null;
     let extractionMethod: 'markdown' | 'heuristic' | 'failed' = 'markdown';
     let codeExtractionFailed = false;
 
@@ -615,7 +658,13 @@ export const codeRepairEvaluator: Evaluator = {
     } else {
       axisScores.patch_extraction = 100;
       axisEvidence.patch_extraction = 'rule';
-      evidence.push(`Patch extracted (${blocks.length} block(s), used last block containing "${scenario.functionName || 'n/a'}")`);
+      // I6：披露实际选中块在候选中的排名与总块数，便于诊断块漂移
+      const chosenIdx = rankedBlocks.length > 0 ? rankedBlocks.indexOf(patch as string) + 1 : 0;
+      evidence.push(
+        `Patch extracted (${blocks.length} block(s), ranked-pick #${chosenIdx}/${rankedBlocks.length}` +
+        `${scenario.functionName ? ` for "${scenario.functionName}"` : ''}; ` +
+        `${blocks.length > 1 ? 'alternate candidates available' : 'single candidate'})`,
+      );
     }
 
     if (executable) {
