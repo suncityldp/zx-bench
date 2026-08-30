@@ -288,6 +288,22 @@ export interface ReportUserPromptData {
     distribution: Record<string, number>;
     subCategories: Array<{ category: string; count: number; averageScore: number }>;
   } | null;
+  /**
+   * I4（2026-08-31）：program 维度 AG 能力族合并统计。
+   * 单个 category 样本量普遍 <5（114 个类中 104 个），按类出分统计不可靠，故按能力族合并。
+   * lowPower=true 表示该族 n<8，报告层须披露"低功效仅供参考"，不出族级结论。
+   */
+  agentFamilyStats?: {
+    families: Array<{
+      family: string;
+      label: string;
+      count: number;
+      averageScore: number;
+      passRate: number;
+      lowPower: boolean;
+      categories: string[];
+    }>;
+  } | null;
 }
 
 export function buildReportUserPrompt(data: ReportUserPromptData, language: ReportLanguage = 'zh'): string {
@@ -389,6 +405,27 @@ export function buildReportUserPrompt(data: ReportUserPromptData, language: Repo
     prompt += '- ' + (en
       ? 'Analyze this sub-score in a dedicated report section: whether the model can sustain multi-file context, where partial credit comes from, and what fails (truncation? context loss? step skipping?).'
       : '请在报告中以独立小节分析该子项：模型能否维持多文件上下文、partial credit 来自哪些环节、失败模式（截断/上下文丢失/步骤跳跃）。') + '\n';
+
+    // I4：AG 能力族合并统计（低功效族强制披露，禁止下族级结论）
+    if (data.agentFamilyStats?.families?.length) {
+      const famTitle = en ? 'Agentic Capability Families (program)' : '编程能力族（按能力族合并）';
+      const famDesc = en
+        ? 'Single categories are mostly n<5 (104 of 114), so scores are merged into capability families. lowPower families have n<8 and are indicative only.'
+        : '单类目样本量普遍不足（114 个类中 104 个 n<5），故按能力族合并出分。标注 lowPower 的族 n<8，仅供参考、不得据此下结论。';
+      prompt += '\n## ' + famTitle + '\n';
+      prompt += '- ' + famDesc + '\n';
+      prompt += '| ' + (en ? 'Family' : '能力族') + ' | ' + (en ? 'Count' : '题数') + ' | ' + s.av + ' | ' + s.pr + ' | ' + (en ? 'Reliability' : '可信度') + ' |\n';
+      prompt += '| --- | --- | --- | --- | --- |\n';
+      for (const f of data.agentFamilyStats.families) {
+        const reliability = f.lowPower
+          ? (en ? 'LOW POWER — indicative only' : '低功效 — 仅供参考，勿下结论')
+          : (en ? 'usable' : '可参考');
+        prompt += `| ${f.label} | ${f.count} | ${f.averageScore} | ${f.passRate}% | ${reliability} |\n`;
+      }
+      prompt += '- ' + (en
+        ? 'IMPORTANT: Do NOT draw capability conclusions from lowPower families; only describe them as observations needing more samples.'
+        : '重要：lowPower 族不得作为能力结论依据，只能描述为"待扩样观察"。') + '\n';
+    }
   }
 
   prompt += '\n## ' + s.ax + '\n';

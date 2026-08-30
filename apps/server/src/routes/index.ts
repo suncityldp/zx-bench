@@ -170,6 +170,89 @@ async function computeLongTaskStats(
 }
 
 /**
+ * I4（2026-08-31）：AG 能力族合并统计。
+ * 背景：program 维度 114 个 category 中 104 个 n<5（82 个 n=1），按单类目出分统计上不可靠
+ * （n=1 的类目 Δ 只是一道题的随机性）。按能力族合并后 n=8~22，结论从"不可信"变为"可参考"。
+ * 同时：任何 n<8 的族自动标 lowPower=true——报告层必须披露"低功效仅供参考"，不出族级结论。
+ */
+const AG_FAMILY_MAP: Record<string, string> = {
+  // async 族：异步/并发/状态机/重试幂等
+  async_race: 'async', race_condition: 'async', asyncio_concurrency_pattern: 'async',
+  async_iterator_stream: 'async', retry_backoff: 'async', check_then_act: 'async',
+  idempotent_action: 'async', state_machine: 'async',
+  // long_task 族：长任务工程（多文件/多步骤）
+  long_task_implement: 'long_task', long_task_debug: 'long_task', long_task_refactor: 'long_task',
+  implementation: 'long_task', debug_from_trace: 'long_task',
+  // orchestration 族：编排/规划/多轮调试
+  agent_orchestration: 'orchestration', multi_turn_debug: 'orchestration', plan_dependency_order: 'orchestration',
+  // 安全族
+  sql_injection: 'security', multi_file_security_review: 'security',
+  architecture_decision_review: 'security', path_traversal: 'security',
+  // 上下文族：上下文预算/输入输出边界/工具参数
+  context_window_budget: 'context', input_output_type_boundary: 'context', tool_arg_validation: 'context',
+};
+const AG_FAMILY_LABEL: Record<string, string> = {
+  async: '异步与并发',
+  long_task: '长任务工程',
+  orchestration: '编排与规划',
+  security: '安全审查',
+  context: '上下文与工具边界',
+};
+/** 族样本量低于该阈值时标记低功效（统计上不出族级结论） */
+export const AG_FAMILY_LOW_POWER_THRESHOLD = 8;
+
+async function computeAgentFamilyStats(
+  results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean | null }>,
+): Promise<{
+  families: Array<{
+    family: string;
+    label: string;
+    count: number;
+    averageScore: number;
+    passRate: number;
+    /** n < AG_FAMILY_LOW_POWER_THRESHOLD → true：低功效仅供参考，不出结论 */
+    lowPower: boolean;
+    categories: string[];
+  }>;
+} | null> {
+  const programResults = results.filter((r) => r.dimension === 'program' && r.environmentError !== true);
+  if (programResults.length === 0) return null;
+  const programIds = programResults.map((r) => r.scenarioId);
+  const programDefs = await prisma.scenarioDefinition.findMany({
+    where: { id: { in: programIds } },
+    select: { id: true, category: true },
+  });
+  const catMap = new Map(programDefs.map((d) => [d.id, d.category as string]));
+  // 只统计落入已知能力族的题（AG 系列）；long_task_* 已有专项统计，这里仍并入 long_task 族保持口径完整
+  const famAgg = new Map<string, { sum: number; n: number; pass: number; cats: Set<string> }>();
+  for (const r of programResults) {
+    const cat = catMap.get(r.scenarioId);
+    if (!cat) continue;
+    const fam = AG_FAMILY_MAP[cat];
+    if (!fam) continue;
+    const cur = famAgg.get(fam) || { sum: 0, n: 0, pass: 0, cats: new Set<string>() };
+    cur.sum += r.totalScore; cur.n += 1;
+    if (r.totalScore >= 60) cur.pass += 1;
+    cur.cats.add(cat);
+    famAgg.set(fam, cur);
+  }
+  if (famAgg.size === 0) return null;
+  return {
+    families: Array.from(famAgg.entries())
+      .sort((a, b) => b[1].n - a[1].n)
+      .map(([family, v]) => ({
+        family,
+        label: AG_FAMILY_LABEL[family] || family,
+        count: v.n,
+        averageScore: Math.round((v.sum / v.n) * 100) / 100,
+        passRate: Math.round((v.pass / v.n) * 100),
+        lowPower: v.n < AG_FAMILY_LOW_POWER_THRESHOLD,
+        categories: Array.from(v.cats).sort(),
+      })),
+  };
+}
+
+/**
  * 计算某模型聚合结果对应的「基准题库总量」。
  * 用于报告/排行榜的 totalScenarios：以题库真实题量为准（全量=404，或所选维度并集的题量），
  * 而不是以「实际已有结果行」的数量为准，避免 run 中途被打断丢题后总数被低估。
@@ -2117,6 +2200,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     // ===== 编程维度长任务专项统计：长任务工程能力（long_task_* 20 题单独出分） =====
     const longTaskStats = await computeLongTaskStats(results);
 
+    // ===== I4：program 维度 AG 能力族合并统计（低功效族标 lowPower，不出族级结论） =====
+    const agentFamilyStats = await computeAgentFamilyStats(results);
+
     // 全局统计 — 维度加权总分（使用引擎定义的 DIMENSION_WEIGHTS）；单次 run 口径直接用 summary.averageScore
     const allScores = results.filter((r) => r.environmentError !== true).map((r) => r.totalScore);
     const totalAvg = (summaryJson && typeof summaryJson.averageScore === 'number')
@@ -2203,6 +2289,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         hallucinationStats,
         // 长任务工程能力专项（仅当编程维度有 long_task 结果时存在）
         longTaskStats,
+        // I4：AG 能力族合并统计（低功效族 lowPower=true，仅供参考）
+        agentFamilyStats,
         // 全局证据强度摘要（全部结果的轴证据类型分布）
         evidenceSummary: dimensionReports.reduce<Record<string, number>>(
           (acc, d) => {
@@ -2409,6 +2497,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         },
         dimensions: dimensionReports,
         longTaskStats: await computeLongTaskStats(results),
+        // I4：AG 能力族合并统计
+        agentFamilyStats: await computeAgentFamilyStats(results),
         failedScenarios,
         radarData: dimensionReports.map((d) => ({ name: d.dimensionLabel, value: d.averageScore })),
         strengths: strengths.map((s) => ({ dimension: s.dimensionLabel, score: s.averageScore, passRate: s.passRate })),
