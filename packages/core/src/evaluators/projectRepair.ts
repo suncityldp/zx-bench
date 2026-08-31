@@ -22,7 +22,7 @@
 
 import type { Scenario, ScenarioResult, ModelResponse, OutputMetadata, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
-import { runInContainer, isDockerAvailable } from '../execution/index.js';
+import { runInContainer, isDockerAvailable, stripMavenEntrypointNoise } from '../execution/index.js';
 import { detectEnvironmentError } from './harnessErrors.js';
 
 /** 语言 → 默认容器镜像 */
@@ -128,7 +128,10 @@ async function runScript(
     networkDisabled: false,  // 长任务脚本需 pip/npm install 依赖
     readOnly: false,  // 长任务需要写文件（DB/缓存/产物）
     user,
-    env: { HOME: '/tmp' },  // 非 root(65534) 下 HOME 默认 /nonexistent，dotnet/go 需要可写 HOME
+    // HOME：非 root(65534) 下默认 /nonexistent，dotnet/go 需要可写 HOME
+    // MAVEN_CONFIG：把 maven entrypoint 的 .m2 从 /root/.m2 改到 /tmp/.m2，
+    // 从源头消除 `mkdir: cannot create directory '/root'` 这条良性警告
+    env: { HOME: '/tmp', MAVEN_CONFIG: '/tmp/.m2' },
   });
   return {
     passed: res.exitCode === 0 && !res.timedOut,
@@ -201,9 +204,13 @@ export const projectRepairEvaluator: Evaluator = {
       const r = await runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql });
       if (process.env.ZXB_PR_TRACE) console.log('[PR] 4 runScript 完成 passed=' + r.passed + ' exit=' + r.exitCode);
       results.push(r);
-      const envInfo = detectEnvironmentError(r.stderr);
+      // 先剥离 maven entrypoint 的良性噪音再判环境故障：否则 Java 工程题明明跑了
+      // 测试（有 PASS/FAIL），却被 `mkdir /root: Permission denied` 命中
+      // `HOME=/root unwritable` 模式，把已判的 test_pass 整块隔离掉。
+      const stderr = stripMavenEntrypointNoise(r.stderr);
+      const envInfo = detectEnvironmentError(stderr);
       if (envInfo.isEnv && envErrorReason === null) envErrorReason = envInfo.reason ?? null;
-      evidence.push((r.passed ? 'PASS' : 'FAIL') + ' [' + ht.description + '] exit=' + r.exitCode + (r.passed ? '' : ' | ' + (r.stderr || r.stdout || '').replace(/\r?\n/g, ' ').slice(0, 300)));
+      evidence.push((r.passed ? 'PASS' : 'FAIL') + ' [' + ht.description + '] exit=' + r.exitCode + (r.passed ? '' : ' | ' + (stderr || r.stdout || '').replace(/\r?\n/g, ' ').slice(0, 300)));
     }
 
     // 3b. 环境/测试基础设施故障：test_pass 不可信 → 整题标记隔离，不计入维度均值

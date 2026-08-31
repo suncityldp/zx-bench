@@ -4,7 +4,7 @@
 // 支持单模型报告 + 模型对比报告
 // ============================================================
 
-import type { ModelConfig, ModelParams } from '@zxbench/types';
+import type { ModelConfig, ModelParams, ModelResponse } from '@zxbench/types';
 import { callModel } from '../model/caller.js';
 import {
   REPORT_SYSTEM_PROMPT,
@@ -68,6 +68,54 @@ export interface ReportResult {
  * 生成单模型评测报告
  * 调用 Judge 模型，传入标准化系统提示词 + 数据打包后的用户提示词
  */
+/**
+ * Judge 只吐思考过程、不吐正文。
+ * caller 对「stream 只推 reasoning_content」有 content||reasoningContent 兜底
+ * （LM Studio 兼容行为），此时 content 与 reasoningContent 完全相等。
+ * 报告正文若被思考过程顶替，输出的就是一堆垃圾，必须识别出来而不是照单全收。
+ */
+class ReportReasoningOnlyError extends Error {
+  constructor() {
+    super('Judge 仅输出思考过程（reasoning_content），未产出报告正文');
+    this.name = 'ReportReasoningOnlyError';
+  }
+}
+
+function isReasoningOnly(r: ModelResponse): boolean {
+  const content = r.content || '';
+  const reasoning = r.reasoningContent || '';
+  return content.length > 0 && content === reasoning;
+}
+
+/**
+ * 报告专用模型调用。
+ *
+ * 必须流式：报告 prompt 大（维度数据 + 失败题 evidence）、输出上限 8192 token，
+ * 推理模型实测耗时 64~80s。非流式请求在模型思考期间连接上零字节流动，
+ * 上游网关（AWS ALB 等）空闲超时约 60s 先于我们的 600s 硬超时触发，
+ * 直接返回 504 → 报告生成 100% 失败。流式下每个 chunk 都会重置空闲计时器。
+ * 评测主链路（orchestrator）早已是流式，这正是「评测正常、报告必挂」的原因。
+ */
+async function callReportModel(base: {
+  config: ModelConfig;
+  params: ModelParams;
+  systemPrompt: string;
+  userPrompt: string;
+}): Promise<ModelResponse> {
+  let response = await callModel({ ...base, stream: true });
+
+  // 流式行为不稳定：偶发整段只推 reasoning_content。重试一次拿正文。
+  if (isReasoningOnly(response)) {
+    console.warn('[report] Judge 流式只返回 reasoning_content，重试一次');
+    response = await callModel({ ...base, stream: true });
+    if (isReasoningOnly(response)) {
+      throw new ReportReasoningOnlyError();
+    }
+  }
+
+  return response;
+}
+
 export async function generateReport(options: GenerateReportOptions): Promise<ReportResult> {
   const { judgeConfig, judgeParams, data, language, onProgress } = options;
   const systemPrompt = language === 'en' ? REPORT_SYSTEM_PROMPT_EN : REPORT_SYSTEM_PROMPT;
@@ -78,7 +126,7 @@ export async function generateReport(options: GenerateReportOptions): Promise<Re
   onProgress?.('调用 Judge 模型生成报告');
   const startTime = Date.now();
 
-  const response = await callModel({
+  const callBase = {
     config: judgeConfig,
     params: {
       temperature: resolveReportTemperature(judgeConfig),
@@ -87,7 +135,19 @@ export async function generateReport(options: GenerateReportOptions): Promise<Re
     },
     systemPrompt,
     userPrompt,
-  });
+  };
+
+  let response: ModelResponse;
+  try {
+    response = await callReportModel(callBase);
+  } catch (err) {
+    if (err instanceof ReportReasoningOnlyError) {
+      // 两次都只吐思考过程：宁可给纯数据报告，也不能把推理过程当正文灌给用户
+      console.warn('[report] 重试后仍只有 reasoning_content，降级为纯数据报告');
+      return generateFallbackReport(data);
+    }
+    throw err;
+  }
 
   const latencyMs = Date.now() - startTime;
 
@@ -127,16 +187,25 @@ export async function generateCompareReport(
   onProgress?.('调用 Judge 模型生成对比报告');
   const startTime = Date.now();
 
-  const response = await callModel({
-    config: judgeConfig,
-    params: {
-      temperature: resolveReportTemperature(judgeConfig),
-      maxTokens: 8192,
-      ...judgeParams,
-    },
-    systemPrompt,
-    userPrompt,
-  });
+  let response: ModelResponse;
+  try {
+    response = await callReportModel({
+      config: judgeConfig,
+      params: {
+        temperature: resolveReportTemperature(judgeConfig),
+        maxTokens: 8192,
+        ...judgeParams,
+      },
+      systemPrompt,
+      userPrompt,
+    });
+  } catch (err) {
+    if (err instanceof ReportReasoningOnlyError) {
+      console.warn('[report] 对比报告：重试后仍只有 reasoning_content，降级为纯数据报告');
+      return generateCompareFallbackReport(data, judgeConfig.name, Date.now() - startTime);
+    }
+    throw err;
+  }
 
   const latencyMs = Date.now() - startTime;
 
@@ -144,19 +213,7 @@ export async function generateCompareReport(
 
   if (!markdown.trim()) {
     console.warn('[report] Judge returned empty content for comparison, generating fallback');
-    return {
-      markdown: `# 模型对比报告（降级版）\n\n## 参评模型\n\n${
-        data.models.map((m) => `- **${m.modelName}**：均分 ${m.overview.averageScore} | 通过率 ${m.overview.passRate}%`).join('\n')
-      }\n\n*报告生成失败，仅显示基础数据。请检查 Judge 模型状态后重试。*`,
-      metadata: {
-        modelName: data.models.map((m) => m.modelName).join(' vs '),
-        generatedAt: new Date().toISOString(),
-        promptTokens: response.usage.inputTokens,
-        outputTokens: 0,
-        latencyMs,
-        judgeModel: judgeConfig.name,
-      },
-    };
+    return generateCompareFallbackReport(data, judgeConfig.name, latencyMs);
   }
 
   return {
@@ -168,6 +225,27 @@ export async function generateCompareReport(
       outputTokens: response.usage.outputTokens,
       latencyMs,
       judgeModel: judgeConfig.name,
+    },
+  };
+}
+
+/** 对比报告降级版 — Judge 无有效输出时的纯数据报告 */
+function generateCompareFallbackReport(
+  data: CompareReportUserPromptData,
+  judgeName: string,
+  latencyMs: number,
+): ReportResult {
+  return {
+    markdown: `# 模型对比报告（降级版）\n\n## 参评模型\n\n${
+      data.models.map((m) => `- **${m.modelName}**：均分 ${m.overview.averageScore} | 通过率 ${m.overview.passRate}%`).join('\n')
+    }\n\n*报告生成失败，仅显示基础数据。请检查 Judge 模型状态后重试。*`,
+    metadata: {
+      modelName: data.models.map((m) => m.modelName).join(' vs '),
+      generatedAt: new Date().toISOString(),
+      promptTokens: 0,
+      outputTokens: 0,
+      latencyMs,
+      judgeModel: judgeName,
     },
   };
 }

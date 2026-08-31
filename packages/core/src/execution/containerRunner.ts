@@ -24,9 +24,20 @@ import { tmpdir } from 'node:os';
  * 因此：绝不在主线程同步等待这类目录删除，改异步 + 重试 + 到点放弃。
  */
 let sweepWarned = 0;
+
+/**
+ * 删除前放权。容器内以 UID 65534 写入的子目录属主是 nobody，
+ * 宿主用户没有写权限 → 删不掉，/tmp 里 zxbench-run-* 会越堆越多。
+ */
+async function relaxDirPerms(hostDir: string): Promise<void> {
+  if (process.platform === 'win32') return;   // Windows 无 chmod，Node rm 自行处理
+  await execAsync('chmod', ['-R', 'u+rwX', hostDir], { timeout: 30000, stdio: 'ignore' });
+}
+
 async function cleanupHostDir(hostDir: string): Promise<void> {
   for (let attempt = 1; attempt <= 5; attempt++) {
     try {
+      await relaxDirPerms(hostDir);
       await rmAsync(hostDir, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
       return;
     } catch {
@@ -101,7 +112,51 @@ export const CONTAINER_IMAGES: Record<string, string> = {
   javascript: 'node:20-alpine',
   typescript: 'node:20-alpine',
   python: 'python:3.12-alpine',
-  bash: 'bash:5-alpine',
+  // 官方 bash 镜像没有 5-alpine 这个 tag（alpine 系列是 5.2-alpine3.22 这类），
+  // 引用它必然 pull 失败 → 被 detectEnvironmentError 误判成环境故障。
+  bash: 'bash:5',
+};
+
+/**
+ * 本地自建镜像清单。
+ *
+ * README 承诺这些私有镜像「首次由场景脚本自建」，但代码里根本没有自建逻辑，
+ * 而它们又不在任何公共 registry 上 —— docker run 时拉取失败输出
+ * `Error response from daemon: pull access denied`，被 detectEnvironmentError
+ * 命中 /error response from daemon/i → 整题误判 environment_error 并隔离不计分。
+ * 因此这里补上契约：pull 之前先尝试本地 build。
+ *
+ * 构建一律 --network host：本机 ip_forward=0 时容器 bridge 网络没有外网，
+ * 构建期的 apt / rustup 下载会全部超时。
+ */
+const LOCAL_BUILD_IMAGES: Record<string, string> = {
+  'zxbench/go:1.21-gcc': [
+    // Go 容器执行需要 gcc（-race 走 cgo）
+    'FROM golang:1.21',
+    'RUN apt-get update \\',
+    ' && apt-get install -y --no-install-recommends gcc libc6-dev \\',
+    ' && rm -rf /var/lib/apt/lists/*',
+  ].join('\n'),
+
+  'zxbench/cpp:gcc13-valgrind': [
+    // C/C++ 内存检查需要 valgrind
+    'FROM gcc:13',
+    'RUN apt-get update \\',
+    ' && apt-get install -y --no-install-recommends valgrind \\',
+    ' && rm -rf /var/lib/apt/lists/*',
+  ].join('\n'),
+
+  'zxbench/rust:nightly-miri': [
+    // Miri（Rust UB 检测）。RUSTUP_HOME 移到 /opt 并放开读权限：
+    // 运行时以 UID 65534 且 --network none 执行，默认 /usr/local/rustup 不可写/不可读。
+    // MIRI_SYSROOT 预构建好，运行时免去 miri setup（离线环境无法联网重建）。
+    'FROM rust:1',
+    'ENV RUSTUP_HOME=/opt/rustup-home CARGO_HOME=/opt/cargo-home MIRI_SYSROOT=/opt/miri-sysroot',
+    'ENV PATH=/opt/cargo-home/bin:$PATH',
+    'RUN rustup toolchain install nightly --component miri rust-src',
+    'RUN cargo +nightly miri setup',
+    'RUN chmod -R a+rX /opt/rustup-home /opt/cargo-home /opt/miri-sysroot',
+  ].join('\n'),
 };
 
 /** Docker 是否可用（缓存结果） */
@@ -120,10 +175,44 @@ export async function getImageDigest(image: string): Promise<string | undefined>
   return res.status === 0 && out.length > 0 ? out : undefined;
 }
 
-/** 确保镜像已拉取（未缓存则静默 pull，避免拉取噪音混入执行 stderr） */
+/** 本次进程内已尝试过自建的镜像（失败不重复烧时间，每题一次构建会拖垮评测） */
+const localBuildAttempted = new Set<string>();
+
+/** 用内置 Dockerfile 本地构建镜像 */
+async function buildLocalImage(image: string, dockerfile: string): Promise<boolean> {
+  const ctx = mkdtempSync(join(tmpdir(), 'zxbench-img-'));
+  try {
+    writeFileSync(join(ctx, 'Dockerfile'), dockerfile, 'utf8');
+    const res = await execAsync(
+      'docker',
+      ['build', '--network', 'host', '-t', image, '.'],
+      { timeout: 900_000, cwd: ctx, stdio: 'ignore' },
+    );
+    const ok = res.status === 0;
+    console.log(ok ? `[CT] 本地自建镜像完成: ${image}` : `[CT] 本地自建镜像失败: ${image}`);
+    return ok;
+  } catch (err) {
+    console.warn(`[CT] 本地自建镜像异常: ${image} — ${err instanceof Error ? err.message : String(err)}`);
+    return false;
+  } finally {
+    void cleanupHostDir(ctx).catch(() => { /* 启动清扫兜底 */ });
+  }
+}
+
+/** 确保镜像就绪：本地缓存 → 内置自建 → docker pull */
 async function ensureImage(image: string): Promise<void> {
   const inspect = await execAsync('docker', ['image', 'inspect', image], { timeout: 15000 });
   if (inspect.status === 0) return;
+
+  const dockerfile = LOCAL_BUILD_IMAGES[image];
+  if (dockerfile) {
+    if (localBuildAttempted.has(image)) return;
+    localBuildAttempted.add(image);
+    if (await buildLocalImage(image, dockerfile)) return;
+    // 自建失败：不再 pull（公共 registry 上不存在），交给上层按环境故障处理
+    return;
+  }
+
   await execAsync('docker', ['pull', image], { timeout: 300000, stdio: 'ignore' });
 }
 
@@ -151,6 +240,10 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
 
   if (T) console.log('[CT] 物化临时目录开始');
   const hostDir = mkdtempSync(join(tmpdir(), 'zxbench-run-'));
+  // 关键：mkdtempSync 默认 0700（宿主用户），容器以 UID 65534 非 root 运行，
+  // 即使 bind mount 成 readOnly:false 也写不进去 —— mvn 的 target/、pip/npm 产物
+  // 全部 Permission denied，整题被误判为模型失败。必须放权。
+  chmodSync(hostDir, 0o777);
   if (T) console.log('[CT] 临时目录=' + hostDir);
   try {
     for (const f of files) {

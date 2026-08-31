@@ -2509,6 +2509,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const reportResult = await generateReport({
         judgeConfig,
         data: reportData,
+        language: lang,   // 跟随 UI 语言（此前漏传，切英文仍出中文报告）
         onProgress: (stage) => console.log(`[report/generate] ${stage}`),
       });
 

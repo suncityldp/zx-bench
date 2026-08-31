@@ -83,7 +83,7 @@ const MAVEN_ENTRYPOINT_NOISE: RegExp[] = [
   /^\s*can not write to\s+\/root\/\.m2\/copy_reference_file\.log\..*$/i,
 ];
 
-function stripMavenEntrypointNoise(stderr: string): string {
+export function stripMavenEntrypointNoise(stderr: string): string {
   if (!stderr) return stderr;
   return stderr
     .split('\n')
@@ -109,7 +109,9 @@ export async function runJavaTestsInContainer(
     timeoutMs,
     memoryMb: 384,
     pidsLimit: 64,
-    env: { HOME: '/tmp', TMPDIR: '/tmp' },
+    // MAVEN_CONFIG 把 entrypoint 的 .m2 目录从 /root/.m2 改到 /tmp/.m2，
+    // 从源头消除 mkdir /root 的良性警告（非 root 下必现）
+    env: { HOME: '/tmp', TMPDIR: '/tmp', MAVEN_CONFIG: '/tmp/.m2' },
   });
 
   // 先剥离 maven entrypoint 良性噪音，再做结果解析与环境错误判定，

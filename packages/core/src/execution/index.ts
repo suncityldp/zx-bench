@@ -9,7 +9,7 @@ export {
 } from './containerRunner.js';
 export type { ContainerRunOptions, ContainerRunResult, ContainerFile } from './containerRunner.js';
 export { buildGoTestHarness, runGoTestsInContainer, runGoProgramInContainer } from './goRunner.js';
-export { buildJavaHarness, runJavaTestsInContainer } from './javaRunner.js';
+export { buildJavaHarness, runJavaTestsInContainer, stripMavenEntrypointNoise } from './javaRunner.js';
 export { buildCHarness, runCTestsInContainer, runCppTestsInContainer, runCppTsanInContainer } from './cRunner.js';
 export { buildRustHarness, runRustTestsInContainer, runRustMiriInContainer } from './rustRunner.js';
 export { buildPhpHarness, runPhpTestsInContainer } from './phpRunner.js';
