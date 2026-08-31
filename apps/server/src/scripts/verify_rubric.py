@@ -17,8 +17,11 @@ import sys
 import uuid
 from pathlib import Path
 
-SRC = Path(r"J:/AI/zxbench-webui/apps/server/src/scripts/l2_pilot_v3_questions.json")
-GOLD = Path(r"J:/AI/zxbench-webui/apps/server/src/scripts/l2_pilot_v2_gold.json")
+DEFAULT_SRC = Path(r"J:/AI/zxbench-webui/apps/server/src/scripts/l2_pilot_v3_questions.json")
+DEFAULT_GOLD = Path(r"J:/AI/zxbench-webui/apps/server/src/scripts/l2_pilot_v2_gold.json")
+# 用法: python verify_rubric.py [questions.json] [gold.json]
+SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_SRC
+GOLD = Path(sys.argv[2]) if len(sys.argv) > 2 else DEFAULT_GOLD
 TMP_ROOT = Path(r"J:/AI/zxbench-webui/apps/data/tmp_verify")
 
 # 原码下预期的通过模式：L1/L2 应失败，L3/L4 应通过

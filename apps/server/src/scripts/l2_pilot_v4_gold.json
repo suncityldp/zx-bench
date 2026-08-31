@@ -1,0 +1,36 @@
+{
+  "L2P2-011": [
+    {
+      "path": "executor.py",
+      "content": "from pool import ConnectionPool\n\n_pool = ConnectionPool(size=2)\n\n\ndef run_task(task_fn):\n    \"\"\"从池里取连接执行任务，无论成败都在 finally 中归还连接。\"\"\"\n    conn = _pool.acquire()\n    try:\n        return task_fn(conn)\n    finally:\n        conn.close()\n"
+    },
+    {
+      "path": "pool.py",
+      "content": "import itertools\n\n_lock_ids = itertools.count(1)\n\n\nclass PooledConnection:\n    def __init__(self, pool):\n        self._pool = pool\n        self.cid = next(_lock_ids)\n        self._in_pool = False\n\n    def close(self):\n        # 归属语义：只有从池里取出的连接才能归还；已归还的再次 close 不重复归还\n        if not self._in_pool:\n            self._in_pool = True\n            self._pool._release(self)\n\n\nclass ConnectionPool:\n    \"\"\"固定大小连接池。\"\"\"\n\n    def __init__(self, size=2):\n        self.size = size\n        self._in_use = []\n        self._created = size\n        self._idle = []\n        for _ in range(size):\n            c = PooledConnection(self)\n            c._in_pool = True\n            self._idle.append(c)\n\n    @property\n    def in_use_count(self):\n        return len(self._in_use)\n\n    @property\n    def idle_count(self):\n        return len(self._idle)\n\n    def acquire(self):\n        if self._idle:\n            conn = self._idle.pop()\n        elif self._created < self.size + 8:\n            self._created += 1\n            conn = PooledConnection(self)\n        else:\n            raise RuntimeError('pool exhausted')\n        conn._in_pool = False\n        self._in_use.append(conn)\n        return conn\n\n    def _release(self, conn):\n        if conn in self._in_use:\n            self._in_use.remove(conn)\n        self._idle.append(conn)\n"
+    }
+  ],
+  "L2P2-012": [
+    {
+      "path": "compare.py",
+      "content": "def priority_cmp(a, b):\n    \"\"\"按 (紧急度, 权重) 排序：紧急度高者靠前；同紧急度权重小者靠前。\n\n    返回负数表示 a 在前，正数表示 b 在前，0 表示相等。\n    \"\"\"\n    if a[\"urgency\"] != b[\"urgency\"]:\n        return b[\"urgency\"] - a[\"urgency\"]\n    # 严格按权重比较：任何「近似相等」都会破坏全序性（传递性），\n    # 导致排序结果随输入顺序漂移。\n    return a[\"weight\"] - b[\"weight\"]\n"
+    }
+  ],
+  "L2P2-013": [
+    {
+      "path": "dates.py",
+      "content": "from datetime import date\n\n\ndef last_day_of_month(y, m):\n    if m == 12:\n        return 31\n    return (date(y, m + 1, 1) - date(y, m, 1)).days\n\n\ndef add_months(d, months):\n    \"\"\"把日期 d 增加 months 个月，日号不变；目标月没有该日号时取当月最后一天。\"\"\"\n    y = d.year + (d.month - 1 + months) // 12\n    m = (d.month - 1 + months) % 12 + 1\n    # 目标月可能没有原日号（如 1/31 -> 2 月），收敛到当月最后一天\n    day = min(d.day, last_day_of_month(y, m))\n    return date(y, m, day)\n"
+    }
+  ],
+  "L2P2-014": [
+    {
+      "path": "idempotency.py",
+      "content": "_seen = {}\n\n\ndef make_key(operation, payload_id):\n    \"\"\"为一次操作生成幂等键：同 (operation, payload_id) 必须得到同一个键。\n\n    键必须由业务标识确定性派生；引入随机成分（uuid/时间戳）会破坏幂等性。\"\"\"\n    k = f\"{operation}:{payload_id}\"\n    _seen[k] = True\n    return k\n"
+    }
+  ],
+  "L2P2-015": [
+    {
+      "path": "decorators.py",
+      "content": "import time\nimport functools\n\n\ndef timed(fn):\n    \"\"\"记录耗时的装饰器。必须用 functools.wraps 保留被装饰函数的元数据。\"\"\"\n\n    @functools.wraps(fn)\n    def wrapper(*args, **kwargs):\n        t0 = time.time()\n        try:\n            return fn(*args, **kwargs)\n        finally:\n            elapsed = time.time() - t0\n            wrapper.last_elapsed = elapsed\n    return wrapper\n"
+    }
+  ]
+}
