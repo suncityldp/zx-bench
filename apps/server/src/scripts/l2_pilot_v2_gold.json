@@ -1,0 +1,74 @@
+{
+  "L2P2-001": [
+    {
+      "path": "keys.py",
+      "content": "SEP = \",\"\nESC = \"\\\\\"\n\n\ndef _escape(part):\n    \"\"\"对 part 内的分隔符与转义符做转义，保证拼接后无歧义。\"\"\"\n    s = str(part)\n    return s.replace(ESC, ESC + ESC).replace(SEP, ESC + SEP)\n\n\ndef make_key(namespace, *parts):\n    \"\"\"构造缓存键：namespace 前缀 + 各 part 转义后用 SEP 连接。\"\"\"\n    return namespace + \"|\" + SEP.join(_escape(p) for p in parts)\n"
+    }
+  ],
+  "L2P2-002": [
+    {
+      "path": "retry.py",
+      "content": "import time\nfrom exceptions import UpstreamError, Timeout\n\n\ndef call_with_retry(fn, attempts=3, backoff=0.0):\n    \"\"\"调用 fn，可重试错误自动重试，返回 (result, used_attempts)。\"\"\"\n    last = None\n    for i in range(1, attempts + 1):\n        try:\n            return fn(), i\n        except UpstreamError as e:\n            last = e\n            # 依据异常自身的 retryable 标记判断，而不是硬编码某一种类型\n            if not getattr(e, \"retryable\", False):\n                raise\n            if i < attempts and backoff:\n                time.sleep(backoff)\n    raise last\n"
+    }
+  ],
+  "L2P2-003": [
+    {
+      "path": "machine.py",
+      "content": "from states import ALLOWED, RANK\n\n\nclass IllegalTransition(Exception):\n    pass\n\n\ndef can_move(cur, nxt):\n    # 只放行状态机显式声明的出边，杜绝回退与跳级\n    return nxt in ALLOWED.get(cur, set())\n\n\ndef move(cur, nxt):\n    \"\"\"校验并推进状态。非法流转抛 IllegalTransition。\"\"\"\n    if not can_move(cur, nxt):\n        raise IllegalTransition(f\"{cur} -> {nxt}\")\n    return nxt\n"
+    }
+  ],
+  "L2P2-004": [
+    {
+      "path": "feeds.py",
+      "content": "from paginator import page\nfrom repository import ArticleRepo\nfrom cursor import decode\n\n\ndef walk(repo, size):\n    \"\"\"翻页遍历全部条目，返回收集到的所有 id（按页顺序）。\"\"\"\n    seen = []\n    token = None\n    guard = 0\n    while True:\n        rows, token = page(repo.list_all(), size, after=decode(token) if token else None,\n                           key=lambda a: a[\"id\"])\n        if not rows:\n            break\n        seen.extend(a[\"id\"] for a in rows)\n        # 没有下一页游标即遍历结束；否则下一轮会从开头重新取\n        if token is None:\n            break\n        guard += 1\n        if guard > 100:\n            break\n    return seen\n"
+    },
+    {
+      "path": "paginator.py",
+      "content": "from cursor import encode, decode\n\n\ndef page(items, size, after=None, key=lambda x: x):\n    \"\"\"返回 (rows, next_cursor)。next_cursor 为 None 表示没有更多数据。\"\"\"\n    start = 0\n    if after is not None:\n        for i, it in enumerate(items):\n            # 精确命中游标位置，从其后一条开始取，避免重复\n            if key(it) == after:\n                start = i + 1\n                break\n    rows = items[start:start + size]\n    if not rows:\n        return [], None\n    # 只有真的还有后续数据时才返回游标\n    if start + size < len(items):\n        return rows, encode(key(rows[-1]))\n    return rows, None\n"
+    }
+  ],
+  "L2P2-005": [
+    {
+      "path": "window.py",
+      "content": "from clock import floor_hour\n\n\ndef bucket_of(ts, start):\n    \"\"\"返回 ts 相对 start 落在第几个 60 分钟桶（0-based）。\n\n    窗口从 start 这一刻起算，而不是从整点起算。\n    \"\"\"\n    delta = (ts - start).total_seconds()\n    return int(delta // 3600)\n\n\ndef aggregate(events, start, hours, key=\"value\"):\n    \"\"\"按小时聚合事件值，返回长度 hours 的列表。\"\"\"\n    out = [0] * hours\n    for e in events:\n        i = bucket_of(e[\"ts\"], start)\n        if 0 <= i < hours:\n            out[i] += e[key]\n    return out\n"
+    }
+  ],
+  "L2P2-006": [
+    {
+      "path": "merge.py",
+      "content": "# 哨兵：区分「调用方未给出该键」与「调用方显式置空」\nUNSET = object()\n\n\ndef deep_merge(base, override):\n    \"\"\"把 override 深合并进 base，返回新 dict。\n\n    显式传入的 None 会被写入，用于覆盖默认值。\n    \"\"\"\n    out = dict(base)\n    for k, v in override.items():\n        if isinstance(v, dict) and isinstance(out.get(k), dict):\n            out[k] = deep_merge(out[k], v)\n        else:\n            # None 是有效值，必须覆盖而不是跳过\n            out[k] = v\n    return out\n\n\ndef merge_chain(*layers):\n    \"\"\"从左到右依次合并多层配置。\"\"\"\n    acc = {}\n    for layer in layers:\n        acc = deep_merge(acc, layer)\n    return acc\n"
+    }
+  ],
+  "L2P2-007": [
+    {
+      "path": "registry.py",
+      "content": "class Registry:\n    \"\"\"监听器注册表。\"\"\"\n\n    def __init__(self):\n        self._by_topic = {}\n\n    def add(self, topic, fn):\n        \"\"\"注册监听器；同一 (topic, fn) 幂等，重复注册不会新增。\"\"\"\n        bucket = self._by_topic.setdefault(topic, [])\n        if fn not in bucket:\n            bucket.append(fn)\n        return len(bucket)\n\n    def get(self, topic):\n        return list(self._by_topic.get(topic, []))\n\n    def topics(self):\n        return sorted(self._by_topic)\n"
+    },
+    {
+      "path": "events.py",
+      "content": "from registry import Registry\n\n_bus = Registry()\n_dispatch_count = {}\n\n\ndef subscribe(topic, fn):\n    \"\"\"订阅主题。同一 (topic, fn) 重复订阅幂等。\"\"\"\n    return _bus.add(topic, fn)\n\n\ndef publish(topic, payload):\n    for fn in _bus.get(topic):\n        fn(payload)\n    _dispatch_count[topic] = _dispatch_count.get(topic, 0) + 1\n    return len(_bus.get(topic))\n\n\ndef counts():\n    return dict(_dispatch_count)\n"
+    }
+  ],
+  "L2P2-008": [
+    {
+      "path": "dao.py",
+      "content": "class UserDao:\n    def __init__(self, store):\n        self.store = store\n        self.writes = 0\n        self._undo = []\n\n    def put(self, key, value):\n        if value.get(\"blocked\"):\n            raise ValueError(\"blocked user\")\n        # 记录本次写入，便于批量失败时撤销\n        self._undo.append((key, self.store.get(key)))\n        self.store[key] = value\n        self.writes += 1\n        return key\n\n    def undo_all(self):\n        \"\"\"按写入的逆序撤销本次批量的所有写入。\"\"\"\n        for key, prev in reversed(self._undo):\n            if prev is None:\n                self.store.pop(key, None)\n            else:\n                self.store[key] = prev\n        n = len(self._undo)\n        self._undo = []\n        return n\n"
+    },
+    {
+      "path": "batch.py",
+      "content": "from transaction import Txn\nfrom dao import UserDao\n\n\ndef bulk_upsert(store, users, dao=None):\n    \"\"\"批量写入用户。任一条失败时，本次批量不得留下部分结果。\n\n    返回 (成功条数, 失败条数)。\n    \"\"\"\n    dao = dao or UserDao(store)\n    txn = Txn(store)\n    ok = fail = 0\n    for u in users:\n        try:\n            dao.put(u[\"id\"], u)\n            txn.stage(u[\"id\"], u)\n            ok += 1\n        except ValueError:\n            fail += 1\n    if fail:\n        # 撤销已经落库的写入，保证批量原子性（计数仍如实汇报）\n        if hasattr(dao, \"undo_all\"):\n            dao.undo_all()\n        txn.rollback()\n        return ok, fail\n    txn.commit()\n    return ok, fail\n"
+    }
+  ],
+  "L2P2-009": [
+    {
+      "path": "middleware.py",
+      "content": "from auth import current_user, Unauthorized\nfrom router import Router\n\n\nclass App:\n    def __init__(self):\n        self.router = Router()\n        self.guarded = []\n\n    def register(self, path, handler, public=False):\n        self.router.add(path, handler, public=public)\n        if not public:\n            self.guarded.append(path)\n        return path\n\n    def dispatch(self, path, headers):\n        handler = self.router.match(path)\n        if handler is None:\n            return {\"status\": 404}\n        # 与登记时保持一致：用路径判断是否需要鉴权\n        if path in self.guarded:\n            try:\n                user = current_user(headers)\n            except Unauthorized:\n                return {\"status\": 401}\n        return {\"status\": 200, \"body\": handler(headers), \"user\": None}\n"
+    }
+  ],
+  "L2P2-010": [
+    {
+      "path": "serializer.py",
+      "content": "from graph import Node\n\n\ndef to_dict(node, seen=None, path=None):\n    \"\"\"把节点树序列化成 dict。\n\n    seen 记录**当前递归路径**上的节点：只有真正的环才折叠为引用，\n    被多个父节点共享（但不在同一条路径上）的子节点应当正常展开。\n    \"\"\"\n    seen = set() if seen is None else seen\n    if node.nid in seen:\n        return {\"id\": node.nid, \"ref\": True}\n    nxt = seen | {node.nid}\n    return {\"id\": node.nid, \"children\": [to_dict(c, nxt) for c in node.children]}\n\n\ndef dumps(node):\n    return to_dict(node)\n"
+    }
+  ]
+}
