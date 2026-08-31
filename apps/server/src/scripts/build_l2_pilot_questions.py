@@ -31,17 +31,48 @@ BANK_WEIGHTS = {
     "scope_discipline": 0.10,
 }
 
-# 测试脚本通用骨架：把工作区目录加入 sys.path 后执行断言
-PY_RUNNER = """import sys, json
+# ⚠️ 关键契约（2026-08-31 实测踩坑，务必遵守）：
+#
+# 1) hiddenTests[].script 是 **shell 脚本**，不是 Python 源码。
+#    projectRepair.runScript 用 ['sh','-c', command] 执行（projectRepair.ts:123），
+#    直接写 Python 会报 `sh: import: not found`、全部测试 exit=2。
+#    正确写法：测试文件放进 requirements.hiddenTestFiles，script 写成
+#    `python tests/hidden/test_xxx.py`（与库内既有 project_repair 题一致）。
+#
+# 2) 模型输出格式必须能被 parseFileBlocks 解析（patchParser.ts:59）：
+#    markdown 标题 `## <path>` + 其下的代码块；或代码块首行为 `# <path>` 注释。
+#    自创的 ```path: xxx 语法解析不到 → "解析到 0 个文件替换"。
+#
+# 3) 因此 verify_l2_pilot.py 必须复刻这条真实链路（docker + sh -c + parseFileBlocks），
+#    不能图省事用 `python -c` 直接跑——那样验证是假的。
+
+
+# 测试文件模板：容器里以 `python tests/hidden/test_x.py` 执行，退出码 0 = passed
+TEST_FILE_TMPL = """import sys
 sys.path.insert(0, '.')
 {body}
-print('OK')
 """
 
 
+_TEST_SEQ = {"n": 0}
+
+
 def t(name, body):
-    """构造一个 hiddenTest：脚本退出码 0 视为 passed"""
-    return {"description": name, "script": PY_RUNNER.format(body=body)}
+    """构造一个 hiddenTest：测试文件 + shell 调用命令。
+
+    自动按调用顺序编号（每题 2 个测试：main / regress），避免改动 20 处调用点。
+    """
+    _TEST_SEQ["n"] += 1
+    n = _TEST_SEQ["n"]
+    qnum = (n + 1) // 2          # 1,2 → 1 ; 3,4 → 2 ...
+    kind = "main" if n % 2 == 1 else "regress"
+    idx = f"{qnum:03d}"
+    return {
+        "description": name,
+        "script": f"python tests/hidden/test_{idx}_{kind}.py",
+        "_file_path": f"tests/hidden/test_{idx}_{kind}.py",
+        "_body": body,
+    }
 
 
 QUESTIONS = []
@@ -50,7 +81,7 @@ QUESTIONS = []
 def q(qid, category, difficulty, title, brief, files, tests, keywords,
       failing_output, function_name=None, tags=None):
     """组装一道 Level 2 题"""
-    prompt = f"""你在一个已有的 Python 项目中工作。项目当前有一个缺陷，**测试是失败的**。
+    prompt = f"""你在一个已有的 Python 项目中工作。项目有一个缺陷，**测试是失败的**。
 
 ## 项目文件
 {chr(10).join('- `' + f['path'] + '`' for f in files)}
@@ -61,21 +92,41 @@ def q(qid, category, difficulty, title, brief, files, tests, keywords,
 ```
 
 ## 你的任务
-1. 根据失败现象定位缺陷根因（注意：缺陷跨越多个文件，只修改一个文件无法修好）。
-2. 修改**所有需要修改的文件**，输出完整的文件内容。
+1. 根据失败现象定位缺陷根因（缺陷跨越多个文件，只修改一个文件无法修好）。
+2. 修改**所有需要修改的文件**，输出每个文件的完整内容。
 3. 必须保证：既修复缺陷，又不破坏现有接口（函数名、签名、返回值语义保持兼容）。
-
-## 输出格式
-对每个需要修改的文件，用如下格式输出**完整文件内容**（不是 diff、不是片段）：
-
-```path: {files[0]['path']}
-<该文件的完整内容>
-```
 
 {brief}
 
-只输出需要修改的文件的完整内容，不要省略、不要写 "..." 占位、不要额外解释。"""
+## 输出格式（严格遵守，否则无法解析）
+对每个需要修改的文件，按如下格式输出：
 
+## {files[0]['path']}
+```python
+<该文件的完整内容>
+```
+
+## <第二个文件路径>
+```python
+<该文件的完整内容>
+```
+
+要求：
+- 标题行必须以 `## ` 开头、后面只跟文件路径。
+- 每个标题下是一个完整的代码块，块内是该文件**完整内容**（不是 diff、不是片段）。
+- 不要省略、不要用 "..." 占位。
+- 只输出需要修改的文件，保持简洁，不要长篇分析。"""
+
+    # 把测试体落进 hiddenTestFiles，script 只留 shell 调用
+    hidden_test_files = [
+        {"path": t_["_file_path"], "content": TEST_FILE_TMPL.format(body=t_["_body"])}
+        for t_ in tests
+    ]
+    shell_tests = [
+        {"description": t_["description"], "script": t_["script"]}
+        for t_ in tests
+    ]
+    # requirements 里的 hiddenTests 也用 shell 版（评分器据此执行）
     QUESTIONS.append({
         "id": qid,
         "dimension": "program",
@@ -83,8 +134,11 @@ def q(qid, category, difficulty, title, brief, files, tests, keywords,
         "difficulty": difficulty,
         "language": "python",
         "locale": "zh",
-        "status": "active",
-        "tier": "pilot",
+        # status/tier 必须是 valid/public_dev：run 的选题逻辑硬过滤 status='valid'
+        # （routes/index.ts:3238 `const scenarioWhere = { status: 'valid' }`），
+        # 写成 active/pilot 会导致 totalScenarios=0 空跑（2026-08-31 实测踩坑）。
+        "status": "valid",
+        "tier": "public_dev",
         "promptTemplate": prompt,
         "sourceCode": json.dumps(files, ensure_ascii=False),
         "functionName": function_name,
@@ -92,11 +146,11 @@ def q(qid, category, difficulty, title, brief, files, tests, keywords,
         "grader": "project_repair",
         "graderVersion": "1.1.0",
         "scoring": json.dumps({"type": "weighted_axes", "weights": BANK_WEIGHTS}, ensure_ascii=False),
-        "hiddenTests": json.dumps(tests, ensure_ascii=False),
+        "hiddenTests": json.dumps(shell_tests, ensure_ascii=False),
         "requirements": json.dumps({
             "files": files,
-            "hiddenTestFiles": [],
-            "hiddenTests": tests,
+            "hiddenTestFiles": hidden_test_files,
+            "hiddenTests": shell_tests,
             "explanationKeywords": keywords,
             "image": "python:3.12-alpine",
         }, ensure_ascii=False),
