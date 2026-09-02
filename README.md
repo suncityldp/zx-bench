@@ -2,14 +2,14 @@
 
 [English](README.en.md) · 中文
 
-> 在一台机器上，对任意大模型（本地 GGUF / Ollama / OpenAI 兼容 API）跑完 10 大维度、**516 道**基准题，产出可复现的综合分、维度雷达、排行榜、AI 深度报告与性价比分析。其中编程题在 **Docker 容器里真实编译并执行隐藏测试**，分数反映的是真实代码行为，而非「看起来像」的文本相似度。
+> 在一台机器上，对任意大模型（本地 GGUF / Ollama / OpenAI 兼容 API）跑完 10 大维度、**574 道**基准题（题库累计 652 道，其中 78 道已退役旧题归档于 `data/scenarios/archive/`，不参与评测），产出可复现的综合分、维度雷达、排行榜、AI 深度报告与性价比分析。其中编程题在 **Docker 容器里真实编译并执行隐藏测试**，分数反映的是真实代码行为，而非「看起来像」的文本相似度。
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
 ## 核心特性
 
 - **10 大能力维度**：编程、推理数学、安全权限、深度 CLI、数据抽取、智能体工作流、指令遵循、工具/CLI、幻觉抵抗、结构化输出。
-- **516 道可评测基准题**：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
+- **574 道可评测基准题**（题库累计 652 道，退役旧题归档保留版本史）：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
 - **编程题真实执行**：JS/TS/Python 子进程沙箱；Go/Java/C/C++/Rust/PHP/C#/Bash/SQL 在 Docker 容器里**真实编译 + 运行隐藏测试**（ASan 检内存错误、JUnit 跑 Java、race detector 检并发、SQLite 跑查询），`test_pass` 轴 = 真实测试通过率——不再用关键词「猜」代码对不对。
 - **no_bug 陷阱题**：部分代码本身正确，模型须识别「无 bug」而非强行修改，误修会扣分。
 - **确定性评分 + AI Judge 双通道**：规则评分器先判，AI Judge 按维度权重补判语义项，覆盖率感知地「让渡」权重。
@@ -131,7 +131,7 @@ node scripts/export-scenarios.mjs # 导出
 
 | 维度 | 中文名 | 题量 | 维度权重 |
 |------|--------|------|----------|
-| program | 编程能力 | 92 | 0.20 |
+| program | 编程能力 | 150 | 0.20 |
 | hallucination_resistance | 幻觉抵抗 | 78 | 0.12 |
 | reasoning_math | 推理与数学 | 34 | 0.12 |
 | instruction_following | 指令遵循 | 42 | 0.12 |
@@ -141,6 +141,9 @@ node scripts/export-scenarios.mjs # 导出
 | data_extraction | 数据抽取 | 35 | 0.07 |
 | cli_deep_tasks | 深度命令行任务 | 56 | 0.07 |
 | structured_output | 结构化输出 | 28 | 0.05 |
+| **合计** | | **574** | |
+
+> 题量 = `benchmark-meta.json` 中 status=valid 的当前可评测题；另有 78 道已退役旧题（v3 幻觉题集 HAL-*）归档于 `data/scenarios/archive/benchmark-retired.json`，保留版本史但不参与跑测。题库累计 652 道。
 
 ### 三步评分链
 
@@ -304,7 +307,7 @@ apps/server/     # Fastify 后端 + API + Prisma
 packages/core/   # 评测引擎核心（orchestrator / judge / evaluators / scoring / execution / contracts）
 packages/types/  # 共享类型
 packages/utils/  # 工具函数
-data/scenarios/  # 516 道可评测基准题（benchmark.json + 元数据 + CR2 备选题集）
+data/scenarios/  # 574 道可评测基准题（benchmark.json + 元数据 + CR2 备选题集；archive/ 为退役旧题归档）
 data/java-libs/  # Java 题 JUnit 依赖 jar
 scripts/         # 题库导入/导出脚本
 docs/            # 规范文档（fixture-spec 等）

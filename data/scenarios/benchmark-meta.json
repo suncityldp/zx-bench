@@ -1,6 +1,8 @@
 {
  "version": "1.0.0",
  "count": 574,
+ "retiredCount": 78,
+ "totalCount": 652,
  "dimensions": {
   "agent_workflow": 45,
   "cli_deep_tasks": 56,
@@ -13,5 +15,8 @@
   "structured_output": 28,
   "tool_cli_workflow": 56
  },
- "generatedAt": "2026-08-24T00:15:03.925Z"
+ "retiredDimensions": {
+  "hallucination_resistance": 78
+ },
+ "generatedAt": "2026-09-02T06:52:13.513Z"
 }
