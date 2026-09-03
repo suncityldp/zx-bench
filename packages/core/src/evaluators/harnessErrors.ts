@@ -7,6 +7,7 @@
 //   - Java 容器 non-root + HOME=/root → javac 预置目录失败
 //   - dotnet 无网络容器 workload 校验失败 → SDK 命令中断
 //   - docker daemon / OCI / 磁盘 / EACCES → 基础设施故障
+//   - 包仓库（crates.io/npm/NuGet/PyPI）不可达 → 依赖环境故障
 // 注意：不要加入「模型 SQL 语法错误」类模式（如 no such column、
 //   syntax error near），那些是模型真实失败，混入会掩盖模型缺陷。
 // ============================================================
@@ -44,6 +45,11 @@ const ENV_ERROR_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   { re: /eacces:\s*permission denied/i, reason: 'EACCES permission denied' },
 ];
 
+// 传输层错误本身不够：业务代码也可能访问普通 HTTP API。只有它同时指向
+// 依赖包仓库时，才把失败归因为评测基础设施而不是模型实现。
+const PACKAGE_REGISTRY_HOST = /(?:crates\.io|index\.crates\.io|static\.crates\.io|registry\.npmjs\.org|api\.nuget\.org|pypi\.org|files\.pythonhosted\.org)/i;
+const PACKAGE_REGISTRY_TRANSPORT_ERROR = /(?:eai_again|enotfound|etimedout|econnrefused|econnreset|could not resolve host|dns|proxy|certificate|tls|ssl|network is unreachable|connection (?:timed out|refused|reset)|failed to (?:download|get|fetch)|unable to load the service index|nu1301)/i;
+
 /** 检测 stderr 是否包含高置信环境/测试基础设施故障信号。
  *  @param stderr 容器或子进程的 stderr 原文（可含多行）
  *  @returns {isEnv: true, reason} 命中环境故障；{isEnv: false} 未命中 */
@@ -52,10 +58,13 @@ export function detectEnvironmentError(stderr: string | null | undefined): EnvEr
   for (const { re, reason } of ENV_ERROR_PATTERNS) {
     if (re.test(stderr)) return { isEnv: true, reason };
   }
+  if (PACKAGE_REGISTRY_HOST.test(stderr) && PACKAGE_REGISTRY_TRANSPORT_ERROR.test(stderr)) {
+    return { isEnv: true, reason: 'package registry network unavailable' };
+  }
   return { isEnv: false };
 }
 
-/** 从任意 runner 结果对象提取 stderr 并检测（runner 结果都带 stderr 字段） */
-export function envErrorOf(res: { stderr?: string } | null | undefined): EnvErrorInfo {
-  return detectEnvironmentError(res?.stderr);
+/** 从任意 runner 结果对象合并 stdout/stderr 检测，避免根因只写 stdout 时漏判。 */
+export function envErrorOf(res: { stdout?: string; stderr?: string } | null | undefined): EnvErrorInfo {
+  return detectEnvironmentError([res?.stdout, res?.stderr].filter(Boolean).join('\n'));
 }

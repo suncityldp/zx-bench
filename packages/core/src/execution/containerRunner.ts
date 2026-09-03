@@ -7,7 +7,8 @@
 // ============================================================
 
 import { execAsync } from './execAsync.js';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync, existsSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { rm as rmAsync } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -159,13 +160,101 @@ const LOCAL_BUILD_IMAGES: Record<string, string> = {
   ].join('\n'),
 };
 
-/** Docker 是否可用（缓存结果） */
+/**
+ * Windows 上 Docker Desktop 的默认安装位置。
+ * 可用 ZXB_DOCKER_DESKTOP_PATH 覆盖，便于非默认安装目录或企业软件分发。
+ */
+export function dockerDesktopPathCandidates(
+  platform = process.platform,
+  configuredPath = process.env.ZXB_DOCKER_DESKTOP_PATH,
+): string[] {
+  if (platform !== 'win32') return [];
+  return [
+    configuredPath,
+    'C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe',
+    'C:\\Program Files (x86)\\Docker\\Docker\\Docker Desktop.exe',
+  ].filter((p): p is string => Boolean(p && p.trim()));
+}
+
+export function shouldAutoStartDockerDesktop(
+  platform = process.platform,
+  disabled = process.env.ZXB_AUTO_START_DOCKER === '0',
+): boolean {
+  return platform === 'win32' && !disabled;
+}
+
+const DOCKER_STARTUP_TIMEOUT_MS = Math.max(
+  10_000,
+  Number.parseInt(process.env.ZXB_DOCKER_START_TIMEOUT_MS || '120000', 10) || 120_000,
+);
+const DOCKER_STARTUP_POLL_MS = 2_000;
+
+/** Docker 是否可用。只缓存成功：Desktop 可以在服务启动后才准备就绪。 */
 let dockerAvailableCache: boolean | null = null;
+let dockerStartupPromise: Promise<boolean> | null = null;
+
+async function probeDockerDaemon(timeout = 8_000): Promise<boolean> {
+  const res = await execAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout });
+  return res.status === 0;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 仅在 Windows 且 daemon 不可达时启动 Docker Desktop；同一时刻多个评测 worker 共用一次启动/等待。
+ * 不在 macOS/Linux 上猜测桌面应用路径，也可设 ZXB_AUTO_START_DOCKER=0 关闭此行为。
+ */
+async function startDockerDesktopIfNeeded(): Promise<boolean> {
+  if (!shouldAutoStartDockerDesktop()) return false;
+  if (dockerStartupPromise) return dockerStartupPromise;
+
+  dockerStartupPromise = (async () => {
+    const executable = dockerDesktopPathCandidates().find((candidate) => existsSync(candidate));
+    if (!executable) {
+      console.warn('[CT] Docker daemon unavailable and Docker Desktop executable was not found');
+      return false;
+    }
+
+    try {
+      const child = spawn(executable, [], { detached: true, stdio: 'ignore', windowsHide: true });
+      child.once('error', (err) => console.warn(`[CT] Docker Desktop launch failed: ${err.message}`));
+      child.unref();
+      console.log('[CT] Docker daemon unavailable; starting Docker Desktop and waiting for readiness');
+    } catch (err) {
+      console.warn(`[CT] Docker Desktop launch failed: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+
+    const deadline = Date.now() + DOCKER_STARTUP_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await wait(DOCKER_STARTUP_POLL_MS);
+      if (await probeDockerDaemon(Math.min(8_000, DOCKER_STARTUP_POLL_MS + 1_000))) {
+        dockerAvailableCache = true;
+        console.log('[CT] Docker daemon is ready');
+        return true;
+      }
+    }
+    console.warn(`[CT] Docker Desktop did not become ready within ${Math.round(DOCKER_STARTUP_TIMEOUT_MS / 1000)}s`);
+    return false;
+  })();
+
+  try {
+    return await dockerStartupPromise;
+  } finally {
+    dockerStartupPromise = null;
+  }
+}
+
 export async function isDockerAvailable(): Promise<boolean> {
-  if (dockerAvailableCache !== null) return dockerAvailableCache;
-  const res = await execAsync('docker', ['version', '--format', '{{.Server.Version}}'], { timeout: 8000 });
-  dockerAvailableCache = res.status === 0;
-  return dockerAvailableCache;
+  if (dockerAvailableCache === true) return true;
+  if (await probeDockerDaemon()) {
+    dockerAvailableCache = true;
+    return true;
+  }
+  // 不缓存 false：Docker Desktop 可能在项目服务启动之后才启动/完成初始化。
+  return startDockerDesktopIfNeeded();
 }
 
 /** 获取镜像 digest（审计链用；未拉取返回 undefined） */

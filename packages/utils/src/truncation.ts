@@ -68,7 +68,9 @@ export function buildOutputMetadata(
     outputTokens,
     inputTokens: 0, // 由调用方覆盖（orchestrator 从模型响应回填）
     maxTokens,
-    incomplete: truncated || !containsFinalConclusion,
-    incompleteReasons: reasons.length > 0 ? reasons : (!containsFinalConclusion ? ['no final conclusion found'] : undefined),
+    // 「没有最终结论」是风格/任务契约问题，不代表传输或生成被截断。
+    // 只有 API length、接近 token 上限、未闭合代码块等可观察信号才标为 incomplete。
+    incomplete: truncated,
+    incompleteReasons: reasons.length > 0 ? reasons : undefined,
   };
 }

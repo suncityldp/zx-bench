@@ -10,6 +10,7 @@
 //   - oci runtime ... failed                                (容器运行时)
 //   - no space left on device                               (磁盘满)
 //   - eacces: permission denied                             (权限)
+//   - crates.io/npm/NuGet/PyPI 包仓库网络故障                 (依赖环境)
 // 刻意不包含 SQL 语法错误类模式（no such column / syntax error）——那是模型真实失败。
 //
 // 用法: node apps/server/src/scripts/mark-environment-errors.mjs [--dry-run]
@@ -25,10 +26,13 @@ const PATTERNS = [
   { re: /an issue was encountered verifying workloads/i, reason: 'dotnet workload verification failed (network disabled)' },
   { re: /cannot connect to the docker daemon/i, reason: 'docker daemon unreachable' },
   { re: /error response from daemon/i, reason: 'docker daemon error' },
+  { re: /docker unavailable\s*[—-]\s*container execution skipped/i, reason: 'docker daemon unavailable — container execution skipped' },
   { re: /oci runtime (?:exec|create|start) failed/i, reason: 'OCI runtime failure' },
   { re: /no space left on device/i, reason: 'disk full (container/image)' },
   { re: /eacces:\s*permission denied/i, reason: 'EACCES permission denied' },
 ];
+const PACKAGE_REGISTRY_HOST = /(?:crates\.io|index\.crates\.io|static\.crates\.io|registry\.npmjs\.org|api\.nuget\.org|pypi\.org|files\.pythonhosted\.org)/i;
+const PACKAGE_REGISTRY_TRANSPORT_ERROR = /(?:eai_again|enotfound|etimedout|econnrefused|econnreset|could not resolve host|dns|proxy|certificate|tls|ssl|network is unreachable|connection (?:timed out|refused|reset)|failed to (?:download|get|fetch)|unable to load the service index|nu1301)/i;
 
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA busy_timeout = 15000');
@@ -52,6 +56,9 @@ for (const r of rows) {
   const haystack = [r.evidence, r.outputMetadata].join('\n');
   for (const { re, reason } of PATTERNS) {
     if (re.test(haystack)) { hit = reason; break; }
+  }
+  if (!hit && PACKAGE_REGISTRY_HOST.test(haystack) && PACKAGE_REGISTRY_TRANSPORT_ERROR.test(haystack)) {
+    hit = 'package registry network unavailable';
   }
   if (hit) {
     matched.push({ ...r, reason: hit });

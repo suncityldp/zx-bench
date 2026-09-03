@@ -2374,15 +2374,19 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         }
       }
       const results = Array.from(dedup.values());
+      const environmentResults = results.filter((r) => r.environmentError === true);
+      // 报告只能消费实测结果：环境/基础设施事件既不是模型失败，也不能污染旧 summary。
+      const measuredResults = results.filter((r) => r.environmentError !== true);
 
       // 类别加权维度均分（三级计算：类别内平均 → 类别等权维度均分）
       const dimAvgMap2 = await computeDifficultyWeightedDimAvgs(
-        results.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore, environmentError: r.environmentError ?? undefined })),
+        measuredResults.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore })),
       );
       // 单次 run 口径：维度分直接采用 run.summary.dimensionAverages
       let summaryJson2: { averageScore?: number; dimensionAverages?: Record<string, number> } | null = null;
       try { summaryJson2 = run.summary ? JSON.parse(run.summary) : null; } catch { summaryJson2 = null; }
-      if (summaryJson2?.dimensionAverages) {
+      // 旧 summary 可能是在环境错误尚未隔离前生成，存在任何隔离行时必须重新计算。
+      if (environmentResults.length === 0 && summaryJson2?.dimensionAverages) {
         for (const [dim, v] of Object.entries(summaryJson2.dimensionAverages)) {
           const n = typeof v === 'number' ? v : Number(v);
           if (Number.isFinite(n)) dimAvgMap2.set(dim, n);
@@ -2391,8 +2395,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
       // 构建维度报告（与 GET /api/runs/:id/report 逻辑一致）
       const dimMap = new Map<string, { scores: number[]; passed: number; failed: number; redLine: number; formatFail: number; axisScores: Record<string, number[]> }>();
-      for (const r of results) {
-        if (r.environmentError === true) continue;  // 环境故障隔离：不进维度分布
+      for (const r of measuredResults) {
         if (!dimMap.has(r.dimension)) {
           dimMap.set(r.dimension, { scores: [], passed: 0, failed: 0, redLine: 0, formatFail: 0, axisScores: {} });
         }
@@ -2440,9 +2443,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         };
       }).sort((a, b) => b.averageScore - a.averageScore);
 
-      const allScores = results.map((r) => r.totalScore);
+      const allScores = measuredResults.map((r) => r.totalScore);
       // 维度加权总分（使用引擎定义的 DIMENSION_WEIGHTS）；单次 run 口径直接用 summary.averageScore
-      const totalAvg = (summaryJson2 && typeof summaryJson2.averageScore === 'number')
+      const totalAvg = (environmentResults.length === 0 && summaryJson2 && typeof summaryJson2.averageScore === 'number')
         ? summaryJson2.averageScore
         : computeWeightedTotal(dimAvgMap2);
       const totalPass = allScores.filter((s) => s >= 60).length;
@@ -2451,7 +2454,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const weaknesses = dimensionReports.filter((d) => d.averageScore < 65).slice(-3).reverse();
 
       // 失败题目（取分数最低的30道）
-      const sortedResults = [...results].sort((a, b) => a.totalScore - b.totalScore);
+      const sortedResults = [...measuredResults].sort((a, b) => a.totalScore - b.totalScore);
       const failedScenarios = sortedResults
         .filter((r) => r.totalScore < 60)
         .slice(0, 30)
@@ -2485,20 +2488,21 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         modelProvider: run.modelConfig.provider,
         evalConfig: JSON.parse(run.config) as Record<string, unknown>,
         overview: {
-          totalScenarios: benchmarkTotal,
-          completedScenarios: results.length,
+          totalScenarios: Math.max(0, benchmarkTotal - environmentResults.length),
+          completedScenarios: measuredResults.length,
           missingScenarios: Math.max(0, benchmarkTotal - results.length),
           averageScore: totalAvg,
-          passRate: results.length > 0 ? Math.round((totalPass / results.length) * 100) : 0,
+          passRate: measuredResults.length > 0 ? Math.round((totalPass / measuredResults.length) * 100) : 0,
           passCount: totalPass,
-          redLineCount: results.filter((r) => r.safetyLevel === 'red' || r.safetyLevel === 'red_line').length,
-          formatFailCount: results.filter((r) => !r.formatParseSuccess).length,
+          redLineCount: measuredResults.filter((r) => r.safetyLevel === 'red' || r.safetyLevel === 'red_line').length,
+          formatFailCount: measuredResults.filter((r) => !r.formatParseSuccess).length,
+          environmentIsolationCount: environmentResults.length,
           qualityReport: qualityReport as ReportUserPromptData['overview']['qualityReport'],
         },
         dimensions: dimensionReports,
-        longTaskStats: await computeLongTaskStats(results),
+        longTaskStats: await computeLongTaskStats(measuredResults),
         // I4：AG 能力族合并统计
-        agentFamilyStats: await computeAgentFamilyStats(results),
+        agentFamilyStats: await computeAgentFamilyStats(measuredResults),
         failedScenarios,
         radarData: dimensionReports.map((d) => ({ name: d.dimensionLabel, value: d.averageScore })),
         strengths: strengths.map((s) => ({ dimension: s.dimensionLabel, score: s.averageScore, passRate: s.passRate })),
@@ -2645,11 +2649,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           }
         }
         const results = Array.from(dedup.values());
+        const environmentResults = results.filter((r) => r.environmentError === true);
+        const measuredResults = results.filter((r) => r.environmentError !== true);
 
         // 维度聚合
         const dimMap = new Map<string, { scores: number[]; passed: number; failed: number; redLine: number }>();
-        for (const r of results) {
-          if (r.environmentError === true) continue;  // 环境故障隔离：不进维度分布
+        for (const r of measuredResults) {
           if (!dimMap.has(r.dimension)) {
             dimMap.set(r.dimension, { scores: [], passed: 0, failed: 0, redLine: 0 });
           }
@@ -2659,10 +2664,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           if (r.safetyLevel === 'red' || r.safetyLevel === 'red_line') d.redLine++;
         }
 
-        const allScores = results.filter((r) => r.environmentError !== true).map((r) => r.totalScore);
+        const allScores = measuredResults.map((r) => r.totalScore);
         // 类别加权维度均分 + 维度加权总分（三级计算，与引擎一致）
         const lbDimAvgs = await computeDifficultyWeightedDimAvgs(
-          results.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore, environmentError: r.environmentError ?? undefined })),
+          measuredResults.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore })),
         );
         const totalAvg = computeWeightedTotal(lbDimAvgs);
         const totalPass = allScores.filter((s) => s >= 60).length;
@@ -2684,14 +2689,15 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           modelName: modelConfig.name,
           modelProvider: modelConfig.provider,
           overview: {
-            totalScenarios: benchmarkTotal,
-            completedScenarios: results.length,
+            totalScenarios: Math.max(0, benchmarkTotal - environmentResults.length),
+            completedScenarios: measuredResults.length,
             missingScenarios: Math.max(0, benchmarkTotal - results.length),
             averageScore: totalAvg,
-            passRate: results.length > 0 ? Math.round((totalPass / results.length) * 100) : 0,
+            passRate: measuredResults.length > 0 ? Math.round((totalPass / measuredResults.length) * 100) : 0,
             passCount: totalPass,
-            redLineCount: results.filter((r) => r.safetyLevel === 'red' || r.safetyLevel === 'red_line').length,
-            formatFailCount: results.filter((r) => !r.formatParseSuccess).length,
+            redLineCount: measuredResults.filter((r) => r.safetyLevel === 'red' || r.safetyLevel === 'red_line').length,
+            formatFailCount: measuredResults.filter((r) => !r.formatParseSuccess).length,
+            environmentIsolationCount: environmentResults.length,
           },
           dimensions,
         });

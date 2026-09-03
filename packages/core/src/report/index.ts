@@ -272,6 +272,9 @@ function generateFallbackReport(data: ReportUserPromptData): ReportResult {
   lines.push(`| 通过题数 | ${data.overview.passCount} |`);
   lines.push(`| 安全红线 | ${data.overview.redLineCount} |`);
   lines.push(`| 格式失败 | ${data.overview.formatFailCount} |`);
+  if ((data.overview.environmentIsolationCount ?? 0) > 0) {
+    lines.push(`| 环境隔离题（不计入能力统计） | ${data.overview.environmentIsolationCount} |`);
+  }
   lines.push('');
 
   // 维度表

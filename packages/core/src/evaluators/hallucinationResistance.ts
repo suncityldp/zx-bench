@@ -250,6 +250,27 @@ function extractCitations(output: string): string[] {
   return [...new Set(matches.map((m) => m.replace(/[\[\]]/g, '').toUpperCase()))];
 }
 
+type CitationIntent = 'supports' | 'rejects' | 'ambiguous';
+
+/**
+ * 判断材料编号在自然语言中是作为证据使用，还是被明确排除。
+ *
+ * 不能把所有 [S1] 都当作正向引用：
+ * 「应引用 [S2]；[S1] 只谈收购，不能支持结论」是合格答案，旧逻辑会把 [S1] 硬判为引用幻觉。
+ * 语义仍有歧义时交由 Judge，不触发确定性 hard veto。
+ */
+function citationIntent(output: string, citation: string): CitationIntent {
+  const escaped = citation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = `\\[${escaped}\\]`;
+  const support = new RegExp(`(?:根据|依据|引用|参见|见|来自|依照|according\\s+to|based\\s+on)\\s*(?:材料|来源|source)?\\s*${marker}`, 'i');
+  if (support.test(output)) return 'supports';
+
+  const rejectAfter = new RegExp(`${marker}[\\s\\S]{0,120}?(?:不应|不能|不可|并非|不是|无关|未涉及|未提及|并未|不支持|不作为|仅说明|只说明|only|does not|not support)`, 'i');
+  const rejectBefore = new RegExp(`(?:不应|不能|不可|并非|不是|无关|未涉及|未提及|并未|不支持|不作为|仅说明|只说明|rather than|not)\\s*(?:引用|使用|依据|材料|来源)?[\\s\\S]{0,40}?${marker}`, 'i');
+  if (rejectAfter.test(output) || rejectBefore.test(output)) return 'rejects';
+  return 'ambiguous';
+}
+
 /** 上下文窗口检测：id 附近 window 字符内是否命中 affirm 且不命中 negate（否定优先）。
  *  目的：避免「不是有效/不正确/不通过」这类否定表达因含「有效/正确」子串被误判为肯定断言。
  *  - affirm 检测（invalid 标识符是否被说成有效）：任何否定词（不/非/没/未/错误…）出现 → 不算肯定
@@ -393,10 +414,16 @@ function judgeRagAttribution(output: string, req: HallucinationRequirements): Ve
     return { label: 'hallucination' };
   }
 
-  // 1. 非预期引用编号 → 引用幻觉（硬否决）
-  const unexpected = cited.filter((c) => !expectedCitations.includes(c));
-  if (unexpected.length > 0) {
-    return { label: 'citation_attribution_error', hardVeto: `rag_attribution: 引用错误材料编号 ${unexpected.join('/')}` };
+  // 1. 材料集外编号是实质性的引用编造；已给材料的非目标编号则需识别语境。
+  //    允许模型说明「[S1] 不支持，应该引用 [S2]」，歧义表达交由 Judge，避免关键词硬杀。
+  const knownMaterials = new Set((req.materials ?? []).map((m) => m.id.toUpperCase()));
+  const invented = cited.filter((c) => !knownMaterials.has(c));
+  if (invented.length > 0) {
+    return { label: 'citation_attribution_error', hardVeto: `rag_attribution: 引用材料外编号 ${invented.join('/')}` };
+  }
+  const wronglyUsed = cited.filter((c) => !expectedCitations.includes(c) && citationIntent(output, c) === 'supports');
+  if (wronglyUsed.length > 0) {
+    return { label: 'citation_attribution_error', hardVeto: `rag_attribution: 引用错误材料编号 ${wronglyUsed.join('/')}` };
   }
 
   // 2. 答案匹配检查

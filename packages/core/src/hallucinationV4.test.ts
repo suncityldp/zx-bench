@@ -187,6 +187,19 @@ describe('v4 rag_attribution（RAG 归因）', () => {
     expect(r.totalScore).toBe(100);
   });
 
+  it('解释中明确排除非目标材料，不应被误判为错误引用', async () => {
+    const out = '亮度为 3800 流明，应引用 [S1]。 [S2] 只说明重量，不能支持亮度结论。';
+    const r = await score(out, baseReq);
+    expect(r.totalScore).toBe(100);
+  });
+
+  it('正向使用非目标材料，仍应 hardVeto', async () => {
+    const out = '根据 [S2]，青云投影仪亮度为 3800 流明。';
+    const r = await score(out, baseReq);
+    expect(r.totalScore).toBe(0);
+    expect(r.evidence.some((e) => e.includes('引用错误材料编号 S2'))).toBe(true);
+  });
+
   it('答案正确但未引用 → partial 60', async () => {
     const out = '青云投影仪 QP-200 亮度为 3800 流明。';
     const r = await score(out, baseReq);

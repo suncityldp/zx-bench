@@ -75,6 +75,24 @@ describe('detectEnvironmentError 命中环境故障（正例）', () => {
   it('Node fs EACCES 权限拒绝', () => {
     expect(detectEnvironmentError("Error: EACCES: permission denied, mkdir '/tmp/xyz'").isEnv).toBe(true);
   });
+
+  it('crates.io 的 DNS 失败', () => {
+    const r = detectEnvironmentError('failed to download from https://index.crates.io/config.json: Could not resolve host');
+    expect(r.isEnv).toBe(true);
+    expect(r.reason).toMatch(/package registry/);
+  });
+
+  it('npm registry 的连接超时', () => {
+    expect(detectEnvironmentError('npm ERR! request to https://registry.npmjs.org/typescript failed, reason: connect ETIMEDOUT').isEnv).toBe(true);
+  });
+
+  it('NuGet service index 不可达', () => {
+    expect(detectEnvironmentError('error NU1301: Unable to load the service index for source https://api.nuget.org/v3/index.json').isEnv).toBe(true);
+  });
+
+  it('PyPI 的 TLS 错误', () => {
+    expect(detectEnvironmentError('Could not fetch URL https://pypi.org/simple/requests/: There was a problem confirming the ssl certificate').isEnv).toBe(true);
+  });
 });
 
 describe('detectEnvironmentError 不误报模型真实失败（负例）', () => {
@@ -105,6 +123,10 @@ describe('detectEnvironmentError 不误报模型真实失败（负例）', () =>
   it('超时提示不命中', () => {
     expect(detectEnvironmentError('test timed out after 30000ms').isEnv).toBe(false);
   });
+
+  it('普通业务 API 的连接失败不被隔离', () => {
+    expect(detectEnvironmentError('request to https://api.example.com failed: connect ETIMEDOUT').isEnv).toBe(false);
+  });
 });
 
 describe('detectEnvironmentError 边界输入', () => {
@@ -123,6 +145,11 @@ describe('envErrorOf 从 runner 结果对象提取', () => {
   it('带 stderr 的对象命中', () => {
     const res = { exitCode: 1, stdout: '', stderr: 'mkdir: cannot create directory \u2018/root\u2019: Permission denied' };
     const r = envErrorOf(res);
+    expect(r.isEnv).toBe(true);
+  });
+
+  it('根因只写在 stdout 时仍命中', () => {
+    const r = envErrorOf({ stdout: 'npm ERR! request to https://registry.npmjs.org/vitest failed: ENOTFOUND', stderr: '' });
     expect(r.isEnv).toBe(true);
   });
 

@@ -18,6 +18,7 @@ export const REPORT_SYSTEM_PROMPT = `你是一位顶级 AI 模型评测分析师
 2. **客观公正**：对模型的独有优势给予明确赞扬，同样用具体数据和案例说话。
 3. **图文并茂**：报告中用表格展示数据对比，用具体数字而非模糊描述。
 4. **专业深度**：分析不能停留在表面分数，要深入探讨每个维度失分的原因模式。
+5. **归因边界**：只有输入数据明确标为“环境隔离”的结果才是基础设施事件；不得把编译错误、测试断言失败或模型输出错误自行改判为环境问题。
 
 ## 报告章节结构（必须严格遵守）
 
@@ -81,6 +82,7 @@ export const REPORT_SYSTEM_PROMPT_EN = `You are a top-tier AI model evaluation a
 2. **Objective and fair**: give clear credit for genuine strengths, also backed by data.
 3. **Data-rich**: use tables and concrete numbers, not vague wording.
 4. **Deep**: go beyond surface scores and dig into the failure patterns of each dimension.
+5. **Attribution boundary**: only results explicitly marked environment-isolated are infrastructure incidents. Do not relabel compilation errors, assertion failures, or bad model outputs as environment problems.
 
 ## Report structure (must follow strictly)
 
@@ -238,6 +240,8 @@ export interface ReportUserPromptData {
     passCount: number;
     redLineCount: number;
     formatFailCount: number;
+    /** 环境/基础设施故障已从能力统计中隔离，仅作数量披露。 */
+    environmentIsolationCount?: number;
     qualityReport?: {
       grade: string;
       issues: string[];
@@ -325,6 +329,7 @@ export function buildReportUserPrompt(data: ReportUserPromptData, language: Repo
     q: en ? 'questions' : '题',
     rl: en ? 'Red lines' : '安全红线',
     ff: en ? 'Format failures' : '格式失败',
+    ei: en ? 'Environment-isolated results (excluded from capability statistics)' : '环境隔离题（不计入能力统计）',
     gd: en ? 'Quality grade' : '质量诊断等级',
     eo: en ? 'Empty outputs' : '空输出题目数',
     qw: en ? 'evaluation quality warning!' : '评测质量警告！',
@@ -357,6 +362,12 @@ export function buildReportUserPrompt(data: ReportUserPromptData, language: Repo
   prompt += '- ' + s.pr + '：' + data.overview.passRate + '%（' + s.pd + ' ' + data.overview.passCount + ' ' + s.q + '）\n';
   prompt += '- ' + s.rl + '：' + data.overview.redLineCount + ' ' + s.q + '\n';
   prompt += '- ' + s.ff + '：' + data.overview.formatFailCount + ' ' + s.q + '\n';
+  if ((data.overview.environmentIsolationCount ?? 0) > 0) {
+    prompt += '- ' + s.ei + '：' + data.overview.environmentIsolationCount + ' ' + s.q + '\n';
+    prompt += '- ' + (en
+      ? 'IMPORTANT: Environment-isolated results are infrastructure incidents, not model failures. Do not include them in pass rates, failure cases, red-line/format-failure counts, or capability conclusions.'
+      : '重要：环境隔离题是基础设施事件，不是模型失败；不得纳入通过率、失败案例、安全红线、格式失败或能力结论。') + '\n';
+  }
   if (data.overview.qualityReport) {
     prompt += '- ' + s.gd + '：' + data.overview.qualityReport.grade + '\n';
     if (data.overview.qualityReport.emptyOutputCount > 0) {
@@ -481,6 +492,7 @@ export interface CompareReportUserPromptData {
       passCount: number;
       redLineCount: number;
       formatFailCount: number;
+      environmentIsolationCount?: number;
     };
     dimensions: Array<{
       dimension: string;
@@ -507,6 +519,7 @@ export function buildCompareReportUserPrompt(data: CompareReportUserPromptData, 
     passed: en ? 'passed' : '通过',
     redLine: en ? 'red lines' : '安全红线',
     fmtFail: en ? 'format failures' : '格式失败',
+    envIsolated: en ? 'environment-isolated' : '环境隔离题',
     dimHeader: en ? '| Dimension | Count | Avg | Pass rate | Red lines |' : '| 维度 | 题数 | 均分 | 通过率 | 安全红线 |',
     cross: en ? 'Cross-dimension comparison' : '各维度横比',
     winner: en ? 'Winner' : '赢家',
@@ -527,6 +540,11 @@ export function buildCompareReportUserPrompt(data: CompareReportUserPromptData, 
     prompt += '### ' + m.modelName + '（' + m.modelProvider + '）\n';
     prompt += '- ' + s.totalQ + '：' + m.overview.totalScenarios + ' | ' + s.avg + '：' + m.overview.averageScore + ' | ' + s.passRate + '：' + m.overview.passRate + '%\n';
     prompt += '- ' + s.passed + '：' + m.overview.passCount + ' | ' + s.redLine + '：' + m.overview.redLineCount + ' | ' + s.fmtFail + '：' + m.overview.formatFailCount + '\n\n';
+    if ((m.overview.environmentIsolationCount ?? 0) > 0) {
+      prompt += '- ' + s.envIsolated + '：' + m.overview.environmentIsolationCount + (en
+        ? ' (excluded from all capability comparisons; not model failures)\n\n'
+        : '（不参与能力对比，不是模型失败）\n\n');
+    }
 
     prompt += s.dimHeader + '\n';
     prompt += '|------|------|------|--------|----------|\n';

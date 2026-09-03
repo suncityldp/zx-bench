@@ -1,5 +1,5 @@
 // ============================================================
-// Project Repair 评分器 v1.0（多文件工作区 + 容器执行测试套件）
+// Project Repair 评分器 v1.2（多文件工作区 + 容器执行测试套件）
 // 场景 requirements：
 //   files: [{path, content}]             —— 模型可见的初始工作区
 //   hiddenTestFiles?: [{path, content}]  —— grader 注入的隐藏测试文件（模型不可见）
@@ -8,6 +8,10 @@
 //   functionName?: string                —— 入口函数（api_stability 用）
 //   explanationKeywords?: string[]       —— 静态信号关键词
 //   image?: string                       —— 覆盖默认容器镜像
+//   executionPolicy?:                    —— 显式执行策略；默认禁网
+//     network: 'required'                —— 仅题目声明时允许联网
+//     dependencyPreflight                —— 用原始工作区检查依赖仓库
+//     coldStartTimeoutIsEnvironmentError —— 联网冷启动超时隔离，不归罪模型
 // 模型输出：多文件「完整内容」，每个文件一个代码块，前一行用标题行
 //   标注路径。兼容多种自然写法（parseFileBlocks 解析）：
 //     `### file: <path>`          规范格式
@@ -50,6 +54,11 @@ interface ProjectRepairRequirements {
   functionName?: string;
   explanationKeywords?: string[];
   image?: string;
+  executionPolicy?: {
+    network?: 'required' | 'disabled';
+    dependencyPreflight?: { command: string; timeoutMs?: number };
+    coldStartTimeoutIsEnvironmentError?: boolean;
+  };
 }
 
 /** 纯解析函数从独立模块导入（零运行时依赖，便于单测与隔离 dockerode）。 */
@@ -97,13 +106,41 @@ interface ScriptRunResult {
   stderr: string;
 }
 
+const EVIDENCE_STREAM_LIMIT = 2_000;
+
+/** 以结构化形式保留两个输出流，既保留根因又避免数据库证据无限膨胀。 */
+function appendExecutionEvidence(
+  evidence: string[],
+  kind: 'preflight' | 'hidden_test',
+  description: string,
+  result: ScriptRunResult,
+) {
+  const clip = (value: string) => ({
+    value: value.slice(0, EVIDENCE_STREAM_LIMIT),
+    truncated: value.length > EVIDENCE_STREAM_LIMIT,
+  });
+  const stdout = clip(result.stdout);
+  const stderr = clip(result.stderr);
+  evidence.push(`EXECUTION_EVIDENCE: ${JSON.stringify({
+    kind,
+    description,
+    passed: result.passed,
+    exitCode: result.exitCode,
+    timedOut: result.timedOut,
+    stdout: stdout.value,
+    stderr: stderr.value,
+    stdoutTruncated: stdout.truncated,
+    stderrTruncated: stderr.truncated,
+  })}`);
+}
+
 /** 在容器中跑单个测试脚本（脚本是 shell 命令，如 'pytest -q tests/hidden/x.py'） */
 async function runScript(
   image: string,
   files: { path: string; content: string }[],
   script: string,
   timeoutMs: number,
-  opts?: { pg?: boolean },
+  opts?: { pg?: boolean; networkDisabled?: boolean },
 ): Promise<ScriptRunResult> {
   let command = script;
   let user: string | undefined;
@@ -125,7 +162,8 @@ async function runScript(
     timeoutMs,
     memoryMb,
     pidsLimit: 256,
-    networkDisabled: false,  // 长任务脚本需 pip/npm install 依赖
+    // 默认禁网；只有题目 executionPolicy 明确声明依赖网络时才开放。
+    networkDisabled: opts?.networkDisabled ?? true,
     readOnly: false,  // 长任务需要写文件（DB/缓存/产物）
     user,
     // HOME：非 root(65534) 下默认 /nonexistent，dotnet/go 需要可写 HOME
@@ -144,7 +182,7 @@ async function runScript(
 
 export const projectRepairEvaluator: Evaluator = {
   name: 'project_repair',
-  version: '1.1.0',
+  version: '1.2.0',
 
   async evaluate(
     scenario: Scenario,
@@ -162,6 +200,9 @@ export const projectRepairEvaluator: Evaluator = {
     const hiddenFiles = req.hiddenTestFiles ?? [];
     const hiddenTests = req.hiddenTests ?? [];
     const image = req.image ?? LANG_IMAGE[lang] ?? 'python:3.12-alpine';
+    const executionPolicy = req.executionPolicy;
+    const requiresNetwork = executionPolicy?.network === 'required';
+    const isSql = lang === 'sql' || lang === 'postgresql';
 
     // 1. 解析模型输出的多文件替换
     if (process.env.ZXB_PR_TRACE) console.log('[PR] 1 parseFileBlocks 开始');
@@ -192,6 +233,43 @@ export const projectRepairEvaluator: Evaluator = {
       } as Partial<ScenarioResult>;
     }
 
+    // 联网题的依赖预检必须在模型改动前的原始工作区中执行。否则模型把
+    // Cargo.toml / package.json / csproj 改坏后，会被错误归因为环境网络故障。
+    if (requiresNetwork) {
+      const preflight = executionPolicy?.dependencyPreflight;
+      if (!preflight?.command?.trim()) {
+        evidence.push('ENVIRONMENT_ERROR: network-required scenario has no dependency preflight policy');
+        return {
+          axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
+          axisEvidence: { test_pass: 'unmeasured', output_completeness: 'rule' },
+          totalScore: 0,
+          safetyLevel: 'safe',
+          evidence,
+          environmentError: true,
+        } as Partial<ScenarioResult>;
+      }
+      const baselineFiles = buildWorkspaceFiles(initialFiles, {}, hiddenFiles);
+      const preflightResult = await runScript(
+        image,
+        baselineFiles,
+        preflight.command,
+        preflight.timeoutMs ?? 120_000,
+        { pg: isSql, networkDisabled: false },
+      );
+      appendExecutionEvidence(evidence, 'preflight', 'dependency preflight', preflightResult);
+      if (!preflightResult.passed) {
+        evidence.push('ENVIRONMENT_ERROR: dependency preflight failed on the original workspace — harness/network unavailable');
+        return {
+          axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
+          axisEvidence: { test_pass: 'unmeasured', output_completeness: 'rule' },
+          totalScore: 0,
+          safetyLevel: 'safe',
+          evidence,
+          environmentError: true,
+        } as Partial<ScenarioResult>;
+      }
+    }
+
     const results: ScriptRunResult[] = [];
     let envErrorReason: string | null = null;
     for (const ht of hiddenTests) {
@@ -199,18 +277,24 @@ export const projectRepairEvaluator: Evaluator = {
         evidence.push('跳过无 script 的测试: ' + ht.description);
         continue;
       }
-      const isSql = lang === 'sql' || lang === 'postgresql';
       if (process.env.ZXB_PR_TRACE) console.log('[PR] 4 runScript 开始 image=' + image + ' timeout=' + (isSql ? 180000 : 120000));
-      const r = await runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql });
+      const r = await runScript(image, workspaceFiles, ht.script, isSql ? 180000 : 120000, { pg: isSql, networkDisabled: !requiresNetwork });
       if (process.env.ZXB_PR_TRACE) console.log('[PR] 4 runScript 完成 passed=' + r.passed + ' exit=' + r.exitCode);
       results.push(r);
       // 先剥离 maven entrypoint 的良性噪音再判环境故障：否则 Java 工程题明明跑了
       // 测试（有 PASS/FAIL），却被 `mkdir /root: Permission denied` 命中
       // `HOME=/root unwritable` 模式，把已判的 test_pass 整块隔离掉。
       const stderr = stripMavenEntrypointNoise(r.stderr);
-      const envInfo = detectEnvironmentError(stderr);
-      if (envInfo.isEnv && envErrorReason === null) envErrorReason = envInfo.reason ?? null;
-      evidence.push((r.passed ? 'PASS' : 'FAIL') + ' [' + ht.description + '] exit=' + r.exitCode + (r.passed ? '' : ' | ' + (stderr || r.stdout || '').replace(/\r?\n/g, ' ').slice(0, 300)));
+      appendExecutionEvidence(evidence, 'hidden_test', ht.description, { ...r, stderr });
+      const envInfo = detectEnvironmentError(`${r.stdout}\n${stderr}`);
+      if (envInfo.isEnv) {
+        envErrorReason = envInfo.reason ?? 'test environment unavailable';
+        break; // 根因确定后不再浪费后续冷容器测试，也不制造更多污染证据。
+      }
+      if (r.timedOut && executionPolicy?.coldStartTimeoutIsEnvironmentError === true) {
+        envErrorReason = 'network-required cold container test timed out';
+        break;
+      }
     }
 
     // 3b. 环境/测试基础设施故障：test_pass 不可信 → 整题标记隔离，不计入维度均值

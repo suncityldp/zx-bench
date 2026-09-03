@@ -26338,7 +26338,7 @@
   "functionName": "RingBuffer",
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -26487,8 +26487,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "554a4000a3986e1c",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "59ea742465d609a5",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -26513,7 +26513,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -26627,7 +26627,15 @@
     "retry",
     "并发"
    ],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "dotnet restore tests/Shop.Tests/Shop.Tests.csproj --disable-parallel",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "csharp",
@@ -26635,8 +26643,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "75f04be2cb5e1e7d",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "02435d2f71e98726",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -26661,7 +26669,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -26779,7 +26787,15 @@
     "回滚",
     "内存"
    ],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "dotnet restore tests/Api.Tests/Api.Tests.csproj --disable-parallel",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "csharp",
@@ -26787,8 +26803,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "8ab57d61748d1ac2",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "2f04895b5c80902f",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -26813,7 +26829,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -26918,8 +26934,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "48d4c7a52c7c7677",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "27d3c251e6d60ef8",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -26944,7 +26960,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27057,8 +27073,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "c748e3c664b94fd3",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "4f38e273d3b0741e",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27083,7 +27099,7 @@
   "functionName": "Queue",
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27193,8 +27209,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "3673d601bb53c6d4",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "c1f12de340519a1f",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27219,7 +27235,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27328,8 +27344,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "cab5cf5a38ce8e06",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "2ddd44a3c11ba479",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27354,7 +27370,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27473,8 +27489,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "ee035930e27555f6",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "7225c17839227c5f",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27499,7 +27515,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27624,8 +27640,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "94e81c350401d450",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "82fbdffa20b66d86",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27650,7 +27666,7 @@
   "functionName": "run_pipeline",
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27736,7 +27752,15 @@
     "batch",
     "rollback"
    ],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "python -m pip install --disable-pip-version-check --no-cache-dir --target /tmp/zxbench-preflight requests",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "python",
@@ -27744,8 +27768,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "8079dd912cdeabbe",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "a06b16297b8d127b",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27770,7 +27794,7 @@
   "functionName": "Handler",
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -27902,8 +27926,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "3b6e5e11ae4cf9ee",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "5560604905eb47aa",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -27928,7 +27952,7 @@
   "functionName": "LogAgent",
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28040,8 +28064,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "43b09462cdad708c",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "931eebe5e9b8f8d7",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28066,7 +28090,7 @@
   "functionName": "Scheduler",
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28177,8 +28201,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "f4aef5757530654e",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "de197da6c880a77e",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28203,7 +28227,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28310,7 +28334,15 @@
     "优雅关闭",
     "graceful"
    ],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "CARGO_HOME=/tmp/.cargo cargo fetch --locked",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "rust",
@@ -28318,8 +28350,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "33b1b9cd31f2dce8",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "9e04595361bdd40f",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28344,7 +28376,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28450,8 +28482,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "ee8dff134b800ef9",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "e3c51a4954a2c1c0",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28476,7 +28508,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28601,8 +28633,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "296b8d45e2344783",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "af5b4c4e248d6257",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28627,7 +28659,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28738,8 +28770,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "adfdc18c9ebd3a23",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "07d71e742ceff550",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28764,7 +28796,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -28865,7 +28897,15 @@
    "explanationKeywords": [
     "内存"
    ],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "npm install --ignore-scripts --no-audit --no-fund",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "typescript",
@@ -28873,8 +28913,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "240033d0afb928d1",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "94aea121ccb994df",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28899,7 +28939,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -29011,7 +29051,15 @@
     "batch",
     "内存"
    ],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "npm install --ignore-scripts --no-audit --no-fund",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "typescript",
@@ -29019,8 +29067,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "c695f8c45061bef0",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "f6c215d310f03a97",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -29045,7 +29093,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "project_repair",
-  "graderVersion": "1.0.0",
+  "graderVersion": "1.2.0",
   "scoring": {
    "type": "project_repair",
    "weights": {
@@ -29148,7 +29196,15 @@
    ],
    "functionName": null,
    "explanationKeywords": [],
-   "image": null
+   "image": null,
+   "executionPolicy": {
+    "network": "required",
+    "dependencyPreflight": {
+     "command": "npm install --ignore-scripts --no-audit --no-fund",
+     "timeoutMs": 120000
+    },
+    "coldStartTimeoutIsEnvironmentError": true
+   }
   },
   "tags": [
    "typescript",
@@ -29156,8 +29212,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.0.0",
-  "scenarioHash": "5a2367481883b551",
+  "scenarioVersion": "1.2.0",
+  "scenarioHash": "bdab6227c1b4a62f",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
