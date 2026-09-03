@@ -6,6 +6,10 @@ param(
     [int]$Port = 3001,
     [int]$HealthCheckInterval = 10,
     [int]$MaxRestarts = 20,
+    # 0 = never terminate a live server solely because an HTTP health probe timed out.
+    # Long-running model evaluations may legitimately occupy the server long enough
+    # that /api/health cannot respond, while the Node process is still healthy.
+    [int]$HealthFailureRestartThreshold = 0,
     [string]$LogDir = ""
 )
 
@@ -59,7 +63,13 @@ $STDERR_LOG = Join-Path $LogDir "server-$timestamp-err.log"
 
 Write-Host "============================================================"
 Write-Host "  智秀大模型评测 - 可靠启动模式"
+$healthRestartLabel = if ($HealthFailureRestartThreshold -gt 0) {
+    "连续 $HealthFailureRestartThreshold 次健康检查失败后重启"
+} else {
+    "仅记录健康检查失败（不终止存活进程）"
+}
 Write-Host "  端口: $Port | 健康检查: ${HealthCheckInterval}s | 最大重启: $MaxRestarts"
+Write-Host "  运行中健康检查策略: $healthRestartLabel"
 Write-Host "  日志: $LogDir"
 Write-Host "============================================================"
 
@@ -67,6 +77,7 @@ $env:PORT = "$Port"
 $env:BUILD_TIME = (Get-Date -Format "yyyy-MM-ddTHH:mm:ss") + "+08:00"
 $restartCount = 0
 $totalRestarts = 0
+$consecutiveHealthFailures = 0
 
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO")
@@ -154,6 +165,7 @@ while ($true) {
         if (Test-ServerHealth) {
             $ready = $true
             $restartCount = 0
+            $consecutiveHealthFailures = 0
             try {
                 $vResp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/api/version" -UseBasicParsing -TimeoutSec 3
                 $vData = $vResp.Content | ConvertFrom-Json
@@ -211,11 +223,28 @@ while ($true) {
         }
         
         if (-not (Test-ServerHealth -TimeoutMs 3000)) {
-            Write-Log "⚠️ 健康检查失败，服务器可能卡死" "WARN"
-            Stop-Server $serverProc
-            $restartCount++
-            $totalRestarts++
-            break
+            $consecutiveHealthFailures++
+
+            # A single request timeout cannot distinguish an unresponsive process
+            # from a server that is currently waiting on a long model invocation.
+            # Preserve the live process by default so a valid evaluation is never
+            # interrupted and its in-memory controller state is not lost.
+            if ($HealthFailureRestartThreshold -gt 0 -and
+                $consecutiveHealthFailures -ge $HealthFailureRestartThreshold) {
+                Write-Log "⚠️ 健康检查已连续失败 $consecutiveHealthFailures 次，按配置重启服务器" "WARN"
+                Stop-Server $serverProc
+                $restartCount++
+                $totalRestarts++
+                break
+            }
+
+            Write-Log "⚠️ 健康检查第 $consecutiveHealthFailures 次未响应；Node 进程仍存活，保留进程以避免中断长时评测" "WARN"
+            continue
+        }
+
+        if ($consecutiveHealthFailures -gt 0) {
+            Write-Log "✅ 健康检查已恢复（此前连续失败 $consecutiveHealthFailures 次）"
+            $consecutiveHealthFailures = 0
         }
         
         # 周期性心跳日志
