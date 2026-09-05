@@ -22,7 +22,9 @@ if (files.length === 0) {
 const seen = new Set();
 const scenarios = [];
 for (const f of files) {
-  const arr = JSON.parse(fs.readFileSync(path.join(SCENARIOS_DIR, f), 'utf8'));
+  const parsed = JSON.parse(fs.readFileSync(path.join(SCENARIOS_DIR, f), 'utf8'));
+  if (!Array.isArray(parsed)) { console.log('  跳过 ' + f + '（非题目数组）'); continue; }
+  const arr = parsed;
   let added = 0;
   for (const s of arr) {
     if (seen.has(s.id)) continue;
