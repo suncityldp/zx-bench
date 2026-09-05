@@ -8,7 +8,7 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'node:path';
 import { scryptSync, createDecipheriv } from 'node:crypto';
 import {
-  runTieredJudge, registerEvaluator, getEvaluator,
+  runTieredJudge, runJudgeEnsemble, computeJudgeScore, registerEvaluator, getEvaluator,
   bugFindingEvaluator, codeRepairEvaluator, structuredOutputEvaluator,
   dataExtractionEvaluator, exactAnswerLineEvaluator, instructionChecklistEvaluator,
   canaryAuthorityEvaluator, toolCallTraceEvaluator, agentTraceEvaluator, cliCommandEvaluator,
@@ -58,10 +58,6 @@ function getJudgeWeights(dimension, grader) {
   return { deterministic: 0.6, judge: 0.4 };
 }
 
-function computeJudgeScore(j) {
-  return j.bugDetection * 25 + j.rootCause * 25 + j.patchCorrectness * 30 + j.scopeDiscipline * 10 + j.outputCompleteness * 10;
-}
-
 function deserializeScenario(sd) {
   return {
     id: sd.id, dimension: sd.dimension, category: sd.category, difficulty: sd.difficulty,
@@ -85,6 +81,8 @@ const limit = process.env.LIMIT ? parseInt(process.env.LIMIT, 10) : undefined;
 const concurrency = process.env.CONCURRENCY ? parseInt(process.env.CONCURRENCY, 10) : 4;
 const judgeModelId = process.env.JUDGE_MODEL_ID;
 const onlyProblematic = process.env.ONLY_PROBLEMATIC === '1';
+// P0：ENSEMBLE=N 时对每题重复判分 N 次取均（默认 1，与历史一致）
+const ensemble = process.env.ENSEMBLE ? parseInt(process.env.ENSEMBLE, 10) : 1;
 
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA busy_timeout = 10000');
@@ -105,20 +103,33 @@ const localModel = {
   reasoningModel: judgeRow.reasoningModel === 1 || judgeRow.reasoningModel === true,
 };
 
-// 可选 RUN_ID 限定到单个 run；KIMI_ONLY=1 只处理 kimi-k3 旧判分的题
+// 可选 RUN_ID 限定到单个 run；SCENARIO_IDS 限定题集（高信号子集）；KIMI_ONLY=1 只处理 kimi-k3 旧判分的题
 const runId = process.env.RUN_ID;
 const kimiOnly = process.env.KIMI_ONLY === '1';
-const where = kimiOnly
-  ? "evidence LIKE '%kimi-k3%'"
-  : (onlyProblematic
-    ? "(evidence LIKE '%JUDGE_FAILED%' OR evidence LIKE '%JUDGE_RESCORED%')"
-    : "evidence LIKE '%JUDGE_FAILED%'");
-const sql = "SELECT * FROM ScenarioResult WHERE " + where + (runId ? " AND evalRunId = ?" : '') + " ORDER BY finishedAt ASC" + (limit ? ' LIMIT ' + limit : '');
+const scenarioIds = process.env.SCENARIO_IDS ? process.env.SCENARIO_IDS.split(/[\s,]+/).filter(Boolean) : null;
+// ENSEMBLE 模式：对 RUN_ID 内全部题重判（去掉 JUDGE_FAILED 过滤），需显式 RUN_ID
+if (ensemble >= 2 && !runId) { console.error('ENSEMBLE 模式需要 RUN_ID 限定范围'); process.exit(1); }
+let where = ensemble >= 2
+  ? '1=1'
+  : (kimiOnly
+    ? "evidence LIKE '%kimi-k3%'"
+    : (onlyProblematic
+      ? "(evidence LIKE '%JUDGE_FAILED%' OR evidence LIKE '%JUDGE_RESCORED%')"
+      : "evidence LIKE '%JUDGE_FAILED%'"));
+const params = [];
+if (runId) { where += ' AND evalRunId = ?'; params.push(runId); }
+if (scenarioIds && scenarioIds.length) {
+  const ph = scenarioIds.map(() => '?').join(',');
+  where += ` AND scenarioId IN (${ph})`;
+  params.push(...scenarioIds);
+}
+const sql = "SELECT * FROM ScenarioResult WHERE " + where + " ORDER BY finishedAt ASC" + (limit ? ' LIMIT ' + limit : '');
 const stmt = db.prepare(sql);
-const rows = runId ? stmt.all(runId) : stmt.all();
+const rows = stmt.all(...params);
 console.log('待重算 ' + rows.length + ' 条' + (dryRun ? '（DRY-RUN）' : '') + '，并发 ' + concurrency + '\n');
 
 let idx = 0, ok = 0, skip = 0, fail = 0, changed = 0;
+const ensembleRecords = [];  // P0：ENSEMBLE 模式下收集每题各次 judge 分数，供方差分析
 
 async function worker() {
   while (true) {
@@ -182,9 +193,13 @@ async function worker() {
         codeExtractionFailed,
         judgeHint: sd.judgeHint ?? undefined,
       };
-      const jr = await runTieredJudge(judgeInput, { localModel, escalationThreshold: 0.85 });
+      const jr = ensemble >= 2
+        ? await runJudgeEnsemble(judgeInput, { localModel, escalationThreshold: 0.85 }, ensemble)
+        : await runTieredJudge(judgeInput, { localModel, escalationThreshold: 0.85 });
       const localJudge = jr.localJudge, frontierJudge = jr.frontierJudge, finalJudge = jr.finalJudge, escalated = jr.escalated;
       const judgeScore = computeJudgeScore(finalJudge);
+      // P0：记录每次 judge 分数历史，供方差分析（runJudgeEnsemble 在 K>=2 时提供 runs）
+      const ensembleHistory = (ensemble >= 2 && jr.runs) ? jr.runs.map((x) => computeJudgeScore(x)) : null;
 
       // 5. coverage 让渡合并（与 orchestrator 一致）
       const detW = weights.deterministic * coverage;
@@ -193,6 +208,16 @@ async function worker() {
       const newHr = escalated || total < 30;
 
       const newEvidence = evidence.filter((e) => !e.includes('JUDGE_FAILED') && !e.includes('JUDGE_RESCORED')).concat('JUDGE_RESCORED: ' + finalJudge.judgeModel + ' verdict=' + finalJudge.verdict + ' conf=' + finalJudge.confidence.toFixed(2));
+
+      // P0：ENSEMBLE 历史落盘（evidence 备注 + 全局数组写 JSON）
+      if (ensembleHistory) {
+        ensembleRecords.push({
+          scenarioId: r.scenarioId, evalRunId: runId ?? r.evalRunId, dimension: r.dimension,
+          beforeTotal: r.totalScore, beforeJudge: r.judgeScore,
+          afterJudge: Math.round(judgeScore), ensemble: ensembleHistory,
+        });
+        newEvidence.push('JUDGE_ENSEMBLE(' + ensemble + '): [' + ensembleHistory.join(',') + '] -> ' + Math.round(judgeScore));
+      }
 
       const diff = total !== r.totalScore ? '⚠️' : '·';
       console.log('  [' + diff + '] ' + r.scenarioId.padEnd(14) + ' (' + r.dimension.padEnd(22) + ') ' + r.totalScore + ' → ' + total + ' (det=' + score + ', judge=' + judgeScore.toFixed(1) + ', cov=' + coverage.toFixed(2) + ')');
@@ -216,4 +241,11 @@ async function worker() {
 
 await Promise.all(Array.from({ length: Math.min(concurrency, rows.length) }, () => worker()));
 console.log('\n=== 完成！成功 ' + ok + '，跳过 ' + skip + '，失败 ' + fail + '，分数变化 ' + changed + ' 条 ===');
+
+if (ensemble >= 2 && ensembleRecords.length) {
+  const fs = await import('node:fs');
+  const outPath = path.resolve(import.meta.dirname, 'ensemble_history.json');
+  fs.writeFileSync(outPath, JSON.stringify(ensembleRecords, null, 2));
+  console.log('ENSEMBLE 历史已写入: ' + outPath + ' (' + ensembleRecords.length + ' 条)');
+}
 db.close();

@@ -504,11 +504,11 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
 
     // Judge 容错：调用失败不连坐丢弃生成结果，降级为纯确定性评分并标记人工复核
     let judgeFailedReason = '';
-    let judgeResult: { localJudge: JudgeResult; frontierJudge?: JudgeResult; finalJudge: JudgeResult; escalated: boolean; runs?: JudgeResult[] } | null = null;
+    let judgeResult: { localJudge: JudgeResult; frontierJudge?: JudgeResult; finalJudge: JudgeResult; escalated: boolean; runs?: JudgeResult[]; failures?: string[] } | null = null;
     try {
-      // P0：judgeEnsembleRuns>1 时对同一候选输出重复判分 K 次取均，降低评分器噪声
-      // P1：program 维度默认 3× 集成（降低 judge 噪声 √3）；其余维度沿用 evalConfig.judgeEnsembleRuns 或单跑
-      const ensembleRuns = evalConfig.judgeEnsembleRuns ?? (scenario.dimension === 'program' ? 3 : 1);
+      // 集成次数默认为 1。编程题曾隐式默认 3 次，导致慢速 Judge 被串行调用三遍，
+      // 单题耗时可达十余分钟；需要方差实验时才由创建评测者显式设为 >1。
+      const ensembleRuns = Math.max(1, evalConfig.judgeEnsembleRuns ?? 1);
       judgeResult = ensembleRuns > 1
         ? await runJudgeEnsemble(judgeInput, judgeOptions, ensembleRuns)
         : await runTieredJudge(judgeInput, judgeOptions);
@@ -550,6 +550,15 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       if (judgeResult?.runs && judgeResult.runs.length > 1) {
         judgeScoreHistoryArr = judgeResult.runs.map((r) => computeJudgeScore(r));
         ensembleRunCount = judgeResult.runs.length;
+      }
+
+      // 有至少一轮成功时保留可用分数，但明确标记集成不完整，避免报告把它
+      // 当作完整 K 轮方差样本。
+      if (judgeResult?.failures && judgeResult.failures.length > 0) {
+        result.humanReviewRequired = true;
+        result.evidence = [...(result.evidence || []),
+          `JUDGE_ENSEMBLE_PARTIAL: succeeded=${judgeResult.runs?.length ?? 1}, failed=${judgeResult.failures.length}; ${judgeResult.failures.join(' | ')}`,
+        ];
       }
 
       // 覆盖率感知合并：确定性评分器未测量轴（题集缺检查项）的权重让渡给 AI Judge 补判
@@ -665,7 +674,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     verdictHistory: [(structuredAnswer as Record<string, unknown>)?.verdict as string || 'unknown'],
     graderVersion: `${scenario.grader}@${scenario.graderVersion}`,
     evidence: result.evidence || [],
-    humanReviewRequired: escalated || (result.totalScore ?? 0) < 30,
+    humanReviewRequired: result.humanReviewRequired === true || escalated || (result.totalScore ?? 0) < 30,
     codeExtractionFailed,
     // 环境/测试基础设施故障标志必须透传：评分器置位后，编排层据此跳过 Judge，
     // 落库与聚合层再据此把该题排除出维度均值。此前本字段在构造返回对象时漏传，

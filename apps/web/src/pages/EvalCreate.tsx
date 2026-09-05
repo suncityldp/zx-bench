@@ -22,6 +22,7 @@ const DIMENSION_OPTIONS: Array<{ value: string; label: string }> = [
 interface ModelOption {
   id: string;
   name: string;
+  baseUrl: string;
   provider: string;
   modelType: string;
   reasoningModel?: boolean;
@@ -40,7 +41,20 @@ export default function EvalCreate() {
   useEffect(() => {
     fetch('/api/models')
       .then((r) => r.json())
-      .then((res) => { if (res.success) setModels(res.data); })
+      .then((res) => {
+        if (!res.success) return;
+        const loadedModels = res.data as ModelOption[];
+        setModels(loadedModels);
+
+        // 当前推荐 Judge：腾讯 MaaS 的 DeepSeek V4 Pro。用户仍可在下拉框覆盖。
+        // 显式带上 ID，避免后端 findFirst() 误选历史遗留 Judge 配置。
+        const preferredJudge = loadedModels.find((model) =>
+          model.modelType === 'judge'
+          && model.name === 'deepseek-v4-pro-0813'
+          && model.baseUrl.replace(/\/$/, '') === 'https://tokenhub.tencentmaas.com/v1',
+        );
+        if (preferredJudge) form.setFieldValue('judgeModelConfigId', preferredJudge.id);
+      })
       .catch(console.error);
   }, []);
 

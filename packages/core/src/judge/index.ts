@@ -21,6 +21,12 @@ export interface JudgeOptions {
   escalationThreshold: number;  // 默认 0.85
 }
 
+/**
+ * Judge 需要等待推理模型完成较长的思考，但不应无限占住整个评测 worker。
+ * 供应商可通过模型 defaultParams.timeout 覆盖；未设置时收敛到 5 分钟。
+ */
+const DEFAULT_JUDGE_TIMEOUT_MS = 300_000;
+
 /** 判断是否需要升级到顶级模型（GPT5.6 P2-5） */
 export function shouldEscalate(
   judgeResult: JudgeResult,
@@ -128,7 +134,16 @@ async function callJudgeModel(
 
   const response = await callModel({
     config: model,
-    params: { maxTokens: 8192, temperature: resolveJudgeTemperature(model) },
+    // Judge 使用 SSE。腾讯等推理端点在非流式模式下会在完整推理结束前一直
+    // 不返回响应头，恰好撞上 Node/Undici 的 300 秒 headers timeout，表现为
+    // `fetch failed`。流式响应先建立连接并持续输出，仍由下面的总超时和 caller
+    // 的空闲超时保护，避免静默挂起。
+    stream: true,
+    params: {
+      maxTokens: 8192,
+      temperature: resolveJudgeTemperature(model),
+      timeout: model.defaultParams?.timeout ?? DEFAULT_JUDGE_TIMEOUT_MS,
+    },
     systemPrompt,
     userPrompt,
   });
@@ -277,19 +292,32 @@ export async function runJudgeEnsemble(
   finalJudge: JudgeResult;
   escalated: boolean;
   runs: JudgeResult[];
+  /** K 轮集成中失败轮的诊断。只要至少一轮成功，保留成功评分。 */
+  failures: string[];
 }> {
   const n = Math.max(1, Math.floor(K));
   const runs: JudgeResult[] = [];
   let localJudge: JudgeResult | undefined;
   let frontierJudge: JudgeResult | undefined;
   let escalated = false;
+  const failures: string[] = [];
 
   for (let i = 0; i < n; i++) {
-    const r = await runTieredJudge(input, options);
-    runs.push(r.finalJudge);
-    if (!localJudge) localJudge = r.localJudge;
-    if (r.frontierJudge) frontierJudge = r.frontierJudge;
-    if (r.escalated) escalated = true;
+    try {
+      const r = await runTieredJudge(input, options);
+      runs.push(r.finalJudge);
+      if (!localJudge) localJudge = r.localJudge;
+      if (r.frontierJudge) frontierJudge = r.frontierJudge;
+      if (r.escalated) escalated = true;
+    } catch (err) {
+      // 不能让第 2/3 轮短暂网络故障抹掉已完成的评分；全部失败时仍向上抛，
+      // 由 orchestrator 走原有的确定性评分降级路径。
+      failures.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  if (runs.length === 0 || !localJudge) {
+    throw new Error(`All ${n} judge ensemble runs failed: ${failures.join(' | ') || 'unknown error'}`);
   }
 
   const avgNum = (sel: (j: JudgeResult) => number): number =>
@@ -315,5 +343,6 @@ export async function runJudgeEnsemble(
     finalJudge: averaged,
     escalated,
     runs,
+    failures,
   };
 }

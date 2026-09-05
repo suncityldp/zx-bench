@@ -70,7 +70,8 @@ const REGISTERED_EVALUATORS: Array<{ name: string; version: string; aliases?: st
 const IMPLEMENTED_CONSTRAINT_TYPES = new Set([
   'exact_count', 'paragraph_count', 'sentence_count', 'inclusion',
   'exclusion', 'english_free', 'length', 'format', 'exact_order',
-  'exact_word', 'conflict_resolution',
+  'exact_word', 'conflict_resolution', 'numeric_column', 'numeric_sequence',
+  'line_structure', 'json_valid',
 ]);
 
 /** codeRepair.ts 可沙箱执行的语言（python 需解释器可用） */

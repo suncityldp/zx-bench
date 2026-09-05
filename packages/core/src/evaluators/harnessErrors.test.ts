@@ -46,12 +46,6 @@ describe('detectEnvironmentError 命中环境故障（正例）', () => {
     expect(detectEnvironmentError(stderr).isEnv).toBe(true);
   });
 
-  it('dotnet workload 校验失败（无网络容器）', () => {
-    const r = detectEnvironmentError('An issue was encountered verifying workloads. This is likely a temporary issue...');
-    expect(r.isEnv).toBe(true);
-    expect(r.reason).toMatch(/dotnet workload/);
-  });
-
   it('docker daemon 不可达', () => {
     expect(detectEnvironmentError('Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?').isEnv).toBe(true);
   });
@@ -114,6 +108,15 @@ describe('detectEnvironmentError 不误报模型真实失败（负例）', () =>
 
   it('编译错误不命中', () => {
     expect(detectEnvironmentError('javac: file not found: Main.java').isEnv).toBe(false);
+  });
+
+  it('dotnet workload 提示本身不隔离：它可与真实 C# 编译失败同时出现', () => {
+    const output = [
+      'An issue was encountered verifying workloads. For more information, run "dotnet workload update".',
+      'Restored /workspace/src/App/App.csproj (in 10 ms).',
+      '/workspace/src/App/Program.cs(6,23): error CS8635: Unexpected character sequence',
+    ].join('\n');
+    expect(detectEnvironmentError(output).isEnv).toBe(false);
   });
 
   it('测试断言失败不命中', () => {

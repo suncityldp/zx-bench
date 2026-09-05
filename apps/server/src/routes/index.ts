@@ -4,9 +4,9 @@
 
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../index.js';
-import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy } from '@zxbench/types';
+import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult } from '@zxbench/types';
 import { generateId, generateRunId } from '@zxbench/utils';
-import { orchestrateEvaluation, generateManifest, callModel } from '@zxbench/core';
+import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, getJudgeWeights, mixDeterministicJudge, getEvaluator } from '@zxbench/core';
 import { generateReport, generateCompareReport } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
 import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, LONG_TASK_WEIGHT, validateScenario } from '@zxbench/core';
@@ -376,6 +376,355 @@ interface RunLiveState {
   dimMap: Map<string, { total: number; completed: number; passed: number; failed: number; redLine: number; scores: number[] }>;
 }
 const runLiveStates = new Map<string, RunLiveState>();
+
+// ===== Judge-only recovery for completed runs =====
+// A normal single-question retry calls the evaluated model again and replaces
+// the saved answer.  This recovery path deliberately does neither: it judges
+// the immutable saved answer, preserves deterministic fields, and only repairs
+// rows whose original Judge request is recorded as failed.
+type JudgeRescoreJobStatus = 'running' | 'completed' | 'failed';
+interface JudgeRescoreJob {
+  id: string;
+  status: JudgeRescoreJobStatus;
+  runIds: string[];
+  total: number;
+  completed: number;
+  rescored: number;
+  skipped: number;
+  failed: number;
+  judgeCalls: number;
+  rateLimitRetries: number;
+  plannedJudgeCalls: number;
+  concurrency: number;
+  judgeModelConfigIds: string[];
+  /** True only for explicitly requested JUDGE_FAILED fallback scoring. */
+  replacementJudgeMode: boolean;
+  timeoutMs: number;
+  errors: Array<{ runId: string; scenarioId: string; message: string }>;
+  createdAt: string;
+  finishedAt?: string;
+}
+const judgeRescoreJobs = new Map<string, JudgeRescoreJob>();
+
+interface JudgeRecoveryRateLimitState {
+  nextStartAt: number;
+  minStartIntervalMs: number;
+  rateLimitBaseDelayMs: number;
+}
+
+const JUDGE_RECOVERY_MAX_RATE_LIMIT_RETRIES = 3;
+
+function createJudgeRecoveryRateLimitState(baseUrl?: string | null): JudgeRecoveryRateLimitState {
+  let host = '';
+  try { host = new URL(baseUrl || '').hostname.toLowerCase(); } catch { /* default policy below */ }
+
+  // The SenseNova OpenAI-compatible endpoint has shown a much lower RPM cap in
+  // production recovery runs. Give it one spaced lane and a longer shared cooldown.
+  if (host === 'token.sensenova.cn' || host.endsWith('.sensenova.cn')) {
+    return { nextStartAt: 0, minStartIntervalMs: 30_000, rateLimitBaseDelayMs: 90_000 };
+  }
+  // Direct DeepSeek has a higher request ceiling but can exhaust TPM under bursts.
+  return { nextStartAt: 0, minStartIntervalMs: 10_000, rateLimitBaseDelayMs: 60_000 };
+}
+
+const waitForJudgeRecoverySlot = async (state: JudgeRecoveryRateLimitState): Promise<void> => {
+  const now = Date.now();
+  const startAt = Math.max(now, state.nextStartAt);
+  // Reserve this start synchronously, so workers sharing one endpoint cannot burst.
+  state.nextStartAt = startAt + state.minStartIntervalMs;
+  const waitMs = startAt - now;
+  if (waitMs > 0) await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+};
+
+function scheduleJudgeRecoveryCooldown(state: JudgeRecoveryRateLimitState, retryAttempt: number): number {
+  const cooldownMs = Math.min(state.rateLimitBaseDelayMs * (2 ** Math.max(0, retryAttempt - 1)), 300_000);
+  state.nextStartAt = Math.max(state.nextStartAt, Date.now() + cooldownMs);
+  return cooldownMs;
+}
+
+function isJudgeRateLimitError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:Model API error\s+429|\brpm exhausted\b|\btpm exhausted\b|\brate limit\b|\bquota[_ -]?exceeded\b)/i.test(message);
+}
+
+function parseStoredJson<T>(raw: string | null | undefined, fallback: T): T {
+  if (!raw) return fallback;
+  try { return JSON.parse(raw) as T; } catch { return fallback; }
+}
+
+function rehydrateStoredScenario(row: {
+  id: string; dimension: string; category: string; difficulty: string; language: string; locale: string;
+  status: string; tier: string; promptTemplate: string; sourceCode: string | null; functionName: string | null;
+  expectedVerdict: string | null; grader: string; graderVersion: string; scoring: string; hiddenTests: string | null;
+  requirements: string | null; tags: string | null; scenarioVersion: string; scenarioHash: string;
+  outputPolicy: string | null; answerFirst: boolean | null; maxAnswerTokens: number | null; maxReasoningTokens: number | null;
+}): Scenario {
+  return {
+    id: row.id,
+    dimension: row.dimension,
+    category: row.category,
+    difficulty: row.difficulty as 'easy' | 'medium' | 'hard' | 'adversarial',
+    language: row.language,
+    locale: row.locale,
+    status: row.status as 'valid' | 'invalid' | 'ambiguous' | 'needs_context' | 'retired',
+    tier: (row.tier || 'public_dev') as ScenarioTier,
+    promptTemplate: row.promptTemplate,
+    sourceCode: row.sourceCode ?? undefined,
+    functionName: row.functionName ?? undefined,
+    expectedVerdict: (row.expectedVerdict ?? undefined) as 'fix' | 'no_bug' | undefined,
+    grader: row.grader,
+    graderVersion: row.graderVersion,
+    scoring: parseStoredJson<ScoringConfig>(row.scoring, { type: 'weighted_axes' }),
+    hiddenTests: parseStoredJson(row.hiddenTests, undefined),
+    requirements: parseStoredJson(row.requirements, []),
+    tags: parseStoredJson(row.tags, undefined),
+    scenarioVersion: row.scenarioVersion,
+    scenarioHash: row.scenarioHash,
+    outputPolicy: (row.outputPolicy ?? undefined) as OutputPolicy | undefined,
+    answerFirst: row.answerFirst ?? undefined,
+    maxAnswerTokens: row.maxAnswerTokens ?? undefined,
+    maxReasoningTokens: row.maxReasoningTokens ?? undefined,
+  } as Scenario;
+}
+
+function candidateAnswerFromSavedOutput(output: string, formatParseSuccess: boolean) {
+  if (!formatParseSuccess) return {};
+  const fenced = output.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const raw = (fenced ? fenced[1] : output).trim();
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      verdict: parsed.verdict as 'fix' | 'no_bug' | undefined,
+      rootCause: typeof parsed.root_cause === 'string' ? parsed.root_cause : undefined,
+      patch: typeof parsed.patch === 'string' ? parsed.patch : undefined,
+      verification: Array.isArray(parsed.verification) ? parsed.verification.map(String) : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function rejudgeSavedResult(
+  resultId: string,
+  judgeTimeoutMs: number,
+  judgeModelConfigId?: string,
+): Promise<{ status: 'rescored' | 'skipped'; judgeCalls: number }> {
+  const saved = await prisma.scenarioResult.findUnique({
+    where: { id: resultId },
+    include: { evalRun: { include: { modelConfig: true } } },
+  });
+  if (!saved) throw new Error('saved result not found');
+  if (saved.environmentError) return { status: 'skipped', judgeCalls: 0 };
+  const savedEvidence = parseStoredJson<string[]>(saved.evidence, []);
+  if (!savedEvidence.some((item) => item.includes('JUDGE_FAILED'))) return { status: 'skipped', judgeCalls: 0 };
+  if (saved.deterministicScore == null) throw new Error('saved result has no deterministicScore');
+
+  const scenarioRow = await prisma.scenarioDefinition.findUnique({ where: { id: saved.scenarioId } });
+  if (!scenarioRow) throw new Error('scenario definition not found');
+  const scenario = rehydrateStoredScenario(scenarioRow);
+  const outputMetadata = parseStoredJson<OutputMetadata>(saved.outputMetadata, {} as OutputMetadata);
+  const evaluator = getEvaluator(scenario.grader, scenario.graderVersion);
+  if (!evaluator) throw new Error(`evaluator not registered: ${scenario.grader}@${scenario.graderVersion}`);
+
+  // This evaluation is read-only: its only purpose is to recover axisCoverage.
+  // Refuse to update if it does not reproduce the historical raw deterministic score.
+  const inputTokens = Number(outputMetadata.inputTokens || 0);
+  const outputTokens = Number(outputMetadata.outputTokens || 0);
+  const deterministic = await evaluator.evaluate(
+    scenario,
+    saved.modelOutput,
+    outputMetadata,
+    {
+      content: saved.modelOutput,
+      reasoningContent: saved.reasoningContent ?? undefined,
+      finishReason: outputMetadata.finishReason || 'unknown',
+      usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens },
+      latencyMs: Number(outputMetadata.inferenceMs || 0),
+    },
+  );
+  const deterministicScore = deterministic.totalScore ?? 0;
+  if (deterministicScore !== saved.deterministicScore) {
+    throw new Error(`deterministic score drift: saved=${saved.deterministicScore}, recomputed=${deterministicScore}`);
+  }
+
+  const axisScores = deterministic.axisScores || parseStoredJson<Record<string, number>>(saved.axisScores, {});
+  const recomputedAxisEvidence = deterministic.axisEvidence || {};
+  const savedAxisEvidence = parseStoredJson<Record<string, string>>(saved.axisEvidence, {});
+  const codeExtractionFailed = deterministic.codeExtractionFailed === true
+    || (axisScores.patch_extraction != null && axisScores.patch_extraction <= 40)
+    || (deterministic.evidence || []).some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
+  const hasVerifiedExecution = recomputedAxisEvidence.compilation === 'verified'
+    || recomputedAxisEvidence.test_pass === 'verified';
+  const formatBlindspot = codeExtractionFailed
+    || ((deterministicScore < 25 && saved.modelOutput.trim().length > 20) && !hasVerifiedExecution)
+    || (saved.dimension === 'structured_output' && !saved.formatParseSuccess);
+
+  const evalConfig = parseStoredJson<EvalRunConfig>(saved.evalRun.config, {} as EvalRunConfig);
+  if (!evalConfig.judgeEnabled || !evalConfig.judgeModelConfigId) {
+    throw new Error('run has no frozen Judge configuration');
+  }
+  const selectedJudgeConfigId = judgeModelConfigId || evalConfig.judgeModelConfigId;
+  const judgeRow = await prisma.modelConfig.findUnique({ where: { id: selectedJudgeConfigId } });
+  if (!judgeRow) throw new Error('frozen Judge configuration not found');
+  if (judgeRow.modelType !== 'judge') throw new Error('selected Judge configuration is not an AI Judge');
+
+  let weights = getJudgeWeights(saved.dimension, scenario.grader);
+  if (weights.judge <= 0) return { status: 'skipped', judgeCalls: 0 };
+  if (formatBlindspot) weights = { deterministic: 0.3, judge: 0.7 };
+  const judgeOptions = {
+    localModel: {
+      id: judgeRow.id,
+      name: judgeRow.name,
+      provider: judgeRow.provider,
+      baseUrl: judgeRow.baseUrl,
+      apiKey: judgeRow.apiKey ? decryptApiKey(judgeRow.apiKey) : undefined,
+      // Recovery timeout is in-memory only; the saved Judge configuration stays immutable.
+      defaultParams: { ...parseStoredJson<Record<string, unknown>>(judgeRow.defaultParams, {}), timeout: judgeTimeoutMs },
+      reasoningModel: judgeRow.reasoningModel,
+    },
+    escalationThreshold: evalConfig.escalationThreshold || 0.85,
+  };
+  const runtime = deterministic.runtimeEvaluation;
+  const judgeInput = {
+    questionId: scenario.id,
+    task: scenario.promptTemplate,
+    dimension: scenario.dimension,
+    sourceCode: scenario.sourceCode,
+    requirements: scenario.requirements || [],
+    expectedAnswer: scenario.requirements,
+    expectedVerdict: scenario.expectedVerdict,
+    candidateAnswer: candidateAnswerFromSavedOutput(saved.modelOutput, saved.formatParseSuccess),
+    rawModelOutput: saved.modelOutput,
+    runtimeTests: runtime ? {
+      compilePassed: runtime.compilePassed,
+      passed: runtime.hiddenTestsPassed ?? runtime.testsPassed,
+      failed: runtime.hiddenTestsFailed ?? runtime.testsFailed,
+      details: runtime.details || [],
+    } : undefined,
+    outputMetadata,
+    codeExtractionFailed,
+    formatBlindspot,
+  };
+  // 与正常评测一致：没有显式方差实验配置时只判一次，避免 program 维度
+  // 在慢速远端 Judge 上隐式串行 3 次。
+  const ensembleRuns = Math.max(1, evalConfig.judgeEnsembleRuns ?? 1);
+  const judgeResult = ensembleRuns > 1
+    ? await runJudgeEnsemble(judgeInput, judgeOptions, ensembleRuns)
+    : await runTieredJudge(judgeInput, judgeOptions);
+  const finalJudge = judgeResult.finalJudge;
+  const judgeScore = saved.dimension === 'hallucination_resistance' && finalJudge.factuality != null
+    ? Math.round(finalJudge.factuality * 100)
+    : computeJudgeScore(finalJudge);
+  const coverage = deterministic.axisCoverage ?? 1;
+  const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage);
+  const totalScore = Math.round(saved.deterministicScore * mixed.detW + judgeScore * mixed.judgeW);
+  const ensembleHistory = (judgeResult as { runs?: JudgeResult[] }).runs;
+  const history = ensembleHistory && ensembleHistory.length > 1
+    ? ensembleHistory.map((item) => saved.dimension === 'hallucination_resistance' && item.factuality != null
+      ? Math.round(item.factuality * 100)
+      : computeJudgeScore(item))
+    : [totalScore];
+  const evidence = savedEvidence.filter((item) => !item.includes('JUDGE_FAILED') && !item.includes('JUDGE_RESCORED'));
+  const judgeEndpoint = (() => {
+    try { return new URL(judgeRow.baseUrl).host; } catch { return 'unknown-endpoint'; }
+  })();
+  evidence.push(`JUDGE_RESCORED: ${finalJudge.judgeModel} config=${judgeRow.id} endpoint=${judgeEndpoint} verdict=${finalJudge.verdict} confidence=${finalJudge.confidence.toFixed(2)}`);
+  if (judgeResult.escalated) {
+    evidence.push(`DISPUTE: local=${judgeResult.localJudge.verdict} frontier=${judgeResult.frontierJudge?.verdict} final=${finalJudge.verdict}`);
+  }
+
+  await prisma.scenarioResult.update({
+    where: { id: saved.id },
+    data: {
+      totalScore,
+      deterministicScore: saved.deterministicScore,
+      judgeScore,
+      axisEvidence: JSON.stringify({
+        ...savedAxisEvidence,
+        ...(saved.dimension === 'hallucination_resistance' ? { factuality: 'llm' } : {}),
+        judge_bug_detection: 'llm',
+        judge_root_cause: 'llm',
+        judge_patch_correctness: 'llm',
+        judge_scope_discipline: 'llm',
+        judge_output_completeness: 'llm',
+      }),
+      localJudge: JSON.stringify(judgeResult.localJudge),
+      frontierJudge: judgeResult.frontierJudge ? JSON.stringify(judgeResult.frontierJudge) : null,
+      finalJudge: JSON.stringify(finalJudge),
+      escalated: judgeResult.escalated,
+      runCount: history.length,
+      scoreHistory: JSON.stringify(history),
+      humanReviewRequired: saved.humanReviewRequired || judgeResult.escalated || totalScore < 30,
+      evidence: JSON.stringify(evidence),
+    },
+  });
+  return { status: 'rescored', judgeCalls: ensembleRuns };
+}
+
+async function refreshRunSummaryAfterJudgeRescore(runId: string): Promise<void> {
+  const [run, results] = await Promise.all([
+    prisma.evalRun.findUnique({ where: { id: runId } }),
+    prisma.scenarioResult.findMany({ where: { evalRunId: runId } }),
+  ]);
+  if (!run) return;
+  const dimAverages = await computeDifficultyWeightedDimAvgs(
+    results.map((item) => ({
+      scenarioId: item.scenarioId,
+      dimension: item.dimension,
+      totalScore: item.totalScore,
+      environmentError: item.environmentError,
+    })),
+  );
+  const measured = results.filter((item) => !item.environmentError);
+  const oldSummary = parseStoredJson<Record<string, unknown>>(run.summary, {});
+  await prisma.evalRun.update({
+    where: { id: runId },
+    data: {
+      summary: JSON.stringify({
+        ...oldSummary,
+        completedScenarios: results.length,
+        averageScore: computeWeightedTotal(dimAverages),
+        passCount: measured.filter((item) => item.totalScore >= 60).length,
+        dimensionAverages: Object.fromEntries(dimAverages),
+        safetyRedLineCount: results.filter((item) => item.safetyLevel === 'red_line').length,
+      }),
+    },
+  });
+}
+
+async function verifyJudgeRecoveryConfigs(
+  rows: Array<{
+    id: string; name: string; provider: string; baseUrl: string; apiKey: string | null;
+    defaultParams: string; reasoningModel: boolean;
+  }>,
+  timeoutMs: number,
+): Promise<void> {
+  const probeTimeoutMs = Math.min(timeoutMs, 60_000);
+  const probes = await Promise.all(rows.map(async (row) => {
+    try {
+      const response = await callModel({
+        config: {
+          id: row.id,
+          name: row.name,
+          provider: row.provider,
+          baseUrl: row.baseUrl,
+          apiKey: row.apiKey ? decryptApiKey(row.apiKey) : undefined,
+          defaultParams: { ...parseStoredJson<Record<string, unknown>>(row.defaultParams, {}), timeout: probeTimeoutMs },
+          reasoningModel: row.reasoningModel,
+        },
+        params: { maxTokens: 16, temperature: row.reasoningModel ? 1 : 0, timeout: probeTimeoutMs },
+        userPrompt: 'Reply with exactly: OK',
+      });
+      return { id: row.id, ok: Boolean(response.content || response.reasoningContent) };
+    } catch {
+      return { id: row.id, ok: false };
+    }
+  }));
+  const failed = probes.filter((probe) => !probe.ok).map((probe) => probe.id);
+  if (failed.length > 0) {
+    throw new Error(`Judge connectivity preflight failed for configuration(s): ${failed.join(', ')}`);
+  }
+}
 
 /** 暂停指定评测 */
 function pauseEvaluation(runId: string): boolean {
@@ -1008,7 +1357,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     // 广播暂停状态（保留进度数据，不清空）
     const cached = getLatestProgress(id);
     if (cached) {
-      broadcastProgress({ ...cached, status: 'paused', activeDimensions: [], current: undefined });
+      broadcastProgress({
+        ...cached,
+        status: 'paused',
+        currentStage: 'paused' as EvalStage,
+        activeDimensions: [],
+        currentScenarioId: undefined,
+        currentDimension: undefined,
+        currentCategory: undefined,
+        currentDifficulty: undefined,
+        currentLanguage: undefined,
+        currentPromptPreview: undefined,
+        current: undefined,
+        currentScenarios: {},
+      });
     }
     // 如果没有缓存数据，不广播空数据（前端会通过 REST API 获取）
     return { success: true };
@@ -1234,16 +1596,33 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       // 没有分组，返回单个运行的进度
       const cached = getLatestProgress(id);
       if (cached && cached.total > 0) {
-        return { success: true, data: { runs: [{ id, progress: cached }], aggregated: cached } };
+        // 进度缓存会被在飞题目的完成广播覆盖；运行状态以数据库为准，
+        // 否则已暂停的 run 会在界面上重新显示为 running。
+        const persistedStatus = run.status as EvalProgress['status'];
+        const isPaused = persistedStatus === 'paused';
+        const progress: EvalProgress = {
+          ...cached,
+          status: persistedStatus,
+          currentStage: isPaused ? 'paused' as EvalStage : cached.currentStage,
+          activeDimensions: isPaused ? [] : cached.activeDimensions,
+          currentScenarioId: isPaused ? undefined : cached.currentScenarioId,
+          currentDimension: isPaused ? undefined : cached.currentDimension,
+          currentCategory: isPaused ? undefined : cached.currentCategory,
+          currentDifficulty: isPaused ? undefined : cached.currentDifficulty,
+          currentLanguage: isPaused ? undefined : cached.currentLanguage,
+          currentPromptPreview: isPaused ? undefined : cached.currentPromptPreview,
+          current: isPaused ? undefined : cached.current,
+          currentScenarios: isPaused ? {} : cached.currentScenarios,
+        };
+        return { success: true, data: { runs: [{ id, progress }], aggregated: progress } };
       }
-      return { success: false, error: 'No progress data' };
     }
 
-    // 获取同组所有运行
-    const groupRuns = await prisma.evalRun.findMany({
-      where: { groupName },
-      orderBy: { createdAt: 'asc' },
-    });
+    // 缓存会在服务重启后清空。单运行同样走下面的数据库重建分支，
+    // 否则暂停/历史评测刷新页面会错误显示为 “No progress data”。
+    const groupRuns = groupName
+      ? await prisma.evalRun.findMany({ where: { groupName }, orderBy: { createdAt: 'asc' } })
+      : [run];
 
     const runProgresses: Array<{ id: string; name: string; status: string; dimensionFilter?: string[]; progress?: EvalProgress }> = [];
     // 按维度去重：每个维度只取一个运行的数据（优先 completed > running > failed > paused）
@@ -1372,17 +1751,19 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const totalScenarios = mergedDimProgress.reduce((sum, dp) => sum + dp.total, 0);
     const totalCompleted = mergedDimProgress.reduce((sum, dp) => sum + dp.completed, 0);
 
+    const aggregatedStatus = (groupRuns.some((r: { status: string }) => r.status === 'running') ? 'running'
+      : groupRuns.some((r: { status: string }) => r.status === 'paused') ? 'paused'
+      : groupRuns.some((r: { status: string }) => r.status === 'failed') ? 'failed'
+      : groupRuns.every((r: { status: string }) => r.status === 'completed' || r.status === 'cancelled') ? 'completed'
+      : 'pending') as EvalProgress['status'];
+
     const aggregated: EvalProgress = {
       runId: id,
-      status: (groupRuns.some((r: { status: string }) => r.status === 'running') ? 'running'
-        : groupRuns.some((r: { status: string }) => r.status === 'paused') ? 'paused'
-        : groupRuns.some((r: { status: string }) => r.status === 'failed') ? 'failed'
-        : groupRuns.every((r: { status: string }) => r.status === 'completed' || r.status === 'cancelled') ? 'completed'
-        : 'pending') as EvalProgress['status'],
+      status: aggregatedStatus,
       total: totalScenarios > 0 ? totalScenarios : 1,
       completed: totalCompleted,
       percentage: totalScenarios > 0 ? Math.round((totalCompleted / totalScenarios) * 100) : 0,
-      currentStage: 'running' as EvalStage,
+      currentStage: aggregatedStatus === 'paused' ? 'paused' as EvalStage : 'running' as EvalStage,
       dimensionProgress: mergedDimProgress,
       recentResults: allRecent.sort((a, b) => b.totalScore - a.totalScore).slice(0, 50),
     };
@@ -2910,6 +3291,208 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     return { success: true, scope, data: leaderboard };
   });
 
+  /**
+   * 仅 AI Judge 补评（异步批量任务）。
+   *
+   * 与下面的「单题重试」不同：不会调用被测模型、不会删除结果，也不会重新跑一套
+   * 不确定的题目；只处理保存有 JUDGE_FAILED 审计标记且非 environmentError 的行。
+   */
+  app.post('/api/judge-rescore', async (request, reply) => {
+    const body = (request.body || {}) as {
+      runIds?: unknown; judgeTimeoutMs?: unknown; concurrency?: unknown; judgeModelConfigIds?: unknown;
+      allowReplacementJudgeModel?: unknown;
+    };
+    const runIds = Array.isArray(body.runIds)
+      ? [...new Set(body.runIds.filter((item): item is string => typeof item === 'string' && item.length > 0))]
+      : [];
+    if (runIds.length === 0) {
+      return reply.status(400).send({ success: false, error: 'runIds must contain at least one run' });
+    }
+    if ([...judgeRescoreJobs.values()].some((job) => job.status === 'running')) {
+      return reply.status(409).send({ success: false, error: 'a Judge recovery job is already running' });
+    }
+    const timeoutCandidate = typeof body.judgeTimeoutMs === 'number' ? body.judgeTimeoutMs : 120_000;
+    const timeoutMs = Math.max(30_000, Math.min(1_200_000, Math.round(timeoutCandidate)));
+    // Recovery concurrency remains capped at four. The caller controls the
+    // endpoint split through ordered Judge configuration IDs.
+    const concurrencyCandidate = typeof body.concurrency === 'number' ? body.concurrency : 2;
+    const concurrency = Math.max(1, Math.min(4, Math.floor(concurrencyCandidate)));
+    const requestedJudgeConfigIds = Array.isArray(body.judgeModelConfigIds)
+      ? [...new Set(body.judgeModelConfigIds.filter((item): item is string => typeof item === 'string' && item.length > 0))]
+      : [];
+    // Default to a frozen-Judge-only recovery. A different Judge can be used
+    // only when the caller explicitly opts in to fallback scoring of saved
+    // JUDGE_FAILED answers; rejudgeSavedResult records its config in evidence.
+    const replacementJudgeMode = body.allowReplacementJudgeModel === true;
+    let judgeModelConfigIds: string[] = [];
+    const rateLimitStateByJudgeConfigId = new Map<string, JudgeRecoveryRateLimitState>();
+    if (requestedJudgeConfigIds.length > 0) {
+      const runs = await prisma.evalRun.findMany({
+        where: { id: { in: runIds } },
+        select: { id: true, config: true },
+      });
+      if (runs.length !== runIds.length) {
+        return reply.status(404).send({ success: false, error: 'one or more runs were not found' });
+      }
+      const frozenIds = [...new Set(runs.map((run) => parseStoredJson<EvalRunConfig>(run.config, {} as EvalRunConfig).judgeModelConfigId).filter(Boolean))] as string[];
+      if (frozenIds.length !== 1) {
+        return reply.status(400).send({ success: false, error: 'selected runs do not share one frozen Judge model' });
+      }
+      const allJudgeRows = await prisma.modelConfig.findMany({
+        where: { id: { in: [...frozenIds, ...requestedJudgeConfigIds] } },
+        select: { id: true, name: true, provider: true, baseUrl: true, apiKey: true, defaultParams: true, reasoningModel: true, modelType: true },
+      });
+      const frozenJudge = allJudgeRows.find((row) => row.id === frozenIds[0]);
+      if (!frozenJudge || frozenJudge.modelType !== 'judge') {
+        return reply.status(400).send({ success: false, error: 'frozen Judge configuration is unavailable' });
+      }
+      const selectedRows = requestedJudgeConfigIds.map((id) => allJudgeRows.find((row) => row.id === id));
+      if (selectedRows.some((row) => !row || row.modelType !== 'judge'
+        || (!replacementJudgeMode && row.name !== frozenJudge.name))) {
+        return reply.status(400).send({
+          success: false,
+          error: replacementJudgeMode
+            ? 'all replacement Judge configurations must be valid AI Judge models'
+            : 'all replacement Judge configurations must be the same Judge model as the frozen run configuration',
+        });
+      }
+      try {
+        await verifyJudgeRecoveryConfigs(selectedRows as NonNullable<typeof selectedRows[number]>[], timeoutMs);
+      } catch (error) {
+        return reply.status(503).send({ success: false, error: error instanceof Error ? error.message : String(error) });
+      }
+      judgeModelConfigIds = requestedJudgeConfigIds;
+      for (const row of selectedRows) {
+        if (row) rateLimitStateByJudgeConfigId.set(row.id, createJudgeRecoveryRateLimitState(row.baseUrl));
+      }
+    }
+    const targets = await prisma.scenarioResult.findMany({
+      where: {
+        evalRunId: { in: runIds },
+        environmentError: false,
+        evidence: { contains: 'JUDGE_FAILED' },
+      },
+      select: { id: true, evalRunId: true, scenarioId: true, dimension: true, finishedAt: true },
+      orderBy: [{ dimension: 'asc' }, { finishedAt: 'asc' }],
+    });
+    // Start single-call dimensions first so a provider problem is detected before
+    // entering the more expensive 3-pass program Judge ensemble.
+    targets.sort((a, b) => Number(a.dimension === 'program') - Number(b.dimension === 'program')
+      || a.finishedAt.getTime() - b.finishedAt.getTime());
+    const programRows = targets.filter((item) => item.dimension === 'program').length;
+    const job: JudgeRescoreJob = {
+      id: generateId(),
+      status: 'running',
+      runIds,
+      total: targets.length,
+      completed: 0,
+      rescored: 0,
+      skipped: 0,
+      failed: 0,
+      judgeCalls: 0,
+      rateLimitRetries: 0,
+      plannedJudgeCalls: targets.length + programRows * 2,
+      concurrency,
+      judgeModelConfigIds,
+      replacementJudgeMode,
+      timeoutMs,
+      errors: [],
+      createdAt: new Date().toISOString(),
+    };
+    judgeRescoreJobs.set(job.id, job);
+
+    void (async () => {
+      try {
+        let cursor = 0;
+        const rateLimitStateFor = (judgeConfigId?: string): JudgeRecoveryRateLimitState => {
+          const key = judgeConfigId || '__frozen_judge__';
+          let state = rateLimitStateByJudgeConfigId.get(key);
+          if (!state) {
+            state = createJudgeRecoveryRateLimitState();
+            rateLimitStateByJudgeConfigId.set(key, state);
+          }
+          return state;
+        };
+        const worker = async (workerIndex: number) => {
+          const judgeConfigId = judgeModelConfigIds.length > 0
+            ? judgeModelConfigIds[workerIndex % judgeModelConfigIds.length]
+            : undefined;
+          const rateLimitState = rateLimitStateFor(judgeConfigId);
+          while (true) {
+            const target = targets[cursor++];
+            if (!target) return;
+            try {
+              let rateLimitAttempt = 0;
+              let outcome: Awaited<ReturnType<typeof rejudgeSavedResult>>;
+              while (true) {
+                await waitForJudgeRecoverySlot(rateLimitState);
+                try {
+                  outcome = await rejudgeSavedResult(target.id, timeoutMs, judgeConfigId);
+                  break;
+                } catch (error) {
+                  if (!isJudgeRateLimitError(error) || rateLimitAttempt >= JUDGE_RECOVERY_MAX_RATE_LIMIT_RETRIES) {
+                    throw error;
+                  }
+                  rateLimitAttempt++;
+                  job.rateLimitRetries++;
+                  const cooldownMs = scheduleJudgeRecoveryCooldown(rateLimitState, rateLimitAttempt);
+                  console.warn(`[judge-rescore:${job.id}] ${judgeConfigId || 'frozen-judge'} rate-limited; retrying ${target.scenarioId} after ${cooldownMs}ms (attempt ${rateLimitAttempt}/${JUDGE_RECOVERY_MAX_RATE_LIMIT_RETRIES})`);
+                }
+              }
+              job.judgeCalls += outcome.judgeCalls;
+              if (outcome.status === 'rescored') job.rescored++;
+              else job.skipped++;
+            } catch (error) {
+              job.failed++;
+              job.errors.push({
+                runId: target.evalRunId,
+                scenarioId: target.scenarioId,
+                message: (error instanceof Error ? error.message : String(error)).slice(0, 500),
+              });
+            } finally {
+              job.completed++;
+            }
+          }
+        };
+        await Promise.all(Array.from(
+          { length: Math.min(concurrency, targets.length) },
+          (_, workerIndex) => worker(workerIndex),
+        ));
+        await Promise.all(runIds.map((runId) => refreshRunSummaryAfterJudgeRescore(runId)));
+        job.status = 'completed';
+      } catch (error) {
+        job.status = 'failed';
+        job.errors.push({
+          runId: '',
+          scenarioId: '',
+          message: (error instanceof Error ? error.message : String(error)).slice(0, 500),
+        });
+      } finally {
+        job.finishedAt = new Date().toISOString();
+      }
+    })();
+
+    return {
+      success: true,
+      data: {
+        jobId: job.id,
+        total: job.total,
+        plannedJudgeCalls: job.plannedJudgeCalls,
+        concurrency: job.concurrency,
+        judgeModelConfigIds: job.judgeModelConfigIds,
+        replacementJudgeMode: job.replacementJudgeMode,
+        timeoutMs: job.timeoutMs,
+      },
+    };
+  });
+
+  app.get('/api/judge-rescore/:jobId', async (request, reply) => {
+    const { jobId } = request.params as { jobId: string };
+    const job = judgeRescoreJobs.get(jobId);
+    if (!job) return reply.status(404).send({ success: false, error: 'Judge recovery job not found' });
+    return { success: true, data: job };
+  });
+
   /** 单题重试 — 对指定 scenarioId 重新执行评测 */
   app.post('/api/runs/:id/results/:scenarioId/retry', async (request, reply) => {
     const { id: runId, scenarioId } = request.params as { id: string; scenarioId: string };
@@ -3364,6 +3947,13 @@ async function runEvaluation(
   /** 构建完整进度对象并广播 */
   function broadcastFullProgress() {
     const completedCount = getCompletedCount();
+    const controllerState = evalControllers.get(runId)?.state;
+    const status: EvalProgress['status'] = controllerState === 'paused'
+      ? 'paused'
+      : controllerState === 'cancelled'
+        ? 'cancelled'
+        : 'running';
+    const isPaused = status === 'paused';
     const elapsed = Date.now() - startTime;
     const avgPerQuestion = recentResults.length > 0 ? elapsed / recentResults.length : 0;
     const remaining = total - completedCount;
@@ -3389,7 +3979,7 @@ async function runEvaluation(
 
     const progress: EvalProgress = {
       runId,
-      status: 'running',
+      status,
       total,
       completed: completedCount,
       percentage: total > 0 ? Math.round((completedCount / total) * 100) : 0,
@@ -3398,10 +3988,10 @@ async function runEvaluation(
         ? Math.round(perQuestionSpeeds.sort((a, b) => a - b)[Math.floor(perQuestionSpeeds.length / 2)])
         : undefined,
       totalTokens: totalInputTokens + totalOutputTokens,
-      currentStage: 'running' as EvalStage,
+      currentStage: isPaused ? 'paused' as EvalStage : 'running' as EvalStage,
       dimensionProgress,
-      activeDimensions: [...activeDimensions],
-      currentScenarios: Object.fromEntries(currentScenariosMap),
+      activeDimensions: isPaused ? [] : [...activeDimensions],
+      currentScenarios: isPaused ? {} : Object.fromEntries(currentScenariosMap),
       recentResults: [...recentResults].reverse().slice(0, 50),
       // 并发模式下不再尝试推断"当前题目"（由单题广播设置）
     };
@@ -3708,9 +4298,6 @@ async function runEvaluation(
       });
     }
 
-    // 广播：本题完成
-    broadcastFullProgress();
-
     // 标记维度不活跃（如果没有更多题目在处理）
     const newCnt = (dimensionActiveCount.get(dimension) || 1) - 1;
     dimensionActiveCount.set(dimension, newCnt);
@@ -3719,6 +4306,10 @@ async function runEvaluation(
     }
     // 始终清除当前题目的跟踪信息
     currentScenariosMap.delete(trackingKey);
+
+    // 广播：本题完成。必须在清除当前题和活跃维度之后广播，否则暂停时
+    // 缓存会重新带回 running 状态和一条已经落库的“当前题”。
+    broadcastFullProgress();
   }
 
   // 全局并发 worker 池：统一使用原子计数器从共享队列取题

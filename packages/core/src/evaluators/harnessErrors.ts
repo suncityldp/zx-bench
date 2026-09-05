@@ -23,8 +23,10 @@ const ENV_ERROR_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   // Java/容器：non-root(65534) 用户写 HOME=/root 失败（java.util.prefs / mvn 包装脚本）
   // 注意：容器 locale 可能输出弯引号（‘/root’ U+2018/U+2019），必须兼容
   { re: /cannot create directory\s*['"`\u2018\u2019]?\/root['"`\u2018\u2019]?\s*:\s*permission denied/i, reason: 'container HOME=/root unwritable for non-root user' },
-  // dotnet SDK 在无网络容器校验 workload manifest 失败 → dotnet 命令中断
-  { re: /an issue was encountered verifying workloads/i, reason: 'dotnet workload verification failed (network disabled)' },
+  // 不要把 dotnet 的 "An issue was encountered verifying workloads" 当作环境故障。
+  // 该文本会在 `dotnet restore/test` 实际成功后作为普通提示输出；此前它掩盖了
+  // C# 编译错误，并把模型失败错误隔离。真正的 NuGet/网络基础设施问题由下方的
+  // PACKAGE_REGISTRY_* 组合信号识别；原始工作区 preflight 失败则由调用方明确隔离。
   // docker 守护进程不可达 / 错误响应
   { re: /cannot connect to the docker daemon/i, reason: 'docker daemon unreachable' },
   { re: /error response from daemon/i, reason: 'docker daemon error' },

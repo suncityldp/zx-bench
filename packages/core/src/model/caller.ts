@@ -452,6 +452,21 @@ function wrapTimeoutError(err: unknown, timeoutMs: number): never {
     if (isTimeout) {
       throw new Error(`Model call timed out after ${timeoutMs}ms: ${err.message}`);
     }
+
+    // Node fetch 将 Undici 的具体网络错误包成笼统的 `TypeError: fetch failed`。
+    // 若不保留 cause.code（例如 UND_ERR_HEADERS_TIMEOUT），上层只能把所有
+    // 网络问题记录成 fetch failed，无法区分供应商超时、DNS、TLS 或连接中断。
+    const cause = err.cause;
+    if (cause instanceof Error) {
+      const code = (cause as Error & { code?: unknown }).code;
+      const detail = [
+        code ? String(code) : '',
+        cause.message && cause.message !== err.message ? cause.message : '',
+      ].filter(Boolean).join(': ');
+      if (detail) {
+        throw new Error(`Model request failed: ${err.message} (${detail})`);
+      }
+    }
   }
   throw err;
 }

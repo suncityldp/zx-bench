@@ -42,6 +42,8 @@ nul
 # ===== 生成的分析产物 =====
 config-gaps.json
 scenario-health.json
+# 本地模型对比报告、逐题结果、媒体资源与 Remotion 渲染工程不入库
+reports/zxbench-final-comparison-2026-09-04/
 
 # ===== Agent / 本地工具 =====
 .workbuddy/
