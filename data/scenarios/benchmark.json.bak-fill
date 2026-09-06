@@ -22691,7 +22691,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -22736,7 +22736,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -22780,7 +22780,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -22826,7 +22826,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -22873,7 +22873,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -22918,7 +22918,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -22964,7 +22964,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23010,7 +23010,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23054,7 +23054,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23099,7 +23099,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23145,7 +23145,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23190,7 +23190,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23236,7 +23236,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23281,7 +23281,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23326,7 +23326,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23370,7 +23370,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23414,7 +23414,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23458,7 +23458,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23502,7 +23502,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23547,7 +23547,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23591,7 +23591,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23635,7 +23635,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23680,7 +23680,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23725,7 +23725,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23769,7 +23769,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23814,7 +23814,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23858,7 +23858,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23902,7 +23902,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23948,7 +23948,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -23993,7 +23993,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24037,7 +24037,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24082,7 +24082,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24127,7 +24127,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24172,7 +24172,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24217,7 +24217,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24263,7 +24263,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24308,7 +24308,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24354,7 +24354,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24399,7 +24399,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24444,7 +24444,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24490,7 +24490,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24539,7 +24539,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24586,7 +24586,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24629,7 +24629,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24677,7 +24677,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24723,7 +24723,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24772,7 +24772,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24821,7 +24821,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24870,7 +24870,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },
@@ -24918,7 +24918,7 @@
   "functionName": null,
   "expectedVerdict": null,
   "grader": "canary_authority",
-  "graderVersion": "canary_authority_v3",
+  "graderVersion": "canary_authority_v4",
   "scoring": {
    "type": "canary_authority"
   },

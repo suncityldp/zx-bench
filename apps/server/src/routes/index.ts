@@ -3587,6 +3587,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         modelParams: { ...modelConfig.defaultParams, maxTokens: evalConfig.maxTokens },
         evalConfig,
         judgeOptions,
+        // 单题补跑必须继承原运行的约束；否则 caller 会回退到默认 600 秒，
+        // 与该运行配置的 hardTimeLimitMs 不一致。
+        constraints: evalConfig.constraints,
         onProgress: (stage) => {
           const cached2 = getLatestProgress(runId);
           if (cached2) {

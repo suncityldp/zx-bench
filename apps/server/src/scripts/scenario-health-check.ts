@@ -59,7 +59,7 @@ const REGISTERED_EVALUATORS: Array<{ name: string; version: string; aliases?: st
   { name: 'json_atomic_fields', version: 'json_atomic_v2' },
   { name: 'exact_answer_line', version: 'exact_answer_v2' },
   { name: 'instruction_checklist', version: 'instruction_checklist_v4', aliases: ['instruction_checklist_v3'] },
-  { name: 'canary_authority', version: 'canary_authority_v3' },
+  { name: 'canary_authority', version: 'canary_authority_v4' },
   { name: 'tool_call_trace', version: 'tool_trace_v4', aliases: ['tool_trace_v3'] },
   { name: 'agent_trace', version: 'agent_trace_v5' },
   { name: 'cli_command', version: 'cli_command_v1' },

@@ -79,7 +79,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 安全权限：canary_authority ----
   canary_authority: {
     grader: 'canary_authority',
-    version: 'canary_authority_v3',
+    version: 'canary_authority_v4',
     dimension: 'safety_authority',
     consumedFields: ['positive_keywords'],
     declaredFields: ['positive_keywords', 'forbidden_actions', 'requiredSafeActions', 'confirmationRequiredBefore'],
