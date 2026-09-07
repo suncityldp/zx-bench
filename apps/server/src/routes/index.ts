@@ -7,7 +7,7 @@ import { prisma } from '../index.js';
 import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult } from '@zxbench/types';
 import { generateId, generateRunId } from '@zxbench/utils';
 import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, getJudgeWeights, mixDeterministicJudge, getEvaluator } from '@zxbench/core';
-import { generateReport, generateCompareReport } from '@zxbench/core';
+import { generateReport, generateCompareReport, analyzeRunQuality } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
 import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, LONG_TASK_WEIGHT, validateScenario } from '@zxbench/core';
 import { broadcastProgress, getLatestProgress } from '../ws/index.js';
@@ -687,6 +687,7 @@ async function refreshRunSummaryAfterJudgeRescore(runId: string): Promise<void> 
         passCount: measured.filter((item) => item.totalScore >= 60).length,
         dimensionAverages: Object.fromEntries(dimAverages),
         safetyRedLineCount: results.filter((item) => item.safetyLevel === 'red_line').length,
+        qualityReport: analyzeRunQuality(results, Number(oldSummary.totalScenarios) || results.length),
       }),
     },
   });
@@ -1125,6 +1126,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         config: JSON.parse(run.config),
         summary: run.summary ? JSON.parse(run.summary) : null,
         results: deserialized,
+        qualityReport: analyzeRunQuality(results, results.length),
         evalStartedAt,
         evalFinishedAt,
       },
@@ -2737,7 +2739,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           deterministicScore: true, judgeScore: true,
           safetyLevel: true, axisScores: true,
           formatParseSuccess: true, escalated: true,
-          evidence: true, outputMetadata: true,
+          evidence: true, outputMetadata: true, modelOutput: true,
           startedAt: true, finishedAt: true,
           environmentError: true,
         },
@@ -2855,14 +2857,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           };
         });
 
-      // 从 summary 中提取 qualityReport
-      let qualityReport;
-      try {
-        if (run.summary) {
-          const summary = JSON.parse(run.summary) as Record<string,unknown>;
-          qualityReport = summary.qualityReport;
-        }
-      } catch { /* ignore */ }
+      // Diagnose the actual selected rows, including historical runs and Judge-only rescores.
+      const qualityReport = analyzeRunQuality(results, benchmarkTotal);
 
       const reportData: ReportUserPromptData = {
         modelName: run.modelConfig.name,
@@ -3741,7 +3737,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const groupPassRate = scores.length > 0 ? Math.round((groupPass / scores.length) * 100) : 0;
 
       // 持久化：将重算后的加权均分写回 EvalRun.summary，确保刷新页面后显示正确
-      // 注：先读取旧 summary 保留其他字段（qualityReport 等），仅更新 score 和 dimAvgs
+      // 保留运行配置摘要，同时刷新成绩和质量诊断，避免补跑后残留旧故障提示。
       // Map 不能直接 JSON.stringify，需用 Object.fromEntries 转换
       let oldSummary: Record<string, unknown> = {};
       try {
@@ -3749,7 +3745,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       } catch { /* ignore */ }
       await prisma.evalRun.update({
         where: { id: runId },
-        data: { summary: JSON.stringify({ ...oldSummary, averageScore: groupAvg, dimensionAverages: Object.fromEntries(retryDimAvgs) }) },
+        data: { summary: JSON.stringify({ ...oldSummary, averageScore: groupAvg, dimensionAverages: Object.fromEntries(retryDimAvgs),
+          completedScenarios: allGroupResults.length, passCount: groupPass,
+          qualityReport: analyzeRunQuality(allGroupResults, Number(oldSummary.totalScenarios) || allGroupResults.length),
+        }) },
       });
 
       return {
@@ -4367,7 +4366,7 @@ async function runEvaluation(
   const avgScore = computeWeightedTotal(summaryDimAvgs);
 
   // ===== 运行质量自动诊断 =====
-  const qualityReport = await buildRunQualityReport(runId, results as Array<{ totalScore: number; judgeScore: number | null; modelOutput: string | null; outputMetadata: string | null; deterministicScore: number | null }>, total);
+  const qualityReport = analyzeRunQuality(results, total);
 
   const finishedAt = Date.now();
   const durationMs = finishedAt - startTime;
@@ -4444,79 +4443,6 @@ async function runEvaluation(
   if (finCtrl?.completionResolve) {
     finCtrl.completionResolve();
   }
-}
-
-/** 运行质量自动诊断 — 在 run 完成时调用，检测常见异常 */
-interface QualityReport {
-  grade: 'good' | 'warning' | 'critical';
-  issues: string[];
-  emptyOutputCount: number;
-  judgeZeroCount: number;
-  lengthFinishCount: number;
-  zeroDeterministCount: number;
-}
-
-async function buildRunQualityReport(
-  runId: string,
-  results: Array<{ totalScore: number; judgeScore: number | null; modelOutput: string | null; outputMetadata: string | null; deterministicScore: number | null }>,
-  totalScenarios: number,
-): Promise<QualityReport> {
-  const issues: string[] = [];
-  const threshold = Math.max(5, Math.floor(totalScenarios * 0.05)); // 至少 5 道，或 5%
-
-  // 检查空输出
-  const emptyOutputs = results.filter((r) => !r.modelOutput || r.modelOutput.trim().length === 0);
-  if (emptyOutputs.length > 0) {
-    issues.push(`空输出: ${emptyOutputs.length}/${totalScenarios} 题 (${(emptyOutputs.length / totalScenarios * 100).toFixed(1)}%)`);
-  }
-
-  // 检查 Judge 得 0 分
-  const judgeZero = results.filter((r) => r.judgeScore === 0);
-  const judgeScored = results.filter((r) => r.judgeScore !== null);
-  if (judgeScored.length > 0 && judgeZero.length > 0) {
-    const pct = (judgeZero.length / judgeScored.length * 100).toFixed(1);
-    issues.push(`Judge 0 分: ${judgeZero.length}/${judgeScored.length} 题 (${pct}%)`);
-  }
-
-  // 检查 finish_reason=length (输出截断)
-  const lengthFinishScenarios: string[] = [];
-  for (const r of results) {
-    if (!r.outputMetadata) continue;
-    try {
-      const meta = JSON.parse(r.outputMetadata);
-      if (meta?.finishReason === 'length') {
-        lengthFinishScenarios.push(meta?.scenarioId || '?');
-      }
-    } catch { /* ignore */ }
-  }
-  if (lengthFinishScenarios.length > 0) {
-    issues.push(`输出截断(finish_reason=length): ${lengthFinishScenarios.length} 题 — ${lengthFinishScenarios.slice(0, 10).join(', ')}${lengthFinishScenarios.length > 10 ? '...' : ''}`);
-  }
-
-  // 检查确定性评分为 0（可能评分器未注册）
-  const zeroDet = results.filter((r) => r.deterministicScore === 0 && r.judgeScore === null);
-  if (zeroDet.length > 0) {
-    issues.push(`确定性评分为 0(Judge 未参与): ${zeroDet.length} 题`);
-  }
-
-  // 判定等级
-  let grade: QualityReport['grade'] = 'good';
-  if (emptyOutputs.length > threshold || lengthFinishScenarios.length > threshold) {
-    grade = 'critical';
-  } else if (emptyOutputs.length > 0 || judgeZero.length > threshold || lengthFinishScenarios.length > 0) {
-    grade = 'warning';
-  }
-
-  console.log(`[QualityReport] Run ${runId.slice(-12)}: grade=${grade}, issues=${issues.length}, empty=${emptyOutputs.length}, judge0=${judgeZero.length}, length=${lengthFinishScenarios.length}`);
-
-  return {
-    grade,
-    issues,
-    emptyOutputCount: emptyOutputs.length,
-    judgeZeroCount: judgeZero.length,
-    lengthFinishCount: lengthFinishScenarios.length,
-    zeroDeterministCount: zeroDet.length,
-  };
 }
 
 /** 获取各维度进度的快照 */

@@ -356,6 +356,8 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     modelResponse.usage.outputTokens,
   );
   outputMetadata.inputTokens = modelResponse.usage.inputTokens;
+  outputMetadata.reasoningTokens = modelResponse.usage.reasoningTokens;
+  outputMetadata.tokenUsageSource = modelResponse.usage.source;
   // 存储 LLM 纯推理耗时（caller.ts 中 latencyMs = fetch 发起到响应解析完成）
   outputMetadata.inferenceMs = modelResponse.latencyMs;
   // 流式调用时的精确计时数据

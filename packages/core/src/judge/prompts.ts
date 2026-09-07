@@ -238,12 +238,9 @@ export function buildJudgeUserPrompt(input: JudgeInput): string {
     sections.push(`- Patch:\n\`\`\`javascript\n${input.candidateAnswer.patch}\n\`\`\``);
   }
 
-  // 所有维度：传入原始模型输出（截断到 4000 字符防止 token 溢出）
+  // Preserve the complete answer: cropping multi-file patches silently biases completeness scores.
   if (input.rawModelOutput) {
-    const maxLen = 4000;
-    const output = input.rawModelOutput.length > maxLen
-      ? input.rawModelOutput.slice(0, maxLen) + '\n... [truncated for judge]'
-      : input.rawModelOutput;
+    const output = input.rawModelOutput;
     sections.push(`### Raw Model Output:\n\`\`\`\n${output}\n\`\`\``);
   }
 

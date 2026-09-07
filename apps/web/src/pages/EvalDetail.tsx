@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Table, Tag, Descriptions, Collapse, Progress, Button, Space, Tooltip, message, Input, Select, Segmented } from 'antd';
+import { Table, Tag, Descriptions, Collapse, Progress, Button, Space, Tooltip, message, Input, Select, Segmented, Alert } from 'antd';
 import { DownloadOutlined, FileSearchOutlined, ReloadOutlined, SearchOutlined, RobotOutlined } from '@ant-design/icons';
 import type { ScenarioResult } from '@zxbench/types';
 import { useLanguage, dimLabel } from '../i18n';
@@ -16,6 +16,7 @@ interface GroupResultsData {
   config: Record<string, unknown>;
   summary: { averageScore: number; dimensionAverages: Record<string, number> } | null;
   results: ScenarioResult[];
+  qualityReport?: { grade: 'good' | 'warning' | 'critical'; issues: string[]; judgeFailedCount: number };
   evalStartedAt: string | null;
   evalFinishedAt: string | null;
 }
@@ -235,6 +236,18 @@ export default function EvalDetail() {
           <Descriptions.Item label={lang === 'en' ? 'Runs Per Question' : '每题运行次数'}>{String(data.config?.runsPerQuestion ?? 1)}</Descriptions.Item>
         </Descriptions>
       </div>
+
+      {data.qualityReport && data.qualityReport.grade !== 'good' && (
+        <Alert
+          showIcon
+          type={data.qualityReport.grade === 'critical' ? 'error' : 'warning'}
+          style={{ marginBottom: 16 }}
+          message={data.qualityReport.judgeFailedCount > 0
+            ? (lang === 'en' ? 'Scoring incomplete: Judge recovery required' : '评分尚未完成：部分题目需要补评 Judge')
+            : (lang === 'en' ? 'Evaluation quality warnings' : '评测质量提示')}
+          description={data.qualityReport.issues.map((issue, i) => <div key={i}>{issue}</div>)}
+        />
+      )}
 
       <div className="swiss-card">
         <div className="swiss-card-title">{lang === 'en' ? `Results (${filteredResults.length} / ${allResults.length} questions)` : `评测结果（${filteredResults.length} / ${allResults.length} 题）`}</div>

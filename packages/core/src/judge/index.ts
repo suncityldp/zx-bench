@@ -140,7 +140,7 @@ async function callJudgeModel(
     // 的空闲超时保护，避免静默挂起。
     stream: true,
     params: {
-      maxTokens: 8192,
+      maxTokens: model.defaultParams?.maxTokens ?? 8192,
       temperature: resolveJudgeTemperature(model),
       timeout: model.defaultParams?.timeout ?? DEFAULT_JUDGE_TIMEOUT_MS,
     },
@@ -150,6 +150,9 @@ async function callJudgeModel(
 
   const latencyMs = Date.now() - startTime;
   const wasTruncated = response.finishReason === 'length';
+  if (wasTruncated) {
+    throw new Error('JUDGE_OUTPUT_TRUNCATED: Judge generation reached max_tokens; no score accepted');
+  }
 
   // 解析 Judge 输出（严格 JSON，带截断修复）
   let parsed: Record<string, unknown>;
@@ -164,24 +167,16 @@ async function callJudgeModel(
     if (repaired) {
       parsed = repaired;
     } else {
-      // 无法修复，返回降级结果
-      return {
-        judgeModel: model.name,
-        verdict: 'ambiguous',
-        bugDetection: 0,
-        rootCause: 0,
-        patchCorrectness: 0,
-        patchCompleteness: 0,
-        scopeDiscipline: 0,
-        outputCompleteness: 0,
-        confidence: 0,
-        needsEscalation: true,
-        evidence: [wasTruncated ? 'Judge output was truncated (max_tokens limit)' : 'Judge output is not valid JSON'],
-        notes: [response.content.slice(0, 500)],
-        latencyMs,
-        tokenUsage: response.usage,
-      };
+      throw new Error('JUDGE_INVALID_JSON: Judge returned no usable JSON; no score accepted');
     }
+  }
+
+  const requiredScores = input.dimension === 'hallucination_resistance'
+    ? ['factuality', 'confidence']
+    : ['bug_detection', 'root_cause', 'patch_correctness', 'patch_completeness', 'scope_discipline', 'output_completeness', 'confidence'];
+  if (!['correct', 'incorrect', 'partial', 'ambiguous'].includes(String(parsed?.verdict)) ||
+      requiredScores.some(key => typeof parsed?.[key] !== 'number' || !Number.isFinite(parsed[key]) || Number(parsed[key]) < 0 || Number(parsed[key]) > 1)) {
+    throw new Error('JUDGE_INVALID_SCHEMA: missing or invalid verdict/score fields; no score accepted');
   }
 
   return {

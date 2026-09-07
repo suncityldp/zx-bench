@@ -58,6 +58,7 @@ export { runMultipleEvaluations, batchMultiRunEvaluation } from './multi-run/ind
 export type { MultiRunOptions } from './multi-run/index.js';
 
 // 报告生成
+export { analyzeRunQuality } from './quality.js';
 export { generateReport, generateCompareReport } from './report/index.js';
 export type { GenerateReportOptions, GenerateCompareReportOptions, ReportResult } from './report/index.js';
 export {

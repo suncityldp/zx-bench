@@ -192,13 +192,18 @@ export interface ModelResponse {
 
 export interface TokenUsage {
   inputTokens: number;
+  /** Total generated tokens, including reasoning when supplied by the provider. */
   outputTokens: number;
   totalTokens: number;
+  reasoningTokens?: number;
+  source?: 'provider' | 'estimated';
 }
 
 // ----- 输出元数据（GPT5.6 P0-1） -----
 
 export interface OutputMetadata {
+  reasoningTokens?: number;
+  tokenUsageSource?: 'provider' | 'estimated';
   finishReason: FinishReason;
   truncated: boolean;
   containsCodeBlock: boolean;

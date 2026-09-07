@@ -33,13 +33,18 @@ const NETWORK_REQUIRED_IDS = [
 ];
 
 describe('project_repair executionPolicy 题库契约', () => {
-  it('20 道工程题均升级 1.2.0，且 hash 与当前配置一致', () => {
+  it('20 道工程题版本和 hash 与当前配置一致', () => {
     expect(projectRepair).toHaveLength(20);
     for (const scenario of projectRepair) {
       expect(scenario.graderVersion).toBe('1.2.0');
-      expect(scenario.scenarioVersion).toBe('1.2.0');
+      expect(scenario.scenarioVersion).toBe(scenario.id === 'CP-L4-RS-001' ? '1.2.1' : '1.2.0');
       expect(scenario.scenarioHash).toBe(hashScenarioShort(scenario));
     }
+  });
+
+  it('Rust 无锁文件的原始工作区允许生成依赖锁，不能使用 --locked', () => {
+    const rust = projectRepair.find(s => s.id === 'CP-L4-RS-001')!;
+    expect(rust.requirements.executionPolicy?.dependencyPreflight?.command).toBe('CARGO_HOME=/tmp/.cargo cargo fetch');
   });
 
   it('仅明确声明的 7 道题联网，均有原始工作区依赖预检', () => {

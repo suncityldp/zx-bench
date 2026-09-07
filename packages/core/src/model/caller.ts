@@ -108,7 +108,7 @@ async function callModelStreaming(options: CallModelOptions): Promise<ModelRespo
         console.warn(`[caller] Provider doesn't support stream_options, retrying without it`);
         const body2 = { ...body };
         delete (body2 as Record<string, unknown>).stream_options;
-        return await fetchAndParseStream(url, headers, body2, controller.signal, requestStartTime, timeoutMs);
+        return await fetchAndParseStream(url, headers, body2, controller.signal, requestStartTime, timeoutMs, constraints?.maxReasoningTokens);
       }
       throw new Error(`Model API error ${response.status}: ${errorText}`);
     }
@@ -128,6 +128,7 @@ async function fetchAndParseStream(
   signal: AbortSignal,
   requestStartTime: number,
   timeoutMs: number,
+  maxReasoningTokens?: number,
 ): Promise<ModelResponse> {
   const response = await fetch(url, {
     method: 'POST',
@@ -138,7 +139,7 @@ async function fetchAndParseStream(
   if (!response.ok) {
     throw new Error(`Model API error ${response.status}: ${await response.text()}`);
   }
-  return parseStreamResponse(response, requestStartTime, timeoutMs);
+  return parseStreamResponse(response, requestStartTime, timeoutMs, maxReasoningTokens);
 }
 
 /**
@@ -204,13 +205,13 @@ async function parseStreamResponse(
   // 现在流式观察 reasoning 增量（字符数/3 估算 token，与下方 usage 兜底口径一致），
   // 超预算即主动停止读流：已产出的 content 保留进入正常评分，避免"判 0 误伤真实能力"。
   let reasoningHardCapped = false;
+  let streamDone = false;
 
   try {
     while (true) {
       const { done, value } = await readWithIdleTimeout(reader, idleMs, requestStartTime);
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
+      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+      if (done) buffer += '\n'; // Process the last event even without a trailing newline.
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
@@ -219,11 +220,22 @@ async function parseStreamResponse(
         if (!trimmed.startsWith('data:')) continue;
 
         const dataStr = trimmed.slice(5).trim();
-        if (dataStr === '[DONE]') continue;
+        if (dataStr === '[DONE]') { streamDone = true; break; }
         if (!dataStr) continue;
 
         try {
           const chunk = JSON.parse(dataStr);
+          // OpenAI's final usage event has choices: []; consume it before inspecting choices.
+          if (chunk.usage || chunk.timings) {
+            const update = extractTokenUsage(chunk);
+            usage = { ...usage, ...update,
+              inputTokens: Math.max(usage.inputTokens, update.inputTokens),
+              outputTokens: Math.max(usage.outputTokens, update.outputTokens),
+              reasoningTokens: update.reasoningTokens ?? usage.reasoningTokens,
+            };
+            usage.totalTokens = usage.inputTokens + usage.outputTokens;
+            lastTimings = chunk.timings ?? lastTimings;
+          }
           const choice = (chunk.choices as Array<Record<string, unknown>>)?.[0];
           if (!choice) continue;
 
@@ -237,6 +249,8 @@ async function parseStreamResponse(
 
           const rc = delta?.reasoning_content || delta?.reasoning;
           if (rc) {
+            if (firstTokenTime === 0) firstTokenTime = Date.now();
+            lastTokenTime = Date.now();
             reasoningContent += String(rc);
             // I3 硬截断：reasoning 估算 token 超预算 → 停止读流，保留已有 content
             if (
@@ -257,31 +271,16 @@ async function parseStreamResponse(
             finishReason = mapFinishReason(String(choice.finish_reason));
           }
 
-          if (chunk.usage) {
-            usage = extractTokenUsage(chunk);
-            lastTimings = chunk.timings as Record<string, number> | undefined;
-          }
         } catch {
           // 跳过无法解析的 chunk
         }
       }
-      if (reasoningHardCapped) break;
+      if (reasoningHardCapped || streamDone || done) break;
     }
 
-    // 处理 buffer 中可能残留的最后一行
-    if (buffer.trim().startsWith('data:')) {
-      const dataStr = buffer.trim().slice(5).trim();
-      if (dataStr && dataStr !== '[DONE]') {
-        try {
-          const chunk = JSON.parse(dataStr);
-          if (chunk.usage) {
-            usage = extractTokenUsage(chunk);
-            lastTimings = chunk.timings as Record<string, number> | undefined;
-          }
-        } catch { /* ignore */ }
-      }
-    }
   } finally {
+    // A locally capped or failed read must also stop server-side generation.
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 
@@ -290,20 +289,19 @@ async function parseStreamResponse(
   const generationMs = firstTokenTime > 0 && lastTokenTime > 0 ? lastTokenTime - firstTokenTime : 0;
 
   // 如果流中没有 usage 信息，用字符数估算（约 3 字符/token 混合中英文）
-  if (usage.outputTokens === 0 && content.length > 0) {
-    const estimated = Math.max(1, Math.round(content.length / 3));
+  if (usage.outputTokens === 0 && (content.length > 0 || reasoningContent.length > 0)) {
+    const estimated = Math.max(1, Math.round((content.length + reasoningContent.length) / 3));
     usage.outputTokens = estimated;
     usage.totalTokens = usage.inputTokens + estimated;
+    usage.source = 'estimated';
   }
 
   const tokensPerSecond = generationMs > 0
     ? Math.round(usage.outputTokens / (generationMs / 1000))
     : (totalTime > 0 ? Math.round(usage.outputTokens / (totalTime / 1000)) : 0);
 
-  // LM Studio 对 reasoning 模型的流式响应只输出 reasoning_content、不输出 content。
-  // 当 content 为空但 reasoningContent 非空时，把 reasoningContent 作为 content 的 fallback，
-  // 避免 modelOutput 假空响应（2026-08-30 根因定位）。
-  const finalContent = content || reasoningContent;
+  // Reasoning is not a final answer; keep channels separate for empty-output/limit checks.
+  const finalContent = content;
 
   return {
     content: finalContent,
@@ -416,12 +414,14 @@ function buildHeaders(config: ModelConfig): Record<string, string> {
  * 因此取两者的较大值兜底，确保输入/输出 token 完整统计。
  */
 function extractTokenUsage(chunk: Record<string, unknown>): TokenUsage {
-  const u = (chunk.usage ?? {}) as Record<string, number>;
+  const u = (chunk.usage ?? {}) as { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
   const t = (chunk.timings ?? {}) as Record<string, number>;
   const timingsInput = (t.prompt_n ?? 0) + (t.cache_n ?? 0);
   const inputTokens = Math.max(u.prompt_tokens ?? 0, timingsInput);
   const outputTokens = Math.max(u.completion_tokens ?? 0, t.predicted_n ?? 0);
-  return { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens };
+  const details = u.completion_tokens_details;
+  return { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens,
+    reasoningTokens: details?.reasoning_tokens, source: 'provider' };
 }
 
 function parseNonStreamingResponse(data: Record<string, unknown>, latencyMs: number): ModelResponse {
@@ -433,8 +433,8 @@ function parseNonStreamingResponse(data: Record<string, unknown>, latencyMs: num
     || undefined;
 
   const content = (message?.content as string) || '';
-  // LM Studio reasoning 模型：content 可能为空而 reasoning_content 非空，fallback 防止假空响应
-  const finalContent = content || reasoningContent || '';
+  // Preserve a missing final answer rather than grading internal reasoning as the answer.
+  const finalContent = content;
   const finishReason = mapFinishReason(choice?.finish_reason as string);
   return {
     content: finalContent,

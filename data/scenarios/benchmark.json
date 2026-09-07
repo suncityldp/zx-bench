@@ -6669,7 +6669,7 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "请从以下订单评论中拆分抽取每个商品的信息，输出 JSON 数组：\n\n\"订单号：JD202403180077，下单时间：2024-03-18\n商品1：华为 MatePad Pro 12.6英寸 8+256GB ¥4299 评分5 '平板非常好用'\n商品2：华为 M-Pencil 第二代 ¥599 评分4 '手写笔延迟略高'\n商品3：平板保护套 ¥129 评分3 '质量一般，不太贴合'\n收货地址：成都市高新区天府三街69号\"\n\n要求：每个商品一个对象，包含 name, spec, price, rating, comment；订单级信息单独一个对象\n必须包含以下字段：items_count, order_id",
+  "promptTemplate": "请从以下订单评论中拆分抽取每个商品的信息，输出一个 JSON 对象：\n\n\"订单号：JD202403180077，下单时间：2024-03-18\n商品1：华为 MatePad Pro 12.6英寸 8+256GB ¥4299 评分5 '平板非常好用'\n商品2：华为 M-Pencil 第二代 ¥599 评分4 '手写笔延迟略高'\n商品3：平板保护套 ¥129 评分3 '质量一般，不太贴合'\n收货地址：成都市高新区天府三街69号\"\n\n要求：根对象包含 items_count（商品数）、order_id（订单号）和 items（按商品1至3顺序排列的数组）。items 中每个商品一个对象，包含 name, spec, price, rating, comment；未提供的规格填 null，price 和 rating 使用数字。",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
@@ -6681,7 +6681,16 @@
   },
   "requirements": {
    "items_count": 3,
-   "order_id": "JD202403180077"
+   "order_id": "JD202403180077",
+   "items.0.price": 4299,
+   "items.0.rating": 5,
+   "items.0.comment": "平板非常好用",
+   "items.1.price": 599,
+   "items.1.rating": 4,
+   "items.1.comment": "手写笔延迟略高",
+   "items.2.price": 129,
+   "items.2.rating": 3,
+   "items.2.comment": "质量一般，不太贴合"
   },
   "tags": [
    "chinese",
@@ -6689,8 +6698,8 @@
    "multi-item",
    "split-extraction"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "39d77c8c3cb4e45a",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "2a8700d130ceceec",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -28338,7 +28347,7 @@
    "executionPolicy": {
     "network": "required",
     "dependencyPreflight": {
-     "command": "CARGO_HOME=/tmp/.cargo cargo fetch --locked",
+     "command": "CARGO_HOME=/tmp/.cargo cargo fetch",
      "timeoutMs": 120000
     },
     "coldStartTimeoutIsEnvironmentError": true
@@ -28350,8 +28359,8 @@
    "fix",
    "private_validation"
   ],
-  "scenarioVersion": "1.2.0",
-  "scenarioHash": "9e04595361bdd40f",
+  "scenarioVersion": "1.2.1",
+  "scenarioHash": "f2373f8a6b55e910",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -30938,7 +30947,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.01
+   "tolerance": 0.01,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 737,
@@ -30949,8 +30959,8 @@
    "financial",
    "discount-calculation"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "5d7f44f00f253904",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "583b5bdbe1bd2a2c",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -31017,7 +31027,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 1,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 101240,
@@ -31028,8 +31039,8 @@
    "unit-conversion",
    "international-trade"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "4b2687143b4bda4b",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "7ae0965564f0c4e2",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -31057,7 +31068,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 1,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 442717
@@ -31068,8 +31080,8 @@
    "complex-calculation",
    "adversarial"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "8cfcc5479170960b",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "50a251a06da37b38",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -31821,7 +31833,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 4
@@ -31832,8 +31845,8 @@
    "permutation",
    "constraints"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "0256ac970604aaf4",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "a8d6f0a4ec6dd23d",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -31901,7 +31914,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 7
@@ -31912,8 +31926,8 @@
    "river-crossing",
    "optimization"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "5bc59458bc0316f3",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "ef90e6cb9f1dc946",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -32100,7 +32114,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 1,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 168
@@ -32111,8 +32126,8 @@
    "cost-analysis",
    "multistep"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "a73b4e6d42354373",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "5c57b763449b00b5",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -32140,10 +32155,11 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 1,
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": 1340
+   "answer": 1090
   },
   "tags": [
    "chinese",
@@ -32151,8 +32167,8 @@
    "progressive-rate",
    "payroll"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "f84714ff0065c954",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "b0d4a443d270d50e",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
@@ -32220,7 +32236,8 @@
   "graderVersion": "exact_answer_v2",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 1,
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": 10545
@@ -32231,8 +32248,8 @@
    "attendance",
    "calculation"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "56714821b8f82717",
+  "scenarioVersion": "2.0.1",
+  "scenarioHash": "cb94383965c3752d",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,

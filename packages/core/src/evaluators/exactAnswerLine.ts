@@ -44,6 +44,8 @@ export const exactAnswerLineEvaluator: Evaluator = {
     const expectedAnswer = requirements.answer;
     const scoring = scenario.scoring as unknown as Record<string, unknown>;
     const tolerance = (scoring.tolerance as number) ?? 0.01;
+    // Legacy/custom scenarios keep relative tolerance; numeric benchmark tasks explicitly use units.
+    const toleranceMode = scoring.toleranceMode === 'absolute' ? 'absolute' : 'relative';
 
     if (expectedAnswer === undefined || expectedAnswer === null) {
       // 没有期望答案，只评格式（无答案可验证）
@@ -72,7 +74,7 @@ export const exactAnswerLineEvaluator: Evaluator = {
     evidence.push(`Extracted answer: ${JSON.stringify(extractedAnswer)}`);
 
     // ===== 5. 比较答案（移除 reasoning_valid 伪轴：它只测截断、不测推理） =====
-    const accuracy = compareAnswer(extractedAnswer, expectedAnswer, tolerance);
+    const accuracy = compareAnswer(extractedAnswer, expectedAnswer, tolerance, toleranceMode);
     axisScores.answer_accuracy = accuracy;
     axisEvidence.answer_accuracy = 'rule';
 
@@ -205,17 +207,21 @@ function parseNumericAnswer(text: string): number | null {
  * 比较提取的答案和期望答案
  * @returns 0-100 的准确度分数
  */
-function compareAnswer(extracted: string | number, expected: unknown, tolerance: number): number {
+function compareAnswer(extracted: string | number, expected: unknown, tolerance: number, mode: 'absolute' | 'relative'): number {
   // ===== 数值比较 =====
   if (typeof expected === 'number') {
     const extractedNum = typeof extracted === 'number'
       ? extracted
       : parseNumericAnswer(String(extracted));
 
-    if (extractedNum === null) return 0;
+    if (extractedNum === null || !Number.isFinite(extractedNum) || !Number.isFinite(expected)) return 0;
 
     // 完全相等
     if (extractedNum === expected) return 100;
+
+    if (mode === 'absolute') {
+      return Math.abs(extractedNum - expected) <= Math.max(0, tolerance) ? 100 : 0;
+    }
 
     // 容差比较（A3-9 收紧：相对误差档位更严格，20% 误差不再给 40 分）
     if (expected === 0) {
