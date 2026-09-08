@@ -524,43 +524,18 @@ async function rejudgeSavedResult(
   if (!scenarioRow) throw new Error('scenario definition not found');
   const scenario = rehydrateStoredScenario(scenarioRow);
   const outputMetadata = parseStoredJson<OutputMetadata>(saved.outputMetadata, {} as OutputMetadata);
-  const evaluator = getEvaluator(scenario.grader, scenario.graderVersion);
-  if (!evaluator) throw new Error(`evaluator not registered: ${scenario.grader}@${scenario.graderVersion}`);
-
-  // This evaluation is read-only: its only purpose is to recover axisCoverage.
-  // Refuse to update if it does not reproduce the historical raw deterministic score.
-  const inputTokens = Number(outputMetadata.inputTokens || 0);
-  const outputTokens = Number(outputMetadata.outputTokens || 0);
-  const deterministic = await evaluator.evaluate(
-    scenario,
-    saved.modelOutput,
-    outputMetadata,
-    {
-      content: saved.modelOutput,
-      reasoningContent: saved.reasoningContent ?? undefined,
-      finishReason: outputMetadata.finishReason || 'unknown',
-      usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens },
-      latencyMs: Number(outputMetadata.inferenceMs || 0),
-    },
-  );
-  const deterministicScore = deterministic.totalScore ?? 0;
-  if (deterministicScore !== saved.deterministicScore) {
-    throw new Error(`deterministic score drift: saved=${saved.deterministicScore}, recomputed=${deterministicScore}`);
-  }
-
-  const axisScores = deterministic.axisScores || parseStoredJson<Record<string, number>>(saved.axisScores, {});
-  const recomputedAxisEvidence = deterministic.axisEvidence || {};
   const savedAxisEvidence = parseStoredJson<Record<string, string>>(saved.axisEvidence, {});
-  const codeExtractionFailed = deterministic.codeExtractionFailed === true
-    || (axisScores.patch_extraction != null && axisScores.patch_extraction <= 40)
-    || (deterministic.evidence || []).some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
-  const hasVerifiedExecution = recomputedAxisEvidence.compilation === 'verified'
-    || recomputedAxisEvidence.test_pass === 'verified';
-  const strictAnswerContract = scenario.grader === 'exact_answer_line'
-    && (scenario.scoring as unknown as Record<string, unknown>).comparisonMode === 'strict';
-  const formatBlindspot = !strictAnswerContract && (codeExtractionFailed
-    || ((deterministicScore < 25 && saved.modelOutput.trim().length > 20) && !hasVerifiedExecution)
-    || (saved.dimension === 'structured_output' && !saved.formatParseSuccess));
+  const savedAxisScores = parseStoredJson<Record<string, number>>(saved.axisScores, {});
+  // Historical Judge recovery is deliberately Judge-only. The original execution
+  // environment cannot be recreated reliably, so preserve stored deterministic
+  // score, axes, and evidence instead of scoring the answer again today.
+  const deterministicScore = saved.deterministicScore;
+  const axisScores = savedAxisScores;
+  const codeExtractionFailed = (axisScores.patch_extraction != null && axisScores.patch_extraction <= 40)
+    || savedEvidence.some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
+  // No historical format-blindspot flag was persisted. Keep the frozen default
+  // Judge weighting rather than inferring a new weighting from current code.
+  const formatBlindspot = false;
 
   const evalConfig = parseStoredJson<EvalRunConfig>(saved.evalRun.config, {} as EvalRunConfig);
   if (!evalConfig.judgeEnabled || !evalConfig.judgeModelConfigId) {
@@ -587,7 +562,10 @@ async function rejudgeSavedResult(
     },
     escalationThreshold: evalConfig.escalationThreshold || 0.85,
   };
-  const runtime = deterministic.runtimeEvaluation;
+  const runtime = (outputMetadata as unknown as { runtimeEvaluation?: {
+    compilePassed: boolean; hiddenTestsPassed?: number; testsPassed: number;
+    hiddenTestsFailed?: number; testsFailed: number; details?: any[];
+  } }).runtimeEvaluation;
   const judgeInput = {
     questionId: scenario.id,
     task: scenario.promptTemplate,
@@ -618,7 +596,7 @@ async function rejudgeSavedResult(
   const judgeScore = saved.dimension === 'hallucination_resistance' && finalJudge.factuality != null
     ? Math.round(finalJudge.factuality * 100)
     : computeJudgeScore(finalJudge);
-  const coverage = deterministic.axisCoverage ?? 1;
+  const coverage = 1;
   const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage);
   const totalScore = Math.round(saved.deterministicScore * mixed.detW + judgeScore * mixed.judgeW);
   const ensembleHistory = (judgeResult as { runs?: JudgeResult[] }).runs;
@@ -632,6 +610,7 @@ async function rejudgeSavedResult(
     try { return new URL(judgeRow.baseUrl).host; } catch { return 'unknown-endpoint'; }
   })();
   evidence.push(`JUDGE_RESCORED: ${finalJudge.judgeModel} config=${judgeRow.id} endpoint=${judgeEndpoint} verdict=${finalJudge.verdict} confidence=${finalJudge.confidence.toFixed(2)}`);
+  evidence.push('JUDGE_RESCORED_LEGACY_SAVED_DETERMINISTIC: preserved stored deterministic score, axes, and evidence');
   if (judgeResult.escalated) {
     evidence.push(`DISPUTE: local=${judgeResult.localJudge.verdict} frontier=${judgeResult.frontierJudge?.verdict} final=${finalJudge.verdict}`);
   }
