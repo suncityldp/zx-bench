@@ -5,6 +5,8 @@
 /**
  * 维度权重配置（总和 = 1.0），按大模型实际应用中各能力重要性分配，并与题量份额匹配
  */
+import type { ScenarioResult, JudgeResult } from '@zxbench/types';
+
 export const DIMENSION_WEIGHTS: Record<string, number> = {
   program: 0.20,           // 编程能力：最高频落地场景，保持最高权重
   reasoning_math: 0.12,    // 推理数学：通用智能底座
@@ -172,9 +174,11 @@ export function mixDeterministicJudge(
   deterministic: number,
   judge: number,
   coverage: number,
+  judgeCap = JUDGE_WEIGHT_CAP,
 ): { detW: number; judgeW: number } {
   const rawJudgeW = judge + deterministic * (1 - coverage);
-  const judgeW = Math.min(rawJudgeW, JUDGE_WEIGHT_CAP);
+  // Callers explicitly opt semantic dimensions into their own cap; code policies stay unchanged.
+  const judgeW = Math.min(rawJudgeW, judgeCap);
   const detW = deterministic + judge - judgeW;
   return { detW, judgeW };
 }
@@ -246,4 +250,26 @@ export function computeDifficultyWeightedDimAvgs(
     dimAvgs.set(dim, weightedSum / weightTotal);
   }
   return dimAvgs;
+}
+
+/** Shared final authority for reviewed contracts, after mixing and during rescoring. */
+export function applyReviewedVerdict(result: Partial<ScenarioResult>, judge?: JudgeResult): void {
+  const has = (prefix: string) => result.evidence?.some(e => e.startsWith(prefix));
+  if (has('SEMANTIC_JUDGE_REQUIRED:')) {
+    if (judge?.factuality == null) {
+      result.totalScore = 0;
+      result.environmentError = true; // Grading infrastructure unavailable, NOT a model failure.
+      result.humanReviewRequired = true;
+      result.evidence = [...(result.evidence ?? []), 'GRADING_UNAVAILABLE: semantic rubric requires a successful Judge; excluded from aggregates'];
+    } else {
+      result.environmentError = false;
+      result.totalScore = Math.round(judge.factuality * 100);
+      result.axisScores = { ...(result.axisScores ?? {}), factuality: result.totalScore };
+      result.axisEvidence = { ...(result.axisEvidence ?? {}), factuality: 'llm' };
+      result.axisCoverage = 1;
+    }
+  } else if (has('DETERMINISTIC_VETO:') || has('DETERMINISTIC_FACT:')) {
+    result.totalScore = has('DETERMINISTIC_VETO:') ? 0 : 100;
+    if (judge?.factuality != null && Math.abs(judge.factuality * 100 - result.totalScore) > 1) result.humanReviewRequired = true;
+  }
 }

@@ -47,13 +47,13 @@ describe('issue #7 independent arithmetic oracles', () => {
     19: `CAGR=${round(cagr * 100)}%，最高增长年份=2021年和2023年，2025预计=${round(1725 * (1 + cagr) ** 2)}万`,
     20: `甲=${profits * .4 + 50000}元，乙=${profits * .35 + 30000}元，丙=${profits * .25}元`,
     21: `满意率${p * 100}%，SE=${round(se * 100)}%，置信区间=${round((p - 1.96 * se) * 100, 1)}%-${round((p + 1.96 * se) * 100, 1)}%，所需样本=${Math.ceil(1.96 ** 2 * p * (1 - p) / .02 ** 2)}`,
-    22: 'A=20万,B=15万,C=25万,D=10万,E=30万',
+    22: 'A=20万,B=15万,C=27万,D=10万,E=48万',
     27: `甲=${(72 / 3) + 7}岁，乙=${72 / 3}岁，丙=${(72 / 3) - 7}岁`,
     30: `电费=${240 * .55 + (350 - 240) * .6}元，水费=${15 * 3.5 + 7 * 5}元，总计=${240 * .55 + 110 * .6 + 15 * 3.5 + 7 * 5}元`,
     32: (25000 - 4500 - 5000 - 2000 - 1000) * .2 - 1410,
     33: `盈亏平衡=${150000 / (200 - 80)}件，单月盈利=第${[500, 1000, 2000].findIndex(q => q * 120 - 150000 > 0) + 1}月，回收投资=第${3 + Math.ceil((2000000 - [500, 1000, 2000].reduce((sum, q) => sum + q * 120 - 150000, 0)) / (3500 * 120 - 150000))}月`,
     34: round(10000 - 2 * (10000 / 22) - 2 * 50 + 2 * 2 * (10000 / 22)),
-    35: `结论=错误，今年=${100 * .5 * 1.5}万，增长率=${(.5 * 1.5 - 1) * 100}%，错误名称=百分比基数谬误`,
+    35: `结论=错误，今年=${100 * .5 * 1.5}万，增长率=${(.5 * 1.5 - 1) * 100}%，错误类型=A`,
   };
   for (const [id, answer] of Object.entries(expected)) {
     it(`RM-CN-${id}: independently derived answer passes`, async () => {
@@ -95,7 +95,8 @@ describe('issue #7 independent arithmetic oracles', () => {
     const queue: Array<[number, number]>=[[0,0]], seen=new Set([0]);let answer=-1;
     while(queue.length){const [state,steps]=queue.shift()!;if(state===15){answer=steps;break;}const f=state&1;
       for(const item of [0,2,4,8]){if(item&&!!(state&item)!==!!f)continue;const next=state^1^item;const bits=[1,2,4,8].map(b=>!!(next&b));if((bits[1]===bits[2]&&bits[0]!==bits[2])||(bits[2]===bits[3]&&bits[0]!==bits[2])||seen.has(next))continue;seen.add(next);queue.push([next,steps+1]);}}
-    expect(answer).toBe(7);expect(await accuracy(25,`ANSWER: ${answer}次`)).toBe(100);
+    expect(answer).toBe(7);expect(await accuracy(25,`STEPS: 羊,空,狼,羊,白菜,空,羊
+ANSWER: ${answer}次`)).toBe(100);
   });
   it('RM-CN-029 computes both profit metrics instead of confusing output with profit', async () => {
     const rows=[['A',20,1000,8000,150],['B',15,900,9000,180],['C',25,1500,7500,120],['D',10,400,10000,250],['E',30,1800,7000,100]] as const;
@@ -154,7 +155,7 @@ describe('strict answer-contract regressions', () => {
     const math=scenarios.filter(s=>s.dimension==='reasoning_math');expect(math).toHaveLength(34);
     expect(math.filter(s=>s.status==='ambiguous')).toEqual([]);
     expect(math.filter(s=>s.status==='valid')).toHaveLength(34);
-    for(const s of math){expect(s.scenarioVersion).toBe(['RM-CN-013','RM-CN-014','RM-CN-028','RM-CN-031'].includes(s.id)?'3.1.0':'3.0.0');expect(s.graderVersion).toBe('exact_answer_v3');expect((s.scoring as any).tolerance).toBe(0);expect(s.scenarioHash).toBe(hashScenarioShort(s));}
+    for(const s of math){expect(s.scenarioVersion).toBe('3.2.0');expect(s.graderVersion).toBe('exact_answer_v4');expect((s.scoring as any).tolerance).toBe(0);expect(s.scenarioHash).toBe(hashScenarioShort(s));}
   });
   it('states the final-line format and rounding rules in the prompts', () => {
     for(const s of scenarios.filter(s=>s.dimension==='reasoning_math')) {

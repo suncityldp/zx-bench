@@ -47,7 +47,7 @@ describe('September scenario defects', () => {
   it('versions each changed contract and gives it a reproducible hash', () => {
     for (const id of ['RM-CN-032', 'DE-CN-004', 'CP-L4-RS-001']) {
       const s = scenarios.find(s => s.id === id)!;
-      expect(s.scenarioVersion).toBe(id === 'CP-L4-RS-001' ? '1.2.1' : id === 'RM-CN-032' ? '3.0.0' : '2.0.1');
+      expect(s.scenarioVersion).toBe(id === 'CP-L4-RS-001' ? '1.2.1' : id === 'RM-CN-032' ? '3.2.0' : '2.0.1');
       expect(s.scenarioHash).toBe(hashScenarioShort(s));
     }
   });

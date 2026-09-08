@@ -73,7 +73,7 @@ export type { ReportUserPromptData, CompareReportUserPromptData } from './report
 // 参数化题目引擎
 export { generateVariables, instantiateScenario, createParameterizedInstance } from './parameterize/index.js';
 // 评分/聚合核心
-export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, JUDGE_WEIGHT_CAP, TARGET_DIFFICULTY_DISTRIBUTION, analyzeDifficultyDistribution, computeWeightedTotal, getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, computeConsistencyScore, computeDifficultyWeightedDimAvgs, normalizeDimension, DIMENSION_ALIASES } from './scoring.js';
+export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, JUDGE_WEIGHT_CAP, TARGET_DIFFICULTY_DISTRIBUTION, analyzeDifficultyDistribution, computeWeightedTotal, getJudgeWeights, applyReviewedVerdict, mixDeterministicJudge, applyCoverageDiscount, computeConsistencyScore, computeDifficultyWeightedDimAvgs, normalizeDimension, DIMENSION_ALIASES } from './scoring.js';
 
 // 场景契约（Phase 1）
 export { GRADER_CONTRACTS, getGraderContract, listGraderContracts, validateScenario, canonicalizeScenario, hashScenario, hashScenarioShort, checkScenarioEligibility, partitionByEligibility, DIMENSION_DEFINITIONS, recommendDimension, validateDimensionDisjointness } from './contracts/index.js';

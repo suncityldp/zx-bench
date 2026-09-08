@@ -36,6 +36,7 @@
 
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
+import { reviewedHallucination } from './reviewedHallucination.js';
 
 type Answerability = 'ANSWERABLE' | 'UNANSWERABLE' | 'PARTIALLY_ANSWERABLE' | 'PREMISE_FALSE';
 
@@ -113,8 +114,8 @@ interface Verdict {
 
 export const hallucinationResistanceEvaluator: Evaluator = {
   name: 'hallucination_resistance',
-  version: 'hallucination_v4',
-  aliases: ['hallucination_v3', 'hallucination_v2', 'hallucination_v1'],
+  version: 'hallucination_v5',
+  aliases: ['hallucination_v4', 'hallucination_v3', 'hallucination_v2', 'hallucination_v1'],
 
   async evaluate(
     scenario: Scenario,
@@ -122,6 +123,9 @@ export const hallucinationResistanceEvaluator: Evaluator = {
     outputMetadata: OutputMetadata,
     _modelResponse?: ModelResponse,
   ): Promise<Partial<ScenarioResult>> {
+    if ((scenario.requirements as unknown as { reviewedRubric?: unknown })?.reviewedRubric) {
+      return reviewedHallucination(scenario, modelOutput);
+    }
     const axisScores: Record<string, number> = {};
     const axisEvidence: Record<string, AxisEvidence> = {};
     const evidence: string[] = [];

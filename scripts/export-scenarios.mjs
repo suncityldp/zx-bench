@@ -19,7 +19,7 @@ const ARCHIVE_DIR = path.join(OUT_DIR, 'archive');
 const OUT_FILE = path.join(OUT_DIR, 'benchmark.json');
 const RETIRED_FILE = path.join(ARCHIVE_DIR, 'benchmark-retired.json');
 const META_FILE = path.join(OUT_DIR, 'benchmark-meta.json');
-const BENCHMARK_VERSION = '1.1.0';
+const BENCHMARK_VERSION = '1.3.0';
 
 const JSON_FIELDS = [
   'scoring', 'hiddenTests', 'requirements', 'tags',

@@ -71,12 +71,12 @@ describe('restored math independent oracles', () => {
     const original=models.filter(p=>p1(p)&&p2(p));
     expect(original.length).toBeGreaterThan(0);
     expect(original.every(c)).toBe(true);
-    expect(models.some(p=>converse(p)&&p2(p))).toBe(false);
+    expect(models.some(p=>p.every(x=>!x.t||!x.m)&&p2(p))).toBe(true);
     expect(original.every(p=>!converse(p))).toBe(true);
     expect(scenario(28).promptTemplate).toContain('不是逆否命题');
-    const answer='推理有效性=是，改后前提=不成立，逆命题=所有参加培训的人都是经理，逆命题成立=否';
+    const answer='推理有效性=是，改后前提=成立，逆命题=T(x)→M(x)，逆命题成立=否';
     expect(await score(28,answer)).toBe(100);
-    for(const bad of [answer.replace('有效性=是','有效性=否'),answer.replace('改后前提=不成立','改后前提=成立'),answer.replace('逆命题成立=否','逆命题成立=是'),answer.replace('所有参加培训的人都是经理','所有经理都参加了培训')])expect(await score(28,bad)).toBe(0);
+    for(const bad of [answer.replace('有效性=是','有效性=否'),answer.replace('改后前提=成立','改后前提=不成立'),answer.replace('逆命题成立=否','逆命题成立=是'),answer.replace('T(x)→M(x)','M(x)→T(x)')])expect(await score(28,bad)).toBe(0);
   });
 
   it('031 prices a 2000-item batch with integer cents and rounds only once', async () => {
@@ -97,7 +97,7 @@ describe('restored math independent oracles', () => {
 
   it('restored source contracts are valid, verified and eligible with matching metadata and hashes', () => {
     for(const s of bank.filter(s=>ids.includes(s.id))) {
-      expect(s).toMatchObject({status:'valid',reviewStatus:'verified',scenarioVersion:'3.1.0',graderVersion:'exact_answer_v3'});
+      expect(s).toMatchObject({status:'valid',reviewStatus:'verified',scenarioVersion:'3.2.0',graderVersion:'exact_answer_v4'});
       expect(s.scenarioHash).toBe(hashScenarioShort(s));
       expect(referenceAnswerWarnings([{scenarioId:s.id,scenarioVersion:s.scenarioVersion,graderVersion:s.graderVersion}])).toEqual([]);
     }

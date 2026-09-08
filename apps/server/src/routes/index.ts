@@ -6,7 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '../index.js';
 import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult } from '@zxbench/types';
 import { generateId, generateRunId } from '@zxbench/utils';
-import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, getJudgeWeights, mixDeterministicJudge, getEvaluator } from '@zxbench/core';
+import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, applyReviewedVerdict, getJudgeWeights, mixDeterministicJudge, getEvaluator } from '@zxbench/core';
 import { generateReport, generateCompareReport, analyzeRunQuality, referenceAnswerWarnings, partitionReferenceAnswerRuns } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
 import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, LONG_TASK_WEIGHT, validateScenario } from '@zxbench/core';
@@ -514,9 +514,11 @@ async function rejudgeSavedResult(
     include: { evalRun: { include: { modelConfig: true } } },
   });
   if (!saved) throw new Error('saved result not found');
-  if (saved.environmentError) return { status: 'skipped', judgeCalls: 0 };
   const savedEvidence = parseStoredJson<string[]>(saved.evidence, []);
-  if (!savedEvidence.some((item) => item.includes('JUDGE_FAILED'))) return { status: 'skipped', judgeCalls: 0 };
+  const unavailableSemantic = savedEvidence.some(item => item.startsWith('GRADING_UNAVAILABLE:'))
+    && savedEvidence.some(item => item.startsWith('SEMANTIC_JUDGE_REQUIRED:'));
+  if (saved.environmentError && !unavailableSemantic) return { status: 'skipped', judgeCalls: 0 };
+  if (!unavailableSemantic && !savedEvidence.some((item) => item.includes('JUDGE_FAILED'))) return { status: 'skipped', judgeCalls: 0 };
   if (referenceAnswerWarnings([saved]).length) throw new Error('REFERENCE_ANSWER_REVIEW: rerun with the revised math dataset; Judge recovery cannot repair an obsolete prompt');
   if (saved.deterministicScore == null) throw new Error('saved result has no deterministicScore');
 
@@ -597,15 +599,17 @@ async function rejudgeSavedResult(
     ? Math.round(finalJudge.factuality * 100)
     : computeJudgeScore(finalJudge);
   const coverage = 1;
-  const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage);
-  const totalScore = Math.round(saved.deterministicScore * mixed.detW + judgeScore * mixed.judgeW);
+  const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage, saved.dimension === 'hallucination_resistance' ? .7 : undefined);
+  const reviewed = { totalScore: Math.round(saved.deterministicScore * mixed.detW + judgeScore * mixed.judgeW), deterministicScore: saved.deterministicScore, evidence: savedEvidence, humanReviewRequired: saved.humanReviewRequired, environmentError: saved.environmentError, axisScores: savedAxisScores, axisEvidence: savedAxisEvidence as any };
+  applyReviewedVerdict(reviewed, finalJudge);
+  const totalScore = reviewed.totalScore;
   const ensembleHistory = (judgeResult as { runs?: JudgeResult[] }).runs;
   const history = ensembleHistory && ensembleHistory.length > 1
     ? ensembleHistory.map((item) => saved.dimension === 'hallucination_resistance' && item.factuality != null
       ? Math.round(item.factuality * 100)
       : computeJudgeScore(item))
     : [totalScore];
-  const evidence = savedEvidence.filter((item) => !item.includes('JUDGE_FAILED') && !item.includes('JUDGE_RESCORED'));
+  const evidence = savedEvidence.filter((item) => !item.includes('JUDGE_FAILED') && !item.includes('JUDGE_RESCORED') && !item.startsWith('GRADING_UNAVAILABLE:'));
   const judgeEndpoint = (() => {
     try { return new URL(judgeRow.baseUrl).host; } catch { return 'unknown-endpoint'; }
   })();
@@ -621,9 +625,9 @@ async function rejudgeSavedResult(
       totalScore,
       deterministicScore: saved.deterministicScore,
       judgeScore,
+      ...(unavailableSemantic ? { environmentError: reviewed.environmentError, axisScores: JSON.stringify(reviewed.axisScores) } : {}),
       axisEvidence: JSON.stringify({
-        ...savedAxisEvidence,
-        ...(saved.dimension === 'hallucination_resistance' ? { factuality: 'llm' } : {}),
+        ...reviewed.axisEvidence,
         judge_bug_detection: 'llm',
         judge_root_cause: 'llm',
         judge_patch_correctness: 'llm',
@@ -636,7 +640,7 @@ async function rejudgeSavedResult(
       escalated: judgeResult.escalated,
       runCount: history.length,
       scoreHistory: JSON.stringify(history),
-      humanReviewRequired: saved.humanReviewRequired || judgeResult.escalated || totalScore < 30,
+      humanReviewRequired: reviewed.humanReviewRequired || judgeResult.escalated || totalScore < 30,
       evidence: JSON.stringify(evidence),
     },
   });
@@ -3356,8 +3360,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const targets = await prisma.scenarioResult.findMany({
       where: {
         evalRunId: { in: runIds },
-        environmentError: false,
-        evidence: { contains: 'JUDGE_FAILED' },
+        OR: [
+          { environmentError: false, evidence: { contains: 'JUDGE_FAILED' } },
+          { AND: [
+            { evidence: { contains: 'GRADING_UNAVAILABLE:' } },
+            { evidence: { contains: 'SEMANTIC_JUDGE_REQUIRED:' } },
+          ] },
+        ],
       },
       select: { id: true, evalRunId: true, scenarioId: true, dimension: true, finishedAt: true },
       orderBy: [{ dimension: 'asc' }, { finishedAt: 'asc' }],

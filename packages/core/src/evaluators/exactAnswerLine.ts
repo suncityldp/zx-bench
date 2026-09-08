@@ -10,7 +10,8 @@ import { formatValidScore } from './responseState.js';
 
 export const exactAnswerLineEvaluator: Evaluator = {
   name: 'exact_answer_line',
-  version: 'exact_answer_v3',
+  version: 'exact_answer_v4',
+  aliases: ['exact_answer_v3'],
 
   async evaluate(
     scenario: Scenario,
@@ -49,10 +50,9 @@ export const exactAnswerLineEvaluator: Evaluator = {
 
     if (expectedAnswer === undefined || expectedAnswer === null) {
       // 没有期望答案，只评格式（无答案可验证）
-      axisScores.answer_accuracy = 100;
+      axisScores.answer_accuracy = 0;
       axisEvidence.answer_accuracy = 'unmeasured';
-      const totalScore = Math.round(axisScores.format_valid * 0.1 + axisScores.answer_accuracy * 0.9);
-      return { axisScores, axisEvidence, totalScore, safetyLevel: 'safe', evidence };
+      return { axisScores, axisEvidence, totalScore: 0, environmentError: true, humanReviewRequired: true, safetyLevel: 'safe', evidence: ['GRADING_UNAVAILABLE: missing reference answer'] };
     }
 
     // ===== 3. 截断惩罚 =====
@@ -67,6 +67,7 @@ export const exactAnswerLineEvaluator: Evaluator = {
     // answers must never be truncated by parseFloat or a preceding intermediate '=').
     const extractedAnswer = strict ? extractAnswerLine(modelOutput) : extractFinalAnswer(modelOutput);
     if (extractedAnswer === null) {
+      if (strict) axisScores.format_valid = 0;
       axisScores.answer_accuracy = 0;
       axisEvidence.answer_accuracy = 'rule';
       evidence.push(`Could not extract answer from output. Expected: ${JSON.stringify(expectedAnswer)}`);
@@ -79,9 +80,13 @@ export const exactAnswerLineEvaluator: Evaluator = {
     // ===== 5. 比较答案（移除 reasoning_valid 伪轴：它只测截断、不测推理） =====
     const variants = Array.isArray(requirements.acceptedVariants)
       ? requirements.acceptedVariants.filter((v): v is string => typeof v === 'string') : [];
-    const accuracy = strict
+    let accuracy = strict
       ? Math.max(...[expectedAnswer, ...variants].map(v => compareStrictAnswer(extractedAnswer, v, scoring.answerUnit)))
       : compareAnswer(extractedAnswer, expectedAnswer, tolerance, toleranceMode);
+    if (requirements.solutionVerifier === 'river_crossing' && !validRiverCrossing(modelOutput)) {
+      accuracy = 0;
+      evidence.push('DETERMINISTIC_VETO: required river crossing sequence is missing or illegal');
+    }
     axisScores.answer_accuracy = accuracy;
     axisEvidence.answer_accuracy = 'rule';
 
@@ -120,7 +125,25 @@ function normalizeAnswer(text: string): string {
   return text.normalize('NFKC').replace(/\*\*/g, '').replace(/\s+/g, '')
     .replace(/，/g, ',').replace(/[;；]/g, ',').replace(/[。.,]+$/, '')
     // Only remove syntactically valid thousands separators, never field delimiters.
-    .replace(/\d{1,3}(?:,\d{3})+(?:\.\d+)?/g, m => m.replace(/,/g, ''));
+    .replace(/(?<![\d.,])\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\d.,])/g, m => m.replace(/,/g, ''))
+    .replace(/(?:->|→|⇒|—)/g, '-');
+}
+
+export function validRiverCrossing(output: string): boolean {
+  const lines = output.split(/\r?\n/).filter(s => /^STEPS\s*:/i.test(s.trim()));
+  if (lines.length !== 1) return false;
+  const steps = lines[0].replace(/^\s*STEPS\s*:\s*/i, '').split(/\s*[,，、]\s*/);
+  if (steps.length !== 7) return false;
+  const items: Record<string, number> = { 空: 0, 狼: 2, 羊: 4, 白菜: 8, 菜: 8 };
+  let state = 0;
+  for (const step of steps) {
+    const bit = items[step.trim()];
+    if (bit === undefined || (bit && !!(state & bit) !== !!(state & 1))) return false;
+    state ^= 1 | bit;
+    const [farmer,wolf,goat,cabbage] = [1,2,4,8].map(b => !!(state & b));
+    if ((wolf === goat && farmer !== goat) || (goat === cabbage && farmer !== goat)) return false;
+  }
+  return state === 15;
 }
 
 /** Exact decimal identity without parsing the value as an IEEE-754 Number.

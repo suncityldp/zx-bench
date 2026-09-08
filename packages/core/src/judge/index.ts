@@ -63,6 +63,7 @@ export function shouldEscalate(
   if (input.outputMetadata.truncated) return true;
 
   // 无隐藏测试
+  if (input.dimension === 'reasoning_math' || input.dimension === 'hallucination_resistance') return judgeResult.verdict === 'ambiguous';
   if (!input.runtimeTests || input.runtimeTests.passed + input.runtimeTests.failed === 0) return true;
 
   return false;
@@ -195,12 +196,32 @@ async function callJudgeModel(
 
   const requiredScores = input.dimension === 'hallucination_resistance'
     ? ['factuality', 'confidence']
+    : input.dimension === 'reasoning_math' ? ['math_correctness', 'reasoning_validity', 'task_completeness', 'confidence']
     : ['bug_detection', 'root_cause', 'patch_correctness', 'patch_completeness', 'scope_discipline', 'output_completeness', 'confidence'];
   if (!['correct', 'incorrect', 'partial', 'ambiguous'].includes(String(parsed?.verdict)) ||
       requiredScores.some(key => typeof parsed?.[key] !== 'number' || !Number.isFinite(parsed[key]) || Number(parsed[key]) < 0 || Number(parsed[key]) > 1)) {
     throw new Error('JUDGE_INVALID_SCHEMA: missing or invalid verdict/score fields; no score accepted');
   }
 
+  const rubric = (input.requirements as unknown as { reviewedRubric?: { criteria: { id: string; weight: number }[] } })?.reviewedRubric;
+  if (rubric) {
+    const rubricScores = parsed.rubric_scores as Record<string, number> | undefined;
+    if (typeof parsed.critical_error !== 'boolean' || !parsed.rubric_scores ||
+        rubric.criteria.some(c => typeof rubricScores![c.id] !== 'number' || !Number.isFinite(rubricScores![c.id]) || rubricScores![c.id] < 0 || rubricScores![c.id] > 1)) {
+      throw new Error('JUDGE_INVALID_SCHEMA: reviewed rubric requires every criterion and critical_error');
+    }
+    parsed.factuality = parsed.critical_error ? 0 : rubric.criteria.reduce((sum,c) => sum + c.weight * rubricScores![c.id], 0);
+    if (parsed.verdict !== 'ambiguous') {
+      parsed.verdict = parsed.factuality === 0 ? 'incorrect' : Number(parsed.factuality) >= 1 - 1e-9 ? 'correct' : 'partial';
+    }
+    parsed.evidence = [...(Array.isArray(parsed.evidence) ? parsed.evidence : []), `RUBRIC_SCORES:${JSON.stringify(parsed.rubric_scores)}; critical=${parsed.critical_error}`];
+  }
+  if (input.dimension === 'reasoning_math') {
+    // Stable storage mapping: 55% mathematical correctness, 25% reasoning, 20% completeness.
+    parsed.bug_detection = parsed.patch_correctness = parsed.math_correctness;
+    parsed.root_cause = parsed.reasoning_validity;
+    parsed.patch_completeness = parsed.scope_discipline = parsed.output_completeness = parsed.task_completeness;
+  }
   return {
     judgeModel: model.name,
     verdict: (parsed.verdict as JudgeVerdict) || 'ambiguous',
@@ -247,7 +268,7 @@ function toScore(val: unknown): number {
 }
 
 /** 合并两个 Judge 结果 */
-function mergeDecisions(local: JudgeResult, frontier: JudgeResult): JudgeResult {
+function mergeDecisions(local: JudgeResult, frontier: JudgeResult, reviewedRubric = false): JudgeResult {
   // 决策优先级：编译结果 > 隐藏测试 > 结构化 verdict > AI Judge 解释
   // 顶级模型权重更高
   return {
@@ -259,10 +280,10 @@ function mergeDecisions(local: JudgeResult, frontier: JudgeResult): JudgeResult 
     patchCompleteness: local.patchCompleteness * 0.3 + frontier.patchCompleteness * 0.7,
     scopeDiscipline: local.scopeDiscipline * 0.3 + frontier.scopeDiscipline * 0.7,
     outputCompleteness: local.outputCompleteness * 0.3 + frontier.outputCompleteness * 0.7,
-    factuality: (local.factuality != null && frontier.factuality != null)
+    factuality: reviewedRubric ? frontier.factuality : (local.factuality != null && frontier.factuality != null)
       ? local.factuality * 0.3 + frontier.factuality * 0.7
       : (frontier.factuality ?? local.factuality),
-    confidence: Math.max(local.confidence, frontier.confidence),
+    confidence: local.verdict === frontier.verdict ? Math.min(local.confidence, frontier.confidence) : Math.min(.5, local.confidence, frontier.confidence),
     needsEscalation: false,
     evidence: [...local.evidence, ...frontier.evidence],
     notes: [...local.notes, ...frontier.notes, 'Escalated to frontier judge'],
@@ -294,7 +315,7 @@ export async function runTieredJudge(
   if (needsEscalation && options.frontierModel) {
     // 第二层：顶级模型争议复核
     const frontierJudge = await callJudgeModelWithCompactRetry(options.frontierModel, input);
-    const finalJudge = mergeDecisions(localJudge, frontierJudge);
+    const finalJudge = mergeDecisions(localJudge, frontierJudge, Boolean((input.requirements as unknown as Record<string, unknown> | undefined)?.reviewedRubric));
     return { localJudge, frontierJudge, finalJudge, escalated: true };
   }
 

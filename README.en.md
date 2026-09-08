@@ -122,12 +122,8 @@ composite score = Σ(dimension average x dimension weight) / Σ(dimension weight
 
 3. **Deterministic + AI Judge dual channel**: per-dimension det/judge weights; unmeasured axes hand their weight to the Judge by coverage; without a Judge and coverage < 0.5, the total is discounted to 0.3x.
 
-> **AI Judge retrieval caveat (hallucination resistance)**
-> Hallucination resistance is now **AI-Judge-led** (semantic judgment), with rules as fallback only.
-> However, citation questions (DOI/URL/ISBN/PMID) require web retrieval to verify that a reference truly exists,
-> and the AI Judge is currently a plain Chat Completions call with **no retrieval capability**.
-> When the Judge lacks retrieval, these questions are automatically flagged **human-review-required** for manual verification.
-> Prefer an external API with web-search for the AI Judge; local judges inherit this limitation.
+> **Hallucination grading scope**
+> Fully parsed facts are checked offline; prose requires criterion-based semantic judging. Missing or failed semantic grading preserves the answer and excludes it from aggregates. Checksum validity and material attribution do not prove external publication existence. Actual external citations remain reviewable; choosing a model advertised with search does not add tools to the current Chat Completions call.
 
 ### Note on difficulty distribution
 
@@ -140,7 +136,7 @@ Historical math score ranges from before issue #7 require revalidation; they mus
 
 ## Reference-answer correction (issue #7)
 
-Prompts specify the final ANSWER line and rounding rules; equivalent numeric representations are accepted, with zero numerical tolerance. All 34 math contracts are valid: 013, 014, 028 and 031 have clarified prompts at scenario version 3.1.0; the other 30 remain at 3.0.0. All use exact_answer_v3. Results from obsolete or disputed prompt versions remain in history and are excluded from the current leaderboard. See the [restoration notes](docs/restored-math-questions-v3.1.md). Pulling code does not update database definitions. Preview with `node scripts/sync-math-reference-contracts.mjs`, back up the database, then add `--apply` for the targeted update. See the [audit and migration notes](docs/issue-7-reference-answer-audit.md).
+All 34 math questions now use 3.2.0 / exact_answer_v4; all 78 current hallucination questions were individually reviewed at 5.0.0 / hallucination_v5. Fully parsed facts are checked offline; semantic answers require a successful criterion-based Judge. Unavailable semantic grading is excluded from aggregates, not scored as a model failure. Obsolete results remain preserved and non-comparable. See [review and validation](docs/reviewed-question-bank-v5.md). Preview `node scripts/sync-reviewed-question-contracts.mjs <database>`; add `--apply` for an automatic backup and transactional definition-only update.
 
 ## Pages
 

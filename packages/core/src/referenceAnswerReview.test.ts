@@ -10,13 +10,13 @@ import { analyzeRunQuality } from './quality.js';
 import { hashScenarioShort } from './contracts/canonicalize.js';
 
 const old = { scenarioId: 'RM-CN-004', scenarioVersion: '2.0.1', graderVersion: 'exact_answer_line@exact_answer_v2' };
-const current = { ...old, scenarioVersion: '3.0.0', graderVersion: 'exact_answer_line@exact_answer_v3' };
+const current = { ...old, scenarioVersion: '3.2.0', graderVersion: 'exact_answer_line@exact_answer_v4' };
 describe('reference answer compatibility and historical preservation', () => {
   it('isolates old gold, old scoring, missing versions and disputed scenarios', () => {
-    for (const row of [old, { ...current, graderVersion: old.graderVersion }, { scenarioId: old.scenarioId }, { ...current, scenarioId: 'RM-CN-031' }]) {
+    for (const row of [old, { ...current, graderVersion: old.graderVersion }, { scenarioId: old.scenarioId }, { ...current, scenarioVersion: '3.1.0', scenarioId: 'RM-CN-031' }]) {
       expect(referenceAnswerWarnings([row]).length).toBe(1);
     }
-    expect(referenceAnswerWarnings([current, { ...current, graderVersion: 'exact_answer_v3' }, { scenarioId: 'CP-L4-001' }])).toEqual([]);
+    expect(referenceAnswerWarnings([current, { ...current, graderVersion: 'exact_answer_v4' }, { scenarioId: 'CP-L4-001' }])).toEqual([]);
   });
   it('excludes the whole mixed run before latest/best can use cached or highest scores', () => {
     const runs = [
@@ -31,11 +31,11 @@ describe('reference answer compatibility and historical preservation', () => {
     expect(JSON.stringify(runs)).toBe(before);
   });
   it.each(['RM-CN-013','RM-CN-014','RM-CN-028','RM-CN-031'])('admits only the verified restored version of %s', scenarioId => {
-    const restored = {...current, scenarioId, scenarioVersion:'3.1.0'};
-    for (const graderVersion of ['exact_answer_v3','exact_answer_line@exact_answer_v3']) {
+    const restored = {...current, scenarioId, scenarioVersion:'3.2.0'};
+    for (const graderVersion of ['exact_answer_v4','exact_answer_line@exact_answer_v4']) {
       expect(referenceAnswerWarnings([{...restored,graderVersion}])).toEqual([]);
     }
-    for (const scenarioVersion of [undefined,'2.0.0','3.0.0','3.2.0']) {
+    for (const scenarioVersion of [undefined,'2.0.0','3.0.0','3.1.0']) {
       expect(referenceAnswerWarnings([{...restored,scenarioVersion}])).toHaveLength(1);
     }
     expect(referenceAnswerWarnings([{...restored,graderVersion:old.graderVersion}])).toHaveLength(1);
@@ -94,7 +94,7 @@ describe('leaderboard API reference isolation', () => {
     const { registerRoutes } = await import('../../../apps/server/src/routes/index.js');
     const model={id:'m',name:'model',provider:'local',reasoningModel:false};
     const run=(id:string,row:typeof current,score:number)=>({id,modelConfigId:'m',modelConfig:model,config:'{}',dimensionFilter:'["reasoning_math"]',summary:JSON.stringify({averageScore:score,dimensionAverages:{reasoning_math:score}}),createdAt:new Date(),results:[row]});
-    const newRow=restored?{...current,scenarioId:'RM-CN-031',scenarioVersion:'3.1.0'}:current;
+    const newRow=restored?{...current,scenarioId:'RM-CN-031',scenarioVersion:'3.2.0'}:current;
     const oldRow=restored?{...newRow,scenarioVersion:'3.0.0'}:old;
     vi.mocked(prisma.evalRun.findMany).mockResolvedValue([run('old',oldRow,100),run('new',newRow,70)] as any);
     vi.mocked(prisma.scenarioDefinition.findMany).mockResolvedValue([{id:newRow.scenarioId,dimension:'reasoning_math',category:'financial_calc',difficulty:'hard',status:'valid'}] as any);

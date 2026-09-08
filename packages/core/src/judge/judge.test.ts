@@ -45,4 +45,31 @@ describe('Judge integrity', () => {
     response(JSON.stringify({ verdict: 'correct', factuality: 1, confidence: 0.9 }));
     expect((await runTieredJudge({ ...input, dimension: 'hallucination_resistance' }, options)).finalJudge.factuality).toBe(1);
   });
+  it('uses mathematical fields with explicit completeness weight', async () => {
+    response(JSON.stringify({verdict:'partial',math_correctness:1,reasoning_validity:1,task_completeness:0,confidence:.9}));
+    const r=await runTieredJudge({...input,dimension:'reasoning_math'},options);
+    const {computeJudgeScore}=await import('./index.js');
+    expect(computeJudgeScore(r.finalJudge)).toBe(80);
+    expect(getJudgeSystemPrompt('reasoning_math')).not.toContain('bug_detection');
+  });
+  it('requires all reviewed rubric points and computes the total instead of trusting a supplied 100', async () => {
+    const req={reviewedRubric:{criteria:[{id:'correction',weight:.6},{id:'completion',weight:.4}]}};
+    const reviewed={...input,dimension:'hallucination_resistance',requirements:req} as unknown as JudgeInput;
+    response(JSON.stringify({verdict:'partial',factuality:1,confidence:.9,critical_error:false,rubric_scores:{correction:1,completion:0}}));
+    expect((await runTieredJudge(reviewed,options)).finalJudge.factuality).toBe(.6);
+    response(JSON.stringify({verdict:'incorrect',factuality:1,confidence:.9,critical_error:true,rubric_scores:{correction:1,completion:1}}));
+    expect((await runTieredJudge(reviewed,options)).finalJudge.factuality).toBe(0);
+    response(JSON.stringify({verdict:'correct',factuality:1,confidence:.9,critical_error:false,rubric_scores:{correction:1}}));
+    await expect(runTieredJudge(reviewed,options)).rejects.toThrow('JUDGE_INVALID_SCHEMA');
+  });
+  it('keeps the reviewed frontier critical-error verdict at zero and reports disagreement', async () => {
+    const reviewed = {...input, dimension:'hallucination_resistance', requirements:{reviewedRubric:{criteria:[{id:'fact',weight:1}]}}} as unknown as JudgeInput;
+    const payload = (critical: boolean, confidence: number) => ({content:JSON.stringify({verdict:'correct',factuality:1,confidence,critical_error:critical,rubric_scores:{fact:1}}),finishReason:'stop',usage:{inputTokens:1,outputTokens:1,totalTokens:2}} as ModelResponse);
+    vi.mocked(callModel).mockResolvedValueOnce(payload(false,.7)).mockResolvedValueOnce(payload(true,.95));
+    const result = await runTieredJudge(reviewed,{...options,frontierModel:options.localModel});
+    expect(result.escalated).toBe(true);
+    expect(result.finalJudge.factuality).toBe(0);
+    expect(result.finalJudge.verdict).toBe('incorrect');
+    expect(result.finalJudge.confidence).toBeLessThanOrEqual(.5);
+  });
 });

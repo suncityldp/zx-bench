@@ -33,7 +33,7 @@ import { runTieredJudge, runJudgeEnsemble, computeJudgeScore, type JudgeOptions 
 import { getEvaluator } from './evaluators/index.js';
 import { prepareSandboxEvaluation } from './sandbox/workspace.js';
 import { checkSafetyRedLines } from './safety/index.js';
-import { getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount } from './scoring.js';
+import { getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, applyReviewedVerdict } from './scoring.js';
 
 export interface OrchestrateOptions {
   scenario: Scenario;
@@ -552,7 +552,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       result.judgeScore = judgeScore;
       // P1：记录 Judge 集成各次分数（runJudgeEnsemble 提供 runs），落库到 scoreHistory/runCount 供方差分析
       if (judgeResult?.runs && judgeResult.runs.length > 1) {
-        judgeScoreHistoryArr = judgeResult.runs.map((r) => computeJudgeScore(r));
+        judgeScoreHistoryArr = judgeResult.runs.map((r) => isHallucination && r.factuality != null ? Math.round(r.factuality * 100) : computeJudgeScore(r));
         ensembleRunCount = judgeResult.runs.length;
       }
 
@@ -568,7 +568,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       // 覆盖率感知合并：确定性评分器未测量轴（题集缺检查项）的权重让渡给 AI Judge 补判
       // 例：tool_cli 缺 tool 配置（coverage=0.15）→ det 仅按已测轴计权，其余由 Judge 语义判分
       const coverage = result.axisCoverage ?? 1;
-      const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage);
+      const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage, isHallucination ? .7 : undefined);
       result.totalScore = Math.round(result.totalScore * mixed.detW + judgeScore * mixed.judgeW);
     }
 
@@ -593,8 +593,8 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   // 当前 Judge 为纯 Chat Completions 调用（无 tools/检索能力），无法验证引用是否真实存在。
   // 因此当 Judge 模型无检索能力时，引用真伪升级人工复核（用户事后核实），不静默判分。
   if (scenario.dimension === 'hallucination_resistance') {
-    const hallucinationReqs = scenario.requirements as unknown as { citationTrap?: boolean };
-    if (hallucinationReqs?.citationTrap === true) {
+    const hallucinationReqs = scenario.requirements as unknown as { citationTrap?: boolean; verificationMode?: string; reviewedRubric?: unknown };
+    if (hallucinationReqs?.citationTrap === true || (hallucinationReqs?.reviewedRubric && hallucinationReqs.verificationMode === 'fictional_citation')) {
       const judgeHasSearch =
         judgeOptions?.localModel?.webSearchEnabled === true ||
         judgeOptions?.frontierModel?.webSearchEnabled === true;
@@ -620,6 +620,12 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     // 关键：deterministicScore 保存「原始」确定性分（不打折），供后续 rescore/judge 重算还原真实能力，
     // 打折只作用于 totalScore。否则重算时会把已打折的分数再次当作原始分，导致系统性压分。
     result.deterministicScore = detScore;
+  }
+  applyReviewedVerdict(result, finalJudge);
+  if (scenario.dimension === 'reasoning_math' && finalJudge && result.axisScores?.answer_accuracy != null &&
+      ((result.axisScores.answer_accuracy === 100) !== (finalJudge.patchCorrectness >= .5))) {
+    result.humanReviewRequired = true;
+    result.evidence = [...(result.evidence ?? []), 'MATH_JUDGE_DISPUTE: answer verification conflicts with semantic judgment'];
   }
   if (outputMetadata.incomplete) {
     result.evidence = [...(result.evidence || []), 'Sample marked as incomplete (truncated)'];
@@ -715,7 +721,7 @@ export function generateManifest(
       scenarioHash,
     },
     scorers: {
-      version: 'scorer-2026-08-03',
+      version: 'scorer-2026-09-08-reviewed',
       configHash: '',
     },
     models: [{

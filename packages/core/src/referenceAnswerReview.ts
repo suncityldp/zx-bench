@@ -13,11 +13,16 @@ export interface ReferenceAnswerRow {
 export function referenceAnswerWarnings(rows: ReferenceAnswerRow[]): string[] {
   const warnings = new Set<string>();
   for (const row of rows) {
-    if (!row.scenarioId || !mathIds.has(row.scenarioId)) continue;
-    const requiredVersion = restoredIds.has(row.scenarioId) ? '3.1.0' : '3.0.0';
+    if (!row.scenarioId) continue;
+    if (/^(?:FR|UB|TD|HP|GC|CI)-\d{3}$/.test(row.scenarioId)) {
+      if (row.scenarioVersion !== '5.0.0' || !['hallucination_v5','hallucination_resistance@hallucination_v5'].includes(row.graderVersion ?? '')) warnings.add(row.scenarioId + ': needs reviewed hallucination 5.0.0 / hallucination_v5');
+      continue;
+    }
+    if (!mathIds.has(row.scenarioId)) continue;
+    const requiredVersion = '3.2.0';
     if (row.scenarioVersion !== requiredVersion
-      || !['exact_answer_line@exact_answer_v3', 'exact_answer_v3'].includes(row.graderVersion ?? '')) {
-      warnings.add(`${row.scenarioId}: 旧版或未核验的题面/评分规则，需用 ${requiredVersion} 题面及 exact_answer_v3 重新评测（issue #7）`);
+      || !['exact_answer_line@exact_answer_v4', 'exact_answer_v4'].includes(row.graderVersion ?? '')) {
+      warnings.add(`${row.scenarioId}: 旧版或未核验的题面/评分规则，需用 ${requiredVersion} 题面及 exact_answer_v4 重新评测（issue #7）`);
     }
   }
   return [...warnings];
