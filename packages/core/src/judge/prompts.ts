@@ -175,18 +175,29 @@ IMPORTANT: You have NO web access and CANNOT verify whether an external URL/DOI/
 /** 默认系统提示词（向后兼容） */
 export const JUDGE_SYSTEM_PROMPT = JUDGE_SYSTEM_PROMPT_CODE;
 
+const STRICT_COMPACT_JSON_CONTRACT = `
+## Response Contract — highest priority
+
+Return exactly one valid JSON object that conforms to the schema above. Do not use a Markdown fence, prose before or after the JSON, or a reasoning trace. Keep evidence to at most 2 short items and notes to at most 1 short item. The entire response must fit within 800 tokens.`;
+
+const RETRY_COMPACT_JSON_CONTRACT = `
+## Retry mode — highest priority
+
+Your previous judgment was unusable. Re-evaluate the same input, but return only the required JSON object. Do not explain your reasoning. Prefer empty evidence/notes arrays over verbose text. The entire response must fit within 400 tokens.`;
+
 /** 根据维度选择系统提示词 */
-export function getJudgeSystemPrompt(dimension?: string): string {
+export function getJudgeSystemPrompt(dimension?: string, options: { compactRetry?: boolean } = {}): string {
+  let prompt: string;
   if (dimension === 'data_extraction' || dimension === 'structured_output') {
-    return JUDGE_SYSTEM_PROMPT_DATA_EXTRACTION;
+    prompt = JUDGE_SYSTEM_PROMPT_DATA_EXTRACTION;
+  } else if (dimension === 'bug_finding' || dimension === 'code_repair') {
+    prompt = JUDGE_SYSTEM_PROMPT_CODE;
+  } else if (dimension === 'hallucination_resistance') {
+    prompt = JUDGE_SYSTEM_PROMPT_HALLUCINATION;
+  } else {
+    prompt = JUDGE_SYSTEM_PROMPT_GENERAL;
   }
-  if (dimension === 'bug_finding' || dimension === 'code_repair') {
-    return JUDGE_SYSTEM_PROMPT_CODE;
-  }
-  if (dimension === 'hallucination_resistance') {
-    return JUDGE_SYSTEM_PROMPT_HALLUCINATION;
-  }
-  return JUDGE_SYSTEM_PROMPT_GENERAL;
+  return `${prompt}\n${STRICT_COMPACT_JSON_CONTRACT}${options.compactRetry ? `\n${RETRY_COMPACT_JSON_CONTRACT}` : ''}`;
 }
 
 /** 构建 Judge 用户提示词（结构化输入，GPT5.6 P2-3） */

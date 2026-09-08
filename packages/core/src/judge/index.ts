@@ -26,6 +26,13 @@ export interface JudgeOptions {
  * 供应商可通过模型 defaultParams.timeout 覆盖；未设置时收敛到 5 分钟。
  */
 const DEFAULT_JUDGE_TIMEOUT_MS = 300_000;
+const DEFAULT_JUDGE_MAX_TOKENS = 16_000;
+const MAX_COMPACT_RETRY_TOKENS = 32_000;
+
+interface JudgeCallOptions {
+  compactRetry?: boolean;
+  maxTokens?: number;
+}
 
 /** 判断是否需要升级到顶级模型（GPT5.6 P2-5） */
 export function shouldEscalate(
@@ -123,13 +130,28 @@ function resolveJudgeTemperature(model: ModelConfig): number {
   return model.defaultParams?.temperature ?? 0.1;
 }
 
+function resolveJudgeMaxTokens(model: ModelConfig, compactRetry: boolean): number {
+  const configured = model.defaultParams?.maxTokens;
+  const initial = typeof configured === 'number' && Number.isFinite(configured) && configured > 0
+    ? Math.floor(configured)
+    : DEFAULT_JUDGE_MAX_TOKENS;
+  if (!compactRetry || initial >= MAX_COMPACT_RETRY_TOKENS) return initial;
+  return Math.min(initial * 2, MAX_COMPACT_RETRY_TOKENS);
+}
+
+function isRetryableJudgeOutputFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes('JUDGE_OUTPUT_TRUNCATED') || message.includes('JUDGE_INVALID_JSON') || message.includes('JUDGE_INVALID_SCHEMA');
+}
+
 /** 调用 Judge 模型 */
 async function callJudgeModel(
   model: ModelConfig,
   input: JudgeInput,
+  options: JudgeCallOptions = {},
 ): Promise<JudgeResult> {
   const userPrompt = buildJudgeUserPrompt(input);
-  const systemPrompt = getJudgeSystemPrompt(input.dimension);
+  const systemPrompt = getJudgeSystemPrompt(input.dimension, { compactRetry: options.compactRetry });
   const startTime = Date.now();
 
   const response = await callModel({
@@ -140,7 +162,7 @@ async function callJudgeModel(
     // 的空闲超时保护，避免静默挂起。
     stream: true,
     params: {
-      maxTokens: model.defaultParams?.maxTokens ?? 8192,
+      maxTokens: options.maxTokens ?? resolveJudgeMaxTokens(model, Boolean(options.compactRetry)),
       temperature: resolveJudgeTemperature(model),
       timeout: model.defaultParams?.timeout ?? DEFAULT_JUDGE_TIMEOUT_MS,
     },
@@ -198,6 +220,27 @@ async function callJudgeModel(
   };
 }
 
+/**
+ * A malformed or truncated Judge response is a scoring-infrastructure failure,
+ * not candidate-model evidence. Retry it once with a larger budget and an even
+ * stricter compact-JSON instruction. Persistent failures are left for the
+ * existing human-triggered Judge-only recovery workflow.
+ */
+async function callJudgeModelWithCompactRetry(model: ModelConfig, input: JudgeInput): Promise<JudgeResult> {
+  try {
+    return await callJudgeModel(model, input);
+  } catch (initialError) {
+    if (!isRetryableJudgeOutputFailure(initialError)) throw initialError;
+    try {
+      return await callJudgeModel(model, input, { compactRetry: true });
+    } catch (retryError) {
+      const initialMessage = initialError instanceof Error ? initialError.message : String(initialError);
+      const retryMessage = retryError instanceof Error ? retryError.message : String(retryError);
+      throw new Error(`JUDGE_COMPACT_RETRY_FAILED: initial=${initialMessage}; retry=${retryMessage}`);
+    }
+  }
+}
+
 function toScore(val: unknown): number {
   const n = Number(val);
   return Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0;
@@ -242,7 +285,7 @@ export async function runTieredJudge(
   options: JudgeOptions,
 ): Promise<{ localJudge: JudgeResult; frontierJudge?: JudgeResult; finalJudge: JudgeResult; escalated: boolean }> {
   // 第一层：本地模型初判
-  const localJudge = await callJudgeModel(options.localModel, input);
+  const localJudge = await callJudgeModelWithCompactRetry(options.localModel, input);
 
   // 判断是否需要升级
   const needsEscalation = localJudge.needsEscalation
@@ -250,7 +293,7 @@ export async function runTieredJudge(
 
   if (needsEscalation && options.frontierModel) {
     // 第二层：顶级模型争议复核
-    const frontierJudge = await callJudgeModel(options.frontierModel, input);
+    const frontierJudge = await callJudgeModelWithCompactRetry(options.frontierModel, input);
     const finalJudge = mergeDecisions(localJudge, frontierJudge);
     return { localJudge, frontierJudge, finalJudge, escalated: true };
   }
