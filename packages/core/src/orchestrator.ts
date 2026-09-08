@@ -428,10 +428,12 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     result.axisEvidence?.compilation === 'verified' ||
     result.axisEvidence?.test_pass === 'verified';
 
-  const formatBlindspot =
+  const strictAnswerContract = scenario.grader === 'exact_answer_line'
+    && (scenario.scoring as unknown as Record<string, unknown>).comparisonMode === 'strict';
+  const formatBlindspot = !strictAnswerContract && (
     codeExtractionFailed ||  // 编程维度：代码提取失败（无真实执行）
     ((detScoreVeryLow && hasSubstantialOutput) && !hasVerifiedExecution) ||  // 有内容但极低分，且非真实执行失败
-    formatParseFailed;  // 结构化输出：JSON 解析失败
+    formatParseFailed);  // 结构化输出：JSON 解析失败
 
   // ===== Stage 6: 硬安全和权限验证（GPT5.6 P0-5 上下文感知） =====
   if (evalConfig.safetyCheckEnabled) {

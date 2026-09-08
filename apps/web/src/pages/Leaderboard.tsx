@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Table, Tag, Spin, Card, Empty, Tooltip, Segmented } from 'antd';
+import { Table, Tag, Spin, Card, Empty, Tooltip, Segmented, Alert } from 'antd';
 import { TrophyOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import ScoreFormulaTooltip from '../components/ScoreFormulaTooltip';
@@ -66,6 +66,7 @@ export default function Leaderboard() {
   const location = useLocation();
   const { lang } = useLanguage();
   const [data, setData] = useState<LeaderboardEntry[]>([]);
+  const [excludedRunCount, setExcludedRunCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [rankBy, setRankBy] = useState<string>('overall');
   const [scope, setScope] = useState<'latest' | 'best'>('latest');
@@ -75,7 +76,10 @@ export default function Leaderboard() {
     try {
       const res = await fetch(`/api/leaderboard?scope=${scope}`);
       const json = await res.json();
-      if (json.success) setData(json.data);
+      if (json.success) {
+        setData(json.data);
+        setExcludedRunCount(json.excludedRuns?.length ?? 0);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -92,7 +96,10 @@ export default function Leaderboard() {
   }, [location.key, scope, fetchData]);
 
   if (loading) return <div style={{ padding: 80, textAlign: 'center' }}><Spin size="large" /></div>;
-  if (!data || data.length === 0) return <Empty description={lang === 'en' ? 'No models with completed evaluations yet' : '暂无已完成评测的模型'} style={{ padding: 80 }} />;
+  const referenceWarning = excludedRunCount > 0 ? <Alert showIcon type="warning" style={{ marginBottom: 16 }}
+    message={lang === 'en' ? `${excludedRunCount} runs excluded after reference-answer review` : `${excludedRunCount} 轮评测因旧版答案或争议题暂不纳入榜单`}
+    description={lang === 'en' ? 'Original results remain in history. Rerun with the revised math dataset before comparing scores.' : '原始结果保留在评测历史中。请更新推理题库后重新评测，再参与分数比较。'} /> : null;
+  if (!data || data.length === 0) return <div>{referenceWarning}<Empty description={lang === 'en' ? 'No eligible completed evaluations yet' : '暂无可纳入榜单的已完成评测'} style={{ padding: 80 }} /></div>;
 
   // ===== 按维度排名：过滤出该维度有成绩的模型，并按维度均分排序 =====
   const isDimMode = rankBy !== 'overall';
@@ -246,6 +253,7 @@ export default function Leaderboard() {
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      {referenceWarning}
       <h2 className="swiss-page-title" style={{ marginBottom: 16, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         {lang === 'en' ? 'Model Leaderboard' : '模型排行榜'}
         <ScoreFormulaTooltip placement="bottom" icon={true} />

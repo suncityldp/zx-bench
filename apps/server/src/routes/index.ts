@@ -7,7 +7,7 @@ import { prisma } from '../index.js';
 import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult } from '@zxbench/types';
 import { generateId, generateRunId } from '@zxbench/utils';
 import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, getJudgeWeights, mixDeterministicJudge, getEvaluator } from '@zxbench/core';
-import { generateReport, generateCompareReport, analyzeRunQuality } from '@zxbench/core';
+import { generateReport, generateCompareReport, analyzeRunQuality, referenceAnswerWarnings, partitionReferenceAnswerRuns } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
 import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, LONG_TASK_WEIGHT, validateScenario } from '@zxbench/core';
 import { broadcastProgress, getLatestProgress } from '../ws/index.js';
@@ -268,9 +268,9 @@ async function getBenchmarkScopeTotal(
     for (const d of f) union.add(d);
   }
   if (anyFull || union.size === 0) {
-    return await prisma.scenarioDefinition.count();
+    return await prisma.scenarioDefinition.count({ where: { status: 'valid' } });
   }
-  return await prisma.scenarioDefinition.count({ where: { dimension: { in: [...union] } } });
+  return await prisma.scenarioDefinition.count({ where: { status: 'valid', dimension: { in: [...union] } } });
 }
 
 /** 解析 run.dimensionFilter 字符串为数组（容错） */
@@ -517,6 +517,7 @@ async function rejudgeSavedResult(
   if (saved.environmentError) return { status: 'skipped', judgeCalls: 0 };
   const savedEvidence = parseStoredJson<string[]>(saved.evidence, []);
   if (!savedEvidence.some((item) => item.includes('JUDGE_FAILED'))) return { status: 'skipped', judgeCalls: 0 };
+  if (referenceAnswerWarnings([saved]).length) throw new Error('REFERENCE_ANSWER_REVIEW: rerun with the revised math dataset; Judge recovery cannot repair an obsolete prompt');
   if (saved.deterministicScore == null) throw new Error('saved result has no deterministicScore');
 
   const scenarioRow = await prisma.scenarioDefinition.findUnique({ where: { id: saved.scenarioId } });
@@ -555,9 +556,11 @@ async function rejudgeSavedResult(
     || (deterministic.evidence || []).some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
   const hasVerifiedExecution = recomputedAxisEvidence.compilation === 'verified'
     || recomputedAxisEvidence.test_pass === 'verified';
-  const formatBlindspot = codeExtractionFailed
+  const strictAnswerContract = scenario.grader === 'exact_answer_line'
+    && (scenario.scoring as unknown as Record<string, unknown>).comparisonMode === 'strict';
+  const formatBlindspot = !strictAnswerContract && (codeExtractionFailed
     || ((deterministicScore < 25 && saved.modelOutput.trim().length > 20) && !hasVerifiedExecution)
-    || (saved.dimension === 'structured_output' && !saved.formatParseSuccess);
+    || (saved.dimension === 'structured_output' && !saved.formatParseSuccess));
 
   const evalConfig = parseStoredJson<EvalRunConfig>(saved.evalRun.config, {} as EvalRunConfig);
   if (!evalConfig.judgeEnabled || !evalConfig.judgeModelConfigId) {
@@ -1023,6 +1026,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         summary: run.summary ? JSON.parse(run.summary) : null,
         modelConfig: deserializeModel(run.modelConfig),
         results: run.results.map(deserializeResult),
+        referenceAnswerWarnings: referenceAnswerWarnings(run.results),
       },
     };
   });
@@ -1127,6 +1131,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         summary: run.summary ? JSON.parse(run.summary) : null,
         results: deserialized,
         qualityReport: analyzeRunQuality(results, results.length),
+        referenceAnswerWarnings: referenceAnswerWarnings(allResults),
         evalStartedAt,
         evalFinishedAt,
       },
@@ -2033,6 +2038,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         tags: s.tags ? JSON.stringify(s.tags) : null,
         scenarioVersion: String(s.scenarioVersion || '1.0.0'),
         scenarioHash: String(s.scenarioHash || ''),
+        goldSource: s.goldSource ? String(s.goldSource) : null,
+        reviewStatus: String(s.reviewStatus || 'unreviewed'),
       };
       // Phase 1 契约校验（宽松模式：不拒绝导入，仅返回报告供作者修复）
       const contractReport = validateScenario({
@@ -3133,11 +3140,16 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/leaderboard', async (request) => {
     // scope：latest（默认，单次最新 run 综合分）| best（跨 run 按题取最优，可选）
     const scope = ((request.query as { scope?: string }).scope) === 'best' ? 'best' : 'latest';
-    const completedRuns = await prisma.evalRun.findMany({
+    const candidateRuns = await prisma.evalRun.findMany({
       where: { status: 'completed' },
-      include: { modelConfig: true },
+      include: { modelConfig: true, results: { select: {
+        scenarioId: true, scenarioVersion: true, graderVersion: true,
+      } } },
       orderBy: { createdAt: 'desc' },
     });
+    // Reject incompatible runs before both cached-summary and best-of-run paths.
+    // Original results remain available in history; do not turn gold errors into model failures.
+    const { eligible: completedRuns, excluded: excludedRuns } = partitionReferenceAnswerRuns(candidateRuns);
 
     // 按 modelConfigId 分组
     const modelGroups = new Map<string, { modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; runIds: string[]; createdAt: Date; dimensionFilters: (string[] | null)[]; latestRunId: string; latestDimensionFilter: string[] | null; latestSummary: { averageScore?: number; dimensionAverages?: Record<string, number>; passCount?: number; safetyRedLineCount?: number; completedScenarios?: number; totalInputTokens?: number; totalOutputTokens?: number } | null }>();
@@ -3284,7 +3296,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
     leaderboard.sort((a, b) => b.averageScore - a.averageScore);
 
-    return { success: true, scope, data: leaderboard };
+    return { success: true, scope, data: leaderboard, excludedRuns };
   });
 
   /**
@@ -3508,6 +3520,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     });
     if (!scenarioRow) {
       return reply.status(404).send({ success: false, error: 'Scenario not found' });
+    }
+    if (scenarioRow.status !== 'valid') {
+      return reply.status(409).send({ success: false, error: 'Scenario is not valid for evaluation; resolve the reference-answer review first' });
     }
 
     // 构建模型配置

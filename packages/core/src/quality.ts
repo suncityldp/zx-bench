@@ -1,6 +1,9 @@
+import { referenceAnswerWarnings } from './referenceAnswerReview.js';
 /** Diagnose saved rows, not stale in-memory attempts or display metadata. */
 export interface QualityRow {
   scenarioId?: string;
+  scenarioVersion?: string;
+  graderVersion?: string;
   totalScore: number;
   judgeScore: number | null;
   modelOutput: string | null;
@@ -13,6 +16,8 @@ export interface QualityRow {
 export function analyzeRunQuality(results: QualityRow[], totalScenarios: number) {
   const valid = results.filter(r => !r.environmentError);
   const issues: string[] = [];
+  const referenceIssues = referenceAnswerWarnings(results);
+  issues.push(...referenceIssues);
   const empty = valid.filter(r => !r.modelOutput?.trim());
   const judgeZero = valid.filter(r => r.judgeScore === 0);
   const failed = valid.filter(r => {
@@ -32,10 +37,11 @@ export function analyzeRunQuality(results: QualityRow[], totalScenarios: number)
   if (length.length) issues.push(`输出截断(finish_reason=length): ${length.length} 题 — ${length.map(r => r.scenarioId || 'unknown').slice(0, 10).join(', ')}`);
   if (zeroDet.length) issues.push(`确定性评分为 0(Judge 未参与): ${zeroDet.length} 题`);
   const threshold = Math.max(5, Math.floor(valid.length * 0.05));
-  const grade: 'good' | 'warning' | 'critical' = failed.length > 0 || empty.length > threshold || length.length > threshold
+  const grade: 'good' | 'warning' | 'critical' = referenceIssues.length > 0 || failed.length > 0 || empty.length > threshold || length.length > threshold
     ? 'critical' : issues.length ? 'warning' : 'good';
   return { grade, issues, emptyOutputCount: empty.length, judgeZeroCount: judgeZero.length,
     lengthFinishCount: length.length, zeroDeterministCount: zeroDet.length,
-    judgeFailedCount: failed.length, scoringComplete: failed.length === 0,
+    judgeFailedCount: failed.length, scoringComplete: failed.length === 0 && referenceIssues.length === 0,
+    referenceAnswerIssueCount: referenceIssues.length,
     environmentErrorCount: results.length - valid.length };
 }

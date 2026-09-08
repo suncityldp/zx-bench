@@ -7,15 +7,17 @@ import { exactAnswerLineEvaluator } from './exactAnswerLine.js';
 const scenarios = JSON.parse(readFileSync(new URL('../../../../data/scenarios/benchmark.json', import.meta.url), 'utf8')) as Scenario[];
 const meta = { finishReason: 'stop', truncated: false, incomplete: false } as OutputMetadata;
 describe('September scenario defects', () => {
-  it('makes the tolerance unit explicit for all eight numeric math scenarios', async () => {
+  it('requires exact normalized values for all eight numeric math scenarios', async () => {
     const numeric = scenarios.filter(s => s.dimension === 'reasoning_math' && s.grader === 'exact_answer_line' && typeof (s.requirements as any)?.answer === 'number');
     expect(numeric).toHaveLength(8);
     for (const s of numeric) {
       expect((s.scoring as any).toleranceMode).toBe('absolute');
+      expect((s.scoring as any).tolerance).toBe(0);
       expect(s.scenarioHash).toBe(hashScenarioShort(s));
     }
     const tax = scenarios.find(s => s.id === 'RM-CN-032')!;
-    expect((await exactAnswerLineEvaluator.evaluate(tax, 'ANSWER: 1091元', meta)).axisScores?.answer_accuracy).toBe(100);
+    expect((await exactAnswerLineEvaluator.evaluate(tax, 'ANSWER: 1,090.00元', meta)).axisScores?.answer_accuracy).toBe(100);
+    expect((await exactAnswerLineEvaluator.evaluate(tax, 'ANSWER: 1091元', meta)).axisScores?.answer_accuracy).toBe(0);
     expect((await exactAnswerLineEvaluator.evaluate(tax, 'ANSWER: 1092元', meta)).axisScores?.answer_accuracy).toBe(0);
     const legacy = { ...tax, scoring: { type: 'exact_answer_line', tolerance: 0.01 } } as Scenario;
     expect((await exactAnswerLineEvaluator.evaluate(legacy, 'ANSWER: 1092元', meta)).axisScores?.answer_accuracy).toBe(100);
@@ -45,7 +47,7 @@ describe('September scenario defects', () => {
   it('versions each changed contract and gives it a reproducible hash', () => {
     for (const id of ['RM-CN-032', 'DE-CN-004', 'CP-L4-RS-001']) {
       const s = scenarios.find(s => s.id === id)!;
-      expect(s.scenarioVersion).toBe(id === 'CP-L4-RS-001' ? '1.2.1' : '2.0.1');
+      expect(s.scenarioVersion).toBe(id === 'CP-L4-RS-001' ? '1.2.1' : id === 'RM-CN-032' ? '3.0.0' : '2.0.1');
       expect(s.scenarioHash).toBe(hashScenarioShort(s));
     }
   });

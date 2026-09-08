@@ -10,7 +10,7 @@ import { formatValidScore } from './responseState.js';
 
 export const exactAnswerLineEvaluator: Evaluator = {
   name: 'exact_answer_line',
-  version: 'exact_answer_v2',
+  version: 'exact_answer_v3',
 
   async evaluate(
     scenario: Scenario,
@@ -62,7 +62,10 @@ export const exactAnswerLineEvaluator: Evaluator = {
     }
 
     // ===== 4. 从输出中提取答案 =====
-    const extractedAnswer = extractFinalAnswer(modelOutput);
+    const strict = scoring.comparisonMode === 'strict';
+    // Versioned benchmark contracts keep the whole final line (dates and multi-field
+    // answers must never be truncated by parseFloat or a preceding intermediate '=').
+    const extractedAnswer = strict ? extractAnswerLine(modelOutput) : extractFinalAnswer(modelOutput);
     if (extractedAnswer === null) {
       axisScores.answer_accuracy = 0;
       axisEvidence.answer_accuracy = 'rule';
@@ -74,7 +77,11 @@ export const exactAnswerLineEvaluator: Evaluator = {
     evidence.push(`Extracted answer: ${JSON.stringify(extractedAnswer)}`);
 
     // ===== 5. 比较答案（移除 reasoning_valid 伪轴：它只测截断、不测推理） =====
-    const accuracy = compareAnswer(extractedAnswer, expectedAnswer, tolerance, toleranceMode);
+    const variants = Array.isArray(requirements.acceptedVariants)
+      ? requirements.acceptedVariants.filter((v): v is string => typeof v === 'string') : [];
+    const accuracy = strict
+      ? Math.max(...[expectedAnswer, ...variants].map(v => compareStrictAnswer(extractedAnswer, v, scoring.answerUnit)))
+      : compareAnswer(extractedAnswer, expectedAnswer, tolerance, toleranceMode);
     axisScores.answer_accuracy = accuracy;
     axisEvidence.answer_accuracy = 'rule';
 
@@ -101,6 +108,64 @@ export const exactAnswerLineEvaluator: Evaluator = {
     };
   },
 };
+
+/** Read only the last nonempty line, as required by the versioned prompt contract. */
+function extractAnswerLine(text: string): string | null {
+  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+  const match = lines.at(-1)?.match(/^[ \t]*(?:\*\*)?(?:ANSWER|最终答案|答案)(?:\*\*)?[ \t]*[:：][ \t]*(.*)$/i);
+  return match ? match[1].trim().replace(/\*\*/g, '') : null;
+}
+
+function normalizeAnswer(text: string): string {
+  return text.normalize('NFKC').replace(/\*\*/g, '').replace(/\s+/g, '')
+    .replace(/，/g, ',').replace(/[;；]/g, ',').replace(/[。.,]+$/, '')
+    // Only remove syntactically valid thousands separators, never field delimiters.
+    .replace(/\d{1,3}(?:,\d{3})+(?:\.\d+)?/g, m => m.replace(/,/g, ''));
+}
+
+/** Exact decimal identity without parsing the value as an IEEE-754 Number.
+ * Canonical form is signed significant digits plus a base-10 exponent. Unit
+ * conversion shifts the exponent, so it introduces no floating-point error.
+ */
+function canonicalDecimal(text: string, decimalShift = 0): string | null {
+  if (text.length > 4096) return null;
+  const match = text.match(/^([+-]?)(\d+(?:\.\d*)?|\.\d+)(?:[eE]([+-]?\d+))?$/);
+  if (!match || (match[3] && match[3].replace(/^[+-]/, '').length > 6)) return null;
+  const [whole, fraction = ''] = match[2].split('.');
+  let digits = (whole + fraction).replace(/^0+/, '');
+  if (!digits) return '0';
+  const trailingZeros = digits.length - digits.replace(/0+$/, '').length;
+  digits = digits.slice(0, digits.length - trailingZeros);
+  // Only the bounded exponent is converted to Number; answer digits never are.
+  const exponent = Number(match[3] || 0) - fraction.length + trailingZeros + decimalShift;
+  return `${match[1] === '-' ? '-' : ''}${digits}e${exponent}`;
+}
+
+/**
+ * Compare the requested labelled format and every numeric component independently.
+ * All components must pass. Text similarity is never evidence of arithmetic correctness.
+ * Numeric values must be identical. Precision/rounding belongs in the prompt
+ * and gold, not in a scoring tolerance; alternative wording is an explicit gold variant.
+ */
+function compareStrictAnswer(extracted: string | number, expected: unknown, unit?: unknown): number {
+  const actual = normalizeAnswer(String(extracted));
+  if (typeof expected === 'number') {
+    const m = actual.match(/^[¥￥]?([-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)(万|亿)?(元|种|次|个|件|%)?$/);
+    if (!m) return 0;
+    if (typeof unit === 'string' && ((m[3] && m[3] !== unit) || (m[2] && unit !== '元'))) return 0;
+    const shift = m[2] === '万' ? 4 : m[2] === '亿' ? 8 : 0;
+    const value = canonicalDecimal(m[1], shift);
+    return value !== null && value === canonicalDecimal(String(expected)) ? 100 : 0;
+  }
+  if (typeof expected !== 'string') return 0;
+  const target = normalizeAnswer(expected);
+  const numberPattern = /(?<![A-Za-z\d.])[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/g;
+  const values = (s: string) => [...s.matchAll(numberPattern)].map(m => canonicalDecimal(m[0]));
+  const actualValues = values(actual), expectedValues = values(target);
+  if (actual.replace(numberPattern, '#') !== target.replace(numberPattern, '#')
+    || actualValues.length !== expectedValues.length) return 0;
+  return actualValues.every((v, i) => v !== null && v === expectedValues[i]) ? 100 : 0;
+}
 
 // ===== 答案提取 =====
 

@@ -17,6 +17,7 @@ interface GroupResultsData {
   summary: { averageScore: number; dimensionAverages: Record<string, number> } | null;
   results: ScenarioResult[];
   qualityReport?: { grade: 'good' | 'warning' | 'critical'; issues: string[]; judgeFailedCount: number };
+  referenceAnswerWarnings?: string[];
   evalStartedAt: string | null;
   evalFinishedAt: string | null;
 }
@@ -237,6 +238,10 @@ export default function EvalDetail() {
         </Descriptions>
       </div>
 
+      {!!data.referenceAnswerWarnings?.length && <Alert showIcon type="warning" style={{ marginBottom: 16 }}
+        message={lang === 'en' ? 'Reference-answer review: historical scores are not comparable' : '参考答案复核：此历史成绩不可与新版直接比较'}
+        description={<>{lang === 'en' ? 'Original records are preserved. These results are excluded from the current leaderboard.' : '原始分数保留供审计，此类旧结果已暂停参与当前榜单。'}
+          {data.referenceAnswerWarnings.map(issue => <div key={issue}>{issue}</div>)}</>} />}
       {data.qualityReport && data.qualityReport.grade !== 'good' && (
         <Alert
           showIcon

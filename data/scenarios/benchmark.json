@@ -30939,16 +30939,18 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某电商平台的618促销活动规则如下：\n- 满200减30\n- 满500减80\n- 满1000减200\n- 以上优惠可叠加使用\n\n小明要购买以下商品：\n- 商品A：¥399\n- 商品B：¥259\n- 商品C：¥189\n\n请问小明最少需要支付多少钱？请写出计算过程。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "某电商平台的618促销活动规则如下：\n- 满200减30\n- 满500减80\n- 满1000减200\n- 以上优惠可叠加使用\n\n小明要购买以下商品：\n- 商品A：¥399\n- 商品B：¥259\n- 商品C：¥189\n\n请问小明最少需要支付多少钱？请写出计算过程。\n\n每档满减优惠券最多使用一次；各档门槛均按原始商品合计金额判断，不重复凑单、不加购。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.01,
-   "toleranceMode": "absolute"
+   "tolerance": 0,
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "元"
   },
   "requirements": {
    "answer": 737,
@@ -30959,14 +30961,14 @@
    "financial",
    "discount-calculation"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "583b5bdbe1bd2a2c",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "d3b493d8bed122cb",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -30980,15 +30982,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某公司采购了一批办公设备，发票信息如下：\n- 笔记本电脑 10台，含税单价 ¥8,999.00\n- 打印机 5台，含税单价 ¥2,259.00\n- 投影仪 2台，含税单价 ¥6,799.00\n\n增值税税率均为13%。\n\n请计算：\n1. 总含税金额\n2. 总不含税金额\n3. 总增值税额\n\n最后一行输出格式：ANSWER: 含税总额[X]元，不含税总额[Y]元，增值税额[Z]元",
+  "promptTemplate": "某公司采购了一批办公设备，发票信息如下：\n- 笔记本电脑 10台，含税单价 ¥8,999.00\n- 打印机 5台，含税单价 ¥2,259.00\n- 投影仪 2台，含税单价 ¥6,799.00\n\n增值税税率均为13%。\n\n请计算：\n1. 总含税金额\n2. 总不含税金额\n3. 总增值税额\n\n中间计算不舍入，各项最终金额按元四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 含税总额[X]元，不含税总额[Y]元，增值税额[Z]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "含税总额114883元，不含税总额101666.37元，增值税额13216.63元"
@@ -30998,14 +31002,14 @@
    "financial",
    "tax-calculation"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "6d604e0503649903",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "3ec55c408660f2de",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31019,16 +31023,18 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "一家中国公司从美国进口原材料：\n- 采购量：5000磅（pounds）\n- 单价：$2.50/磅\n- 汇率：1美元 = 7.24人民币\n- 关税税率：8%\n- 运输费用：¥3,500人民币\n\n请计算总成本（人民币）。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "一家中国公司从美国进口原材料：\n- 采购量：5000磅（pounds）\n- 单价：$2.50/磅\n- 汇率：1美元 = 7.24人民币\n- 关税税率：8%\n- 运输费用：¥3,500人民币\n\n请计算总成本（人民币）。\n\n本题按简化成本模型计算：关税只按采购价折合人民币金额的8%计算，运输费用最后单独相加，不计其他税费。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1,
-   "toleranceMode": "absolute"
+   "tolerance": 0,
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "元"
   },
   "requirements": {
    "answer": 101240,
@@ -31039,14 +31045,14 @@
    "unit-conversion",
    "international-trade"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "7ae0965564f0c4e2",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "6b7b4137ebd59925",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31060,19 +31066,21 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "客户要求报价，条件如下：\n- 产品单价：¥500/件\n- 数量：1000件\n- 数量折扣：超过500件部分打9折，超过800件部分打85折\n- 会员折扣：在折扣价基础上再打95折\n- 运费：订单金额超过50万免运费，否则运费3000元\n- 增值税：13%\n- 早付折扣：10天内付款再减2%\n\n请计算客户10天内付款的最终金额。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "客户要求报价，条件如下：\n- 产品未税单价：¥500/件\n- 数量：1000件\n- 数量折扣（分段、不叠加）：第1–500件原价，第501–800件打9折，第801–1000件打85折\n- 会员折扣：在折扣价基础上再打95折\n- 运费：以会员折扣后的未税商品总额判断，严格超过500000元免运费，否则收未税运费3000元\n- 增值税：商品金额与运费合计后，统一乘1.13计税\n- 早付折扣：10天内付款，对上述含税总额（含运费）再减2%\n\n请计算客户10天内付款的最终金额。\n\n以上为本题约定的算术规则，不考虑其他税务或会计处理。所有中间结果不舍入，最终金额四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1,
-   "toleranceMode": "absolute"
+   "tolerance": 0,
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "元"
   },
   "requirements": {
-   "answer": 442717
+   "answer": 497776.3
   },
   "tags": [
    "chinese",
@@ -31080,14 +31088,14 @@
    "complex-calculation",
    "adversarial"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "50a251a06da37b38",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "b47759b10387f284",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31101,18 +31109,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "小王在银行存入一笔定期存款：\n- 本金：¥50,000\n- 存期：3年\n- 年利率：2.75%（单利）\n- 利息税：免征\n\n请计算：\n1. 到期总利息\n2. 到期本息合计\n3. 如果改为每年自动转存（复利），3年后本息合计是多少？\n\n最后一行输出格式：ANSWER: 单利本息[X]元，复利本息[Y]元",
+  "promptTemplate": "小王在银行存入一笔定期存款：\n- 本金：¥50,000\n- 存期：3年\n- 年利率：2.75%（单利）\n- 利息税：免征\n\n请计算：\n1. 到期总利息\n2. 到期本息合计\n3. 如果改为每年自动转存（复利），3年后本息合计是多少？\n\n每年自动转存时本金和利息一并计入下一年本金，中间不舍入；最终各金额四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 单利利息[I]元，单利本息[X]元，复利本息[Y]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "单利本息54125元，复利本息54269元"
+   "answer": "单利利息4125元，单利本息54125元，复利本息54239.48元"
   },
   "tags": [
    "chinese",
@@ -31120,14 +31130,14 @@
    "interest",
    "compound"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "033f9ddb3f879f14",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "ce4c679876de9eee",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31141,15 +31151,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "小李贷款买房：\n- 贷款总额：¥1,000,000\n- 贷款期限：30年（360个月）\n- 年利率：4.2%\n- 还款方式：等额本息\n\n等额本息月供公式：M = P × r × (1+r)^n / [(1+r)^n - 1]\n其中 P=本金, r=月利率, n=总月数\n\n请计算：\n1. 每月月供（取整到元）\n2. 总还款额\n3. 总利息\n\n最后一行输出格式：ANSWER: 月供[X]元，总还款[Y]元，总利息[Z]元",
+  "promptTemplate": "小李贷款买房：\n- 贷款总额：¥1,000,000\n- 贷款期限：30年（360个月）\n- 年利率：4.2%\n- 还款方式：等额本息\n\n等额本息月供公式：M = P × r × (1+r)^n / [(1+r)^n - 1]\n其中 P=本金, r=月利率, n=总月数\n\n请计算：\n1. 每月月供（取整到元）\n2. 总还款额\n3. 总利息\n\n本题为简化测算：先将公式算得的月供四舍五入到整数元，再用该整数月供乘360计算总还款额，总利息为总还款额减本金。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 月供[X]元，总还款[Y]元，总利息[Z]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 5
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "月供4890元，总还款1760400元，总利息760400元"
@@ -31160,14 +31172,14 @@
    "mortgage",
    "annuity"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "8237aa9f574e3b88",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "00dde2bfb5ba151d",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31181,18 +31193,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某人有100万元闲置资金，考虑以下三个投资方案：\n\n方案A：购买3年期国债，年利率3.0%，到期一次还本付息\n方案B：投资某基金，第一年收益12%，第二年亏损5%，第三年收益8%\n方案C：存入银行3年定期，年利率2.75%，每年自动转存（复利）\n\n请计算：\n1. 三个方案3年后的总金额\n2. 方案B的年化收益率（几何平均）\n3. 哪个方案收益最高？\n\n最后一行输出格式：ANSWER: A=[X]万，B=[Y]万，C=[Z]万，最高=[W]",
+  "promptTemplate": "某人有100万元闲置资金，考虑以下三个投资方案：\n\n方案A：购买3年期国债，年利率3.0%（单利），到期一次还本付息\n方案B：投资某基金，第一年收益12%，第二年亏损5%，第三年收益8%\n方案C：存入银行3年定期，年利率2.75%，每年自动转存（复利）\n\n请计算：\n1. 三个方案3年后的总金额\n2. 方案B的年化收益率（几何平均）\n3. 哪个方案收益最高？\n\n按万元输出金额，年化收益率按百分数输出；中间不舍入，最后均四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: A=[X]万，B=[Y]万，C=[Z]万，B年化=[R]%，最高=[W]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.5
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "A=109万，B=114.24万，C=108.47万，最高=B"
+   "answer": "A=109万，B=114.91万，C=108.48万，B年化=4.74%，最高=B"
   },
   "tags": [
    "chinese",
@@ -31200,14 +31214,14 @@
    "investment",
    "comparison"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "f1e0bf3d765aeb86",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "497ad1dd63ef8a1b",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31221,18 +31235,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "一个软件开发项目有以下任务和依赖关系：\n- 需求分析：5个工作日\n- UI设计：8个工作日（需求分析完成后才能开始）\n- 后端开发：15个工作日（需求分析完成后才能开始）\n- 前端开发：12个工作日（UI设计完成后才能开始）\n- 联调测试：7个工作日（前端和后端都完成后才能开始）\n- 上线部署：2个工作日（联调测试完成后）\n\n项目从2024年3月4日（周一）开始，周末不工作。\n请问项目最早在哪天可以上线？\n\n最后一行输出格式：ANSWER: YYYY年MM月DD日",
+  "promptTemplate": "一个软件开发项目有以下任务和依赖关系：\n- 需求分析：5个工作日\n- UI设计：8个工作日（需求分析完成后才能开始）\n- 后端开发：15个工作日（需求分析完成后才能开始）\n- 前端开发：12个工作日（UI设计完成后才能开始）\n- 联调测试：7个工作日（前端和后端都完成后才能开始）\n- 上线部署：2个工作日（联调测试完成后）\n\n项目从2024年3月4日（周一）开始，周末不工作。\n请问项目最早在哪天可以上线？\n\n3月4日计作第1个工作日；任务在最后一个工作日结束时完成，后续任务从下一个工作日开始；除周末外不考虑其他节假日。上线日期指部署完成的日期。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: YYYY年MM月DD日",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "2024年04月19日"
+   "answer": "2024年04月18日"
   },
   "tags": [
    "chinese",
@@ -31240,14 +31256,14 @@
    "project-management",
    "critical-path"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "b685e911933d3679",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "0e7b520ccc5738bb",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31261,15 +31277,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某仓库的A商品数据：\n- 日均销量：50件\n- 最大日销量：80件\n- 供货周期：7天\n- 安全系数：1.5（用于计算安全库存）\n- 当前库存：200件\n- 已下单未到货：100件（预计3天后到达）\n\n安全库存公式：安全库存 = (最大日销量 - 日均销量) × 供货周期 × 安全系数\n再订货点 = 日均销量 × 供货周期 + 安全库存\n\n请计算：\n1. 安全库存\n2. 再订货点\n3. 当前可用库存能支撑多少天\n\n最后一行输出格式：ANSWER: 安全库存[X]件，再订货点[Y]件，可支撑[Z]天",
+  "promptTemplate": "某仓库的A商品数据：\n- 日均销量：50件\n- 最大日销量：80件\n- 供货周期：7天\n- 安全系数：1.5（用于计算安全库存）\n- 当前库存：200件\n- 已下单未到货：100件（预计3天后到达）\n\n安全库存公式：安全库存 = (最大日销量 - 日均销量) × 供货周期 × 安全系数\n再订货点 = 日均销量 × 供货周期 + 安全库存\n\n请计算：\n1. 安全库存\n2. 再订货点\n3. 当前可用库存能支撑多少天\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 安全库存[X]件，再订货点[Y]件，可支撑[Z]天",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "安全库存315件，再订货点665件，可支撑4天"
@@ -31280,14 +31298,14 @@
    "supply-chain",
    "formula"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "140d9721d98ac493",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "1173b1ff7fdd191d",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31301,15 +31319,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某客服中心需要7×24小时运营：\n- 每天分3个班次：早班(8:00-16:00)、中班(16:00-24:00)、晚班(0:00-8:00)\n- 每个班次需要至少5人\n- 每人每周工作5天，休息2天\n- 每人不能连续工作超过6天\n\n请计算：\n1. 每天至少需要多少人同时在岗？\n2. 考虑轮休，至少需要多少名员工？\n3. 如果允许加班（每周最多加班1天），最少需要多少人？\n\n最后一行输出格式：ANSWER: 每日在岗[X]人，最少员工[Y]人，含加班最少[Z]人",
+  "promptTemplate": "某客服中心需要7×24小时运营：\n- 每天分3个班次：早班(8:00-16:00)、中班(16:00-24:00)、晚班(0:00-8:00)\n- 每个班次需要至少5人\n- 每人每周工作5天，休息2天\n- 每人不能连续工作超过6天\n\n请计算：\n1. 每天三个班次合计至少需要多少人次在岗？（每人每天最多上一个班）\n2. 考虑轮休，至少需要多少名员工？\n3. 如果允许加班（每周最多加班1天），最少需要多少人？\n\n假定员工均可胜任任一班次，忽略换班间隔限制。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 每日在岗[X]人，最少员工[Y]人，含加班最少[Z]人",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "每日在岗15人，最少员工21人，含加班最少18人"
@@ -31320,14 +31340,14 @@
    "shift-work",
    "staffing"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "3c7b1aa17fa76c75",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "23472249c3a6a2c7",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31341,18 +31361,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "一个快递员需要从仓库出发，给5个小区送快递后返回仓库。\n各点之间的距离（公里）：\n\n仓库→A小区：3km\n仓库→B小区：5km\n仓库→C小区：4km\nA→B：2km\nA→C：6km\nA→D：4km\nB→C：3km\nB→E：7km\nC→D：2km\nC→E：5km\nD→E：3km\nD→仓库：6km\nE→仓库：4km\n\n请使用贪心策略（每次选最近的未访问点），从仓库出发，给出最短路线和总距离。\n\n最后一行输出格式：ANSWER: 路线=[顺序]，总距离=[X]km",
+  "promptTemplate": "一个快递员需要从仓库出发，给5个小区送快递后返回仓库。\n已知双向直达道路的距离（公里，未列出的道路不可直达）：\n\n仓库→A小区：3km\n仓库→B小区：5km\n仓库→C小区：4km\nA→B：2km\nA→C：6km\nA→D：4km\nB→C：3km\nB→E：7km\nC→D：2km\nC→E：5km\nD→E：3km\nD→仓库：6km\nE→仓库：4km\n\n请使用贪心策略（每次选最近的未访问点），从仓库出发，给出该贪心策略的路线和总距离（不要求证明全局最优）。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 路线=[顺序]，总距离=[X]km",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "路线=仓库-A-B-C-D-E-仓库，总距离=23km"
+   "answer": "路线=仓库-A-B-C-D-E-仓库，总距离=17km"
   },
   "tags": [
    "chinese",
@@ -31360,14 +31382,14 @@
    "greedy-algorithm",
    "routing"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "6cefa692e3b6ee65",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "0d25d4a8638db7de",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31381,18 +31403,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某车间有2台机器（M1、M2），需要加工5个工件。\n每个工件必须先在M1加工，再在M2加工：\n\n| 工件 | M1时间(小时) | M2时间(小时) |\n|------|-------------|-------------|\n| J1   | 3           | 6           |\n| J2   | 5           | 2           |\n| J3   | 1           | 2           |\n| J4   | 6           | 4           |\n| J5   | 7           | 1           |\n\n使用 Johnson 算法确定最优加工顺序，使总完工时间最短。\n\nJohnson算法规则：\n- 找所有工件中M1和M2的最小加工时间\n- 若最小值在M1上，该工件排最前\n- 若最小值在M2上，该工件排最后\n- 重复直到排完\n\n最后一行输出格式：ANSWER: 顺序=[工件序列]，最短完工时间=[X]小时",
+  "promptTemplate": "某车间有2台机器（M1、M2），需要加工5个工件。\n每个工件必须先在M1加工，再在M2加工：\n\n| 工件 | M1时间(小时) | M2时间(小时) |\n|------|-------------|-------------|\n| J1   | 3           | 6           |\n| J2   | 5           | 2           |\n| J3   | 1           | 2           |\n| J4   | 6           | 4           |\n| J5   | 7           | 1           |\n\n使用 Johnson 算法确定最优加工顺序，使总完工时间最短。\n\nJohnson算法规则：\n- 找所有工件中M1和M2的最小加工时间\n- 若最小值在M1上，该工件排最前\n- 若最小值在M2上，该工件排最后\n- 重复直到排完\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 顺序=[工件序列]，最短完工时间=[X]小时",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "顺序=J3-J1-J4-J2-J5，最短完工时间=28小时"
+   "answer": "顺序=J3-J1-J4-J2-J5，最短完工时间=23小时"
   },
   "tags": [
    "chinese",
@@ -31400,14 +31424,14 @@
    "johnson-algorithm",
    "scheduling"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "f2ea87a447738f44",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "e73a499e537835fe",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31419,20 +31443,23 @@
   "difficulty": "medium",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "ambiguous",
   "tier": "public_dev",
-  "promptTemplate": "某仓库有10种商品，年消耗金额如下：\n\n| 商品 | 年消耗金额(万元) |\n|------|----------------|\n| A    | 500            |\n| B    | 300            |\n| C    | 200            |\n| D    | 80             |\n| E    | 60             |\n| F    | 40             |\n| G    | 30             |\n| H    | 20             |\n| I    | 15             |\n| J    | 5              |\n\nABC分类规则：\n- A类：累计占比前70%\n- B类：累计占比70%-90%\n- C类：累计占比90%-100%\n\n请计算各商品的累计占比并进行分类。\n\n最后一行输出格式：ANSWER: A类=[商品]，B类=[商品]，C类=[商品]",
+  "promptTemplate": "某仓库有10种商品，年消耗金额如下：\n\n| 商品 | 年消耗金额(万元) |\n|------|----------------|\n| A    | 500            |\n| B    | 300            |\n| C    | 200            |\n| D    | 80             |\n| E    | 60             |\n| F    | 40             |\n| G    | 30             |\n| H    | 20             |\n| I    | 15             |\n| J    | 5              |\n\nABC分类规则：\n- A类：累计占比前70%\n- B类：累计占比70%-90%\n- C类：累计占比90%-100%\n\n请计算各商品的累计占比并进行分类。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: A类=[商品]，B类=[商品]，C类=[商品]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "A类=A,B,C，B类=D,E,F，C类=G,H,I,J"
+   "answer": "A类=A,B,C，B类=D,E,F，C类=G,H,I,J",
+   "reviewNote": "ABC累计占比跨越70%/90%阈值时归入哪一类未定义。"
   },
   "tags": [
    "chinese",
@@ -31440,14 +31467,14 @@
    "abc-analysis",
    "classification"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "5f49a149b60d5f5f",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "77bbd3d73a0ff56b",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "disputed",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31459,20 +31486,23 @@
   "difficulty": "easy",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "ambiguous",
   "tier": "public_dev",
-  "promptTemplate": "某会议室一天的预约情况：\n- 会议A：9:00-10:30\n- 会议B：10:00-11:00\n- 会议C：11:30-12:30\n- 会议D：14:00-15:30\n- 会议E：15:00-16:00\n- 会议F：16:30-17:30\n\n工作时间：9:00-18:00（中午12:30-14:00为午休，不安排会议）\n\n请回答：\n1. 哪些会议存在时间冲突？\n2. 去除冲突后（保留先预约的），最长连续空闲时段是多长？\n3. 如果要安排一个2小时的新会议，最早可以安排在几点？\n\n最后一行输出格式：ANSWER: 冲突=[会议对]，最长空闲=[X]分钟，最早安排=[HH:MM]",
+  "promptTemplate": "某会议室一天的预约情况：\n- 会议A：9:00-10:30\n- 会议B：10:00-11:00\n- 会议C：11:30-12:30\n- 会议D：14:00-15:30\n- 会议E：15:00-16:00\n- 会议F：16:30-17:30\n\n工作时间：9:00-18:00（中午12:30-14:00为午休，不安排会议）\n\n请回答：\n1. 哪些会议存在时间冲突？\n2. 去除冲突后（保留先预约的），最长连续空闲时段是多长？\n3. 如果要安排一个2小时的新会议，最早可以安排在几点？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 冲突=[会议对]，最长空闲=[X]分钟，最早安排=[HH:MM]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "冲突=A和B、D和E，最长空闲=90分钟，最早安排=11:30"
+   "answer": "冲突=A和B、D和E，最长空闲=90分钟，最早安排=11:30",
+   "reviewNote": "保留先预约者缺少预约先后信息；11:30与会议C及午休冲突，无法安排连续2小时新会议。"
   },
   "tags": [
    "chinese",
@@ -31480,14 +31510,14 @@
    "conflict-detection",
    "time-slots"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "602bb747636c1329",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "8641166aca9a5e53",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "disputed",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31501,15 +31531,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某公司各季度营收数据：\n- 2023年Q1：¥1,200万\n- 2023年Q2：¥1,350万\n- 2023年Q3：¥1,500万\n- 2023年Q4：¥1,800万\n- 2024年Q1：¥1,560万\n\n请计算：\n1. 2024年Q1同比增长率（对比2023年Q1）\n2. 2024年Q1环比增长率（对比2023年Q4）\n3. 2023年全年总营收\n4. 2023年Q4占全年营收的比例\n\n最后一行输出格式：ANSWER: 同比[X]%，环比[Y]%，全年[Z]万，Q4占比[W]%",
+  "promptTemplate": "某公司各季度营收数据：\n- 2023年Q1：¥1,200万\n- 2023年Q2：¥1,350万\n- 2023年Q3：¥1,500万\n- 2023年Q4：¥1,800万\n- 2024年Q1：¥1,560万\n\n请计算：\n1. 2024年Q1同比增长率（对比2023年Q1）\n2. 2024年Q1环比增长率（对比2023年Q4）\n3. 2023年全年总营收\n4. 2023年Q4占全年营收的比例\n\n所有百分数四舍五入保留一位小数；全年营收按万元输出。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 同比[X]%，环比[Y]%，全年[Z]万，Q4占比[W]%",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.5
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "同比30%，环比-13.3%，全年5850万，Q4占比30.8%"
@@ -31519,14 +31551,14 @@
    "percentage",
    "business-analytics"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "0edde3bde2d5d508",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "c55ba6d46b52270e",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31540,15 +31572,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某学生期末成绩如下：\n- 语文：85分（权重3）\n- 数学：92分（权重4）\n- 英语：78分（权重3）\n- 物理：88分（权重2）\n- 化学：95分（权重2）\n\n请计算：\n1. 简单平均分\n2. 加权平均分\n3. 最高分和最低分的差距\n4. 如果数学提高3分，加权平均分变化多少？\n\n最后一行输出格式：ANSWER: 简单平均[X]分，加权平均[Y]分，差距[Z]分，变化[W]分",
+  "promptTemplate": "某学生期末成绩如下：\n- 语文：85分（权重3）\n- 数学：92分（权重4）\n- 英语：78分（权重3）\n- 物理：88分（权重2）\n- 化学：95分（权重2）\n\n请计算：\n1. 简单平均分\n2. 加权平均分\n3. 最高分和最低分的差距\n4. 如果数学提高3分，加权平均分变化多少？\n\n平均分、加权平均分及其变化值均四舍五入保留两位小数；分数差距按整数输出。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 简单平均[X]分，加权平均[Y]分，差距[Z]分，变化[W]分",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "简单平均87.6分，加权平均87.36分，差距17分，变化0.86分"
@@ -31558,14 +31592,14 @@
    "statistics",
    "weighted-average"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "e5e3e0e8ba51dc45",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "55a7c0bd53f17ca0",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31579,15 +31613,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某工厂有3条生产线生产同一种零件：\n- 生产线A：产量占40%，不良率2%\n- 生产线B：产量占35%，不良率3%\n- 生产线C：产量占25%，不良率5%\n\n从当天所有产品中随机抽取一件：\n1. 该产品是不良品的概率是多少？\n2. 如果抽到不良品，它来自生产线A的概率是多少？\n\n最后一行输出格式：ANSWER: 不良率[X]%，来自A的概率[Y]%",
+  "promptTemplate": "某工厂有3条生产线生产同一种零件：\n- 生产线A：产量占40%，不良率2%\n- 生产线B：产量占35%，不良率3%\n- 生产线C：产量占25%，不良率5%\n\n从当天所有产品中随机抽取一件：\n1. 该产品是不良品的概率是多少？\n2. 如果抽到不良品，它来自生产线A的概率是多少？\n\n两项概率均以百分数输出，四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 不良率[X]%，来自A的概率[Y]%",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.5
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "不良率3.1%，来自A的概率25.81%"
@@ -31598,14 +31634,14 @@
    "bayes-theorem",
    "quality"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "48acec1d18c6aaef",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "40a77806e84bec86",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31619,15 +31655,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某班级10名学生的数学成绩：\n72, 85, 91, 68, 77, 85, 93, 85, 60, 79\n\n请计算：\n1. 平均数\n2. 中位数\n3. 众数\n4. 极差（最大值-最小值）\n5. 方差（总体方差）\n\n最后一行输出格式：ANSWER: 平均[X]，中位数[Y]，众数[Z]，极差[W]，方差[V]",
+  "promptTemplate": "某班级10名学生的数学成绩：\n72, 85, 91, 68, 77, 85, 93, 85, 60, 79\n\n请计算：\n1. 平均数\n2. 中位数\n3. 众数\n4. 极差（最大值-最小值）\n5. 方差（总体方差）\n\n中间计算不舍入；最终统计量最多保留两位小数，按四舍五入计算。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 平均[X]，中位数[Y]，众数[Z]，极差[W]，方差[V]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.5
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "平均79.5，中位数82，众数85，极差33，方差98.05"
@@ -31638,14 +31676,14 @@
    "median",
    "variance"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "4b9a785245d2777b",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "49ab8d1c7c5cbfcc",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31659,24 +31697,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某公司营收数据：\n- 2019年：¥800万\n- 2020年：¥920万\n- 2021年：¥1,150万\n- 2022年：¥1,380万\n- 2023年：¥1,725万\n\n请计算：\n1. 2019-2023年的年复合增长率（CAGR）\n   公式：CAGR = (终值/初值)^(1/年数) - 1\n2. 哪一年的同比增长率最高？\n3. 如果保持CAGR增长，2025年预计营收是多少？\n\n最后一行输出格式：ANSWER: CAGR=[X]%，最高增长年份=[Y]年，2025预计=[Z]万",
+  "promptTemplate": "某公司营收数据：\n- 2019年：¥800万\n- 2020年：¥920万\n- 2021年：¥1,150万\n- 2022年：¥1,380万\n- 2023年：¥1,725万\n\n请计算：\n1. 2019-2023年的年复合增长率（CAGR）\n   公式：CAGR = (终值/初值)^(1/年数) - 1\n2. 哪些年份的同比增长率并列最高？（全部列出，按年份升序）\n3. 如果保持CAGR增长，2025年预计营收是多少？\n\n预测使用未舍入的CAGR；CAGR按百分数四舍五入保留两位小数，预计营收按万元四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: CAGR=[X]%，最高增长年份=[Y1]年和[Y2]年，2025预计=[Z]万",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "CAGR=21.1%，最高增长年份=2021年或2023年，2025预计=2524万",
-   "acceptedVariants": [
-    "CAGR=21.1%，最高增长年份=2021年，2025预计=2520万",
-    "CAGR=21.1%，最高增长年份=2023年，2025预计=2520万",
-    "CAGR=21.1%，最高增长年份=2021年，2025预计=2524万",
-    "CAGR=21.1%，最高增长年份=2023年，2025预计=2524万"
-   ]
+   "answer": "CAGR=21.18%，最高增长年份=2021年和2023年，2025预计=2533.02万"
   },
   "tags": [
    "chinese",
@@ -31684,14 +31718,14 @@
    "cagr",
    "growth-rate"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "12961f1928383205",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "fbcdd61b221ee136",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31705,18 +31739,20 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "三个合伙人开了一家餐厅，年终利润¥600,000需要分配：\n- 甲：出资40%，负责管理，管理津贴¥50,000\n- 乙：出资35%，负责厨房，技术津贴¥30,000\n- 丙：出资25%，纯投资，无津贴\n\n分配规则：\n1. 先扣除管理津贴和技术津贴\n2. 剩余利润按出资比例分配\n\n请计算每人最终获得的金额。\n\n最后一行输出格式：ANSWER: 甲=[X]元，乙=[Y]元，丙=[Z]元",
+  "promptTemplate": "三个合伙人开了一家餐厅，年终利润¥600,000需要分配：\n- 甲：出资40%，负责管理，管理津贴¥50,000\n- 乙：出资35%，负责厨房，技术津贴¥30,000\n- 丙：出资25%，纯投资，无津贴\n\n分配规则：\n1. 先扣除管理津贴和技术津贴\n2. 剩余利润按出资比例分配\n\n请计算每人最终获得的金额。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 甲=[X]元，乙=[Y]元，丙=[Z]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "甲=270000元，乙=215000元，丙=130000元"
+   "answer": "甲=258000元，乙=212000元，丙=130000元"
   },
   "tags": [
    "chinese",
@@ -31724,14 +31760,14 @@
    "profit-sharing",
    "ratio"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "f6cea5f3af8990d6",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "9a6d018945fe454b",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31745,15 +31781,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某电商平台对用户体验进行抽样调查：\n- 样本量：n = 400\n- 满意人数：320人\n- 满意度：p = 80%\n\n请计算：\n1. 样本满意率\n2. 标准误差 SE = sqrt(p(1-p)/n)\n3. 95%置信区间（Z=1.96）：p ± Z × SE\n4. 如果要将误差范围缩小到±2%，需要多大样本量？\n   公式：n = Z² × p(1-p) / E²\n\n最后一行输出格式：ANSWER: 满意率[X]%，SE=[Y]%，置信区间=[Z]%-[W]%，所需样本=[V]",
+  "promptTemplate": "某电商平台对用户体验进行抽样调查：\n- 样本量：n = 400\n- 满意人数：320人\n- 满意度：p = 80%\n\n请计算：\n1. 样本满意率\n2. 标准误差 SE = sqrt(p(1-p)/n)\n3. 95%置信区间（Z=1.96）：p ± Z × SE\n4. 如果要将误差范围缩小到±2%，需要多大样本量？\n   公式：n = Z² × p(1-p) / E²\n\n样本满意率、SE及置信区间端点均按百分数四舍五入保留一位小数；所需样本量向上取整为整数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 满意率[X]%，SE=[Y]%，置信区间=[Z]%-[W]%，所需样本=[V]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "满意率80%，SE=2%，置信区间=76.1%-83.9%，所需样本=1537"
@@ -31764,14 +31802,14 @@
    "confidence-interval",
    "sampling"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "fa10ecc8d6b2ad00",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "205e3193434df5fd",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31785,15 +31823,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "公司有5个项目要分配100万预算：\n- 项目A：最低需要20万，预期收益30%\n- 项目B：最低需要15万，预期收益25%\n- 项目C：最低需要25万，预期收益35%\n- 项目D：最低需要10万，预期收益20%\n- 项目E：最低需要30万，预期收益40%\n\n约束条件：\n1. 总预算不超过100万\n2. 每个项目至少达到最低预算\n3. 项目A和C的总预算不超过50万\n4. 项目E的预算不超过总预算的40%\n\n在满足所有约束的条件下，如何分配使总预期收益最大？\n\n最后一行输出格式：ANSWER: A=[X]万,B=[Y]万,C=[Z]万,D=[W]万,E=[V]万",
+  "promptTemplate": "公司有5个项目要分配100万预算：\n- 项目A：最低需要20万，预期收益30%\n- 项目B：最低需要15万，预期收益25%\n- 项目C：最低需要25万，预期收益35%\n- 项目D：最低需要10万，预期收益20%\n- 项目E：最低需要30万，预期收益40%\n\n约束条件：\n1. 总预算不超过100万\n2. 每个项目至少达到最低预算\n3. 项目A和C的总预算不超过50万\n4. 项目E的预算不超过总预算的40%\n\n在满足所有约束的条件下，如何分配使总预期收益最大？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: A=[X]万,B=[Y]万,C=[Z]万,D=[W]万,E=[V]万",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "A=20万,B=15万,C=25万,D=10万,E=30万"
@@ -31804,14 +31844,14 @@
    "resource-allocation",
    "constraints"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "cddc3b878166b060",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "1de95035debfa464",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31825,19 +31865,21 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某公司年会需要安排节目：\n- 共有6个节目：2个歌唱、2个舞蹈、1个小品、1个魔术\n- 要求：\n  1. 第一个节目必须是歌唱\n  2. 最后一个节目必须是魔术\n  3. 两个舞蹈不能相邻\n  4. 小品不能在第2个或第3个位置\n\n请问有多少种不同的排列方案？\n\n最后一行输出格式：ANSWER: [X]种",
+  "promptTemplate": "某公司年会需要安排节目：\n- 共有6个节目：2个不同的歌唱节目、2个不同的舞蹈节目、1个小品、1个魔术（六个节目均可区分）\n- 要求：\n  1. 第一个节目必须是歌唱\n  2. 最后一个节目必须是魔术\n  3. 两个舞蹈不能相邻\n  4. 小品不能在第2个或第3个位置\n\n请问有多少种不同的排列方案？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [X]种",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
    "tolerance": 0,
-   "toleranceMode": "absolute"
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "种"
   },
   "requirements": {
-   "answer": 4
+   "answer": 12
   },
   "tags": [
    "chinese",
@@ -31845,14 +31887,14 @@
    "permutation",
    "constraints"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "a8d6f0a4ec6dd23d",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "6659133001566a2a",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31866,15 +31908,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "办公室的蛋糕被偷吃了，有4个嫌疑人：\n- 甲说：\"是乙吃的。\"\n- 乙说：\"是丁吃的。\"\n- 丙说：\"不是我吃的。\"\n- 丁说：\"乙在说谎。\"\n\n已知：4人中只有1人说了真话。\n\n请问：谁偷吃了蛋糕？谁说了真话？\n\n最后一行输出格式：ANSWER: 偷吃者=[X]，说真话者=[Y]",
+  "promptTemplate": "办公室的蛋糕被偷吃了，有4个嫌疑人：\n- 甲说：\"是乙吃的。\"\n- 乙说：\"是丁吃的。\"\n- 丙说：\"不是我吃的。\"\n- 丁说：\"乙在说谎。\"\n\n已知：4人中只有1人说了真话。\n\n请问：谁偷吃了蛋糕？谁说了真话？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 偷吃者=[X]，说真话者=[Y]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "偷吃者=丙，说真话者=丁"
@@ -31885,14 +31929,14 @@
    "truth-teller",
    "deduction"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "2f6a816d6fddfe20",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "9ccba5c13f0eae60",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31906,16 +31950,18 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "一个农夫要带一只狼、一只羊和一棵白菜过河：\n- 船每次只能载农夫和一样东西\n- 农夫不在时，狼会吃羊，羊会吃白菜\n- 问：最少需要渡河几次才能把所有东西安全运到对岸？\n\n请给出具体步骤和最少渡河次数。\n\n最后一行输出格式：ANSWER: [X]次",
+  "promptTemplate": "一个农夫要带一只狼、一只羊和一棵白菜过河：\n- 船每次只能载农夫和一样东西\n- 农夫不在时，狼会吃羊，羊会吃白菜\n- 问：最少需要渡河几次才能把所有东西安全运到对岸？\n\n请给出具体步骤和最少渡河次数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [X]次",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
    "tolerance": 0,
-   "toleranceMode": "absolute"
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "次"
   },
   "requirements": {
    "answer": 7
@@ -31926,14 +31972,14 @@
    "river-crossing",
    "optimization"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "ef90e6cb9f1dc946",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "f9ff87bace1308b5",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31947,15 +31993,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "甲、乙、丙三人的年龄关系：\n1. 甲比乙大7岁\n2. 乙比丙大7岁\n3. 3年前，甲的年龄是丙的2倍\n4. 三人年龄之和是72岁\n\n请问甲、乙、丙现在各多少岁？\n\n最后一行输出格式：ANSWER: 甲=[X]岁，乙=[Y]岁，丙=[Z]岁",
+  "promptTemplate": "甲、乙、丙三人的年龄关系：\n1. 甲比乙大7岁\n2. 乙比丙大7岁\n3. 3年前，甲的年龄是丙的2倍\n4. 三人年龄之和是72岁\n\n请问甲、乙、丙现在各多少岁？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 甲=[X]岁，乙=[Y]岁，丙=[Z]岁",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "甲=31岁，乙=24岁，丙=17岁"
@@ -31966,14 +32014,14 @@
    "age-problem",
    "equation"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "a195520d5c5b3fb0",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "e64e8cde0abb3990",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31985,20 +32033,23 @@
   "difficulty": "adversarial",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "ambiguous",
   "tier": "public_dev",
-  "promptTemplate": "分析以下推理是否正确：\n\n\"某公司规定：\n- 所有经理都参加了培训\n- 有些参加培训的人不是经理\n- 因此，有些不是经理的人参加了培训\"\n\n问题：\n1. 这个推理是否有效？（是/否）\n2. 如果改为\"所有参加培训的人都是经理\"，第二个前提还成立吗？\n3. 原推理的逆命题是什么？逆命题是否成立？\n\n最后一行输出格式：ANSWER: 推理有效性=[是/否]，改后前提=[成立/不成立]，逆命题成立=[是/否]",
+  "promptTemplate": "分析以下推理是否正确：\n\n\"某公司规定：\n- 所有经理都参加了培训\n- 有些参加培训的人不是经理\n- 因此，有些不是经理的人参加了培训\"\n\n问题：\n1. 这个推理是否有效？（是/否）\n2. 如果改为\"所有参加培训的人都是经理\"，第二个前提还成立吗？\n3. 原推理的逆命题是什么？逆命题是否成立？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 推理有效性=[是/否]，改后前提=[成立/不成立]，逆命题成立=[是/否]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "推理有效性=是，改后前提=不成立，逆命题成立=否"
+   "answer": "推理有效性=是，改后前提=不成立，逆命题成立=否",
+   "reviewNote": "“原推理的逆命题”指代不明确，无法唯一确定第三问。"
   },
   "tags": [
    "chinese",
@@ -32006,14 +32057,14 @@
    "paradox",
    "adversarial"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "86aa2806da7a7825",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "9d3416d284eee8b1",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "disputed",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32027,32 +32078,34 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "以下是某公司5个部门的月度数据：\n\n| 部门 | 人数 | 月均产出(件) | 人均成本(元) | 产品单价(元) |\n|------|------|-------------|-------------|-------------|\n| A    | 20   | 1000        | 8000        | 150         |\n| B    | 15   | 900         | 9000        | 180         |\n| C    | 25   | 1500        | 7500        | 120         |\n| D    | 10   | 400         | 10000       | 250         |\n| E    | 30   | 1800        | 7000        | 100         |\n\n请计算：\n1. 哪个部门的人均利润最高？（人均利润 = 人均产出×单价 - 人均成本）\n2. 哪个部门的总利润最高？\n3. 全公司的人均产出是多少件？\n\n最后一行输出格式：ANSWER: 人均利润最高=[X]部门，总利润最高=[Y]部门，人均产出=[Z]件",
+  "promptTemplate": "以下是某公司5个部门的月度数据：\n\n| 部门 | 人数 | 月均产出(件) | 人均成本(元) | 产品单价(元) |\n|------|------|-------------|-------------|-------------|\n| A    | 20   | 1000        | 8000        | 150         |\n| B    | 15   | 900         | 9000        | 180         |\n| C    | 25   | 1500        | 7500        | 120         |\n| D    | 10   | 400         | 10000       | 250         |\n| E    | 30   | 1800        | 7000        | 100         |\n\n请计算：\n1. 哪个部门的人均利润最高？（人均利润 = 人均产出×单价 - 人均成本）\n2. 哪个部门的总利润最高？\n3. 全公司的人均产出是多少件？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 人均利润最高=[X]部门，总利润最高=[Y]部门，人均产出=[Z]件",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "人均利润最高=B部门，总利润最高=E部门，人均产出=56件"
+   "answer": "人均利润最高=B部门，总利润最高=B部门，人均产出=56件"
   },
   "tags": [
    "chinese",
    "table-analysis",
    "data-interpretation"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "ba94d4089d0d9736",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "ea5b3ce52f025f26",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32066,15 +32119,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某家庭本月用水用电情况：\n\n电费（阶梯电价）：\n- 第一档：0-240度，0.55元/度\n- 第二档：241-400度，0.60元/度\n- 第三档：400度以上，0.85元/度\n- 本月用电：350度\n\n水费（阶梯水价）：\n- 第一档：0-15吨，3.5元/吨\n- 第二档：15吨以上，5.0元/吨\n- 本月用水：22吨\n\n请计算本月水电费总额。\n\n最后一行输出格式：ANSWER: 电费=[X]元，水费=[Y]元，总计=[Z]元",
+  "promptTemplate": "某家庭本月用水用电情况：\n\n电费（阶梯电价）：\n- 第一档：0-240度，0.55元/度\n- 第二档：241-400度，0.60元/度\n- 第三档：400度以上，0.85元/度\n- 本月用电：350度\n\n水费（阶梯水价）：\n- 第一档：0-15吨，3.5元/吨\n- 第二档：15吨以上，5.0元/吨\n- 本月用水：22吨\n\n请计算本月水电费总额。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 电费=[X]元，水费=[Y]元，总计=[Z]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "电费=198元，水费=87.5元，总计=285.5元"
@@ -32085,14 +32140,14 @@
    "tiered-pricing",
    "multistep"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "260e34a0df82429c",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "7a22618f4580f3e9",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32104,21 +32159,24 @@
   "difficulty": "hard",
   "language": "general",
   "locale": "zh-CN",
-  "status": "valid",
+  "status": "ambiguous",
   "tier": "public_dev",
-  "promptTemplate": "某产品从原材料到消费者的供应链：\n\n1. 原材料采购：¥50/件\n2. 加工制造：人工¥20/件 + 设备折旧¥5/件\n3. 质检：抽检率10%，不合格率5%，不合格品报废（成本由合格品分摊）\n4. 包装：¥3/件\n5. 仓储：月仓储费¥2/件（平均库存周期1.5个月）\n6. 物流：¥8/件（500km以内），每增加100km加¥1.5\n7. 经销商加价：25%\n8. 零售商加价：40%\n\n客户距离工厂800km。\n\n请计算消费者最终购买价格。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "某产品从原材料到消费者的供应链：\n\n1. 原材料采购：¥50/件\n2. 加工制造：人工¥20/件 + 设备折旧¥5/件\n3. 质检：抽检率10%，不合格率5%，不合格品报废（成本由合格品分摊）\n4. 包装：¥3/件\n5. 仓储：月仓储费¥2/件（平均库存周期1.5个月）\n6. 物流：¥8/件（500km以内），每增加100km加¥1.5\n7. 经销商加价：25%\n8. 零售商加价：40%\n\n客户距离工厂800km。\n\n请计算消费者最终购买价格。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1,
-   "toleranceMode": "absolute"
+   "tolerance": 0,
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "元"
   },
   "requirements": {
-   "answer": 168
+   "answer": 168,
+   "reviewNote": "抽检率10%与不合格率5%的总体/样本分母及报废成本分摊范围未定义，168元无法复算。"
   },
   "tags": [
    "chinese",
@@ -32126,14 +32184,14 @@
    "cost-analysis",
    "multistep"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "5c57b763449b00b5",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "aeee99c476914e50",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "disputed",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32147,16 +32205,18 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某员工月薪税前¥25,000，需计算个人所得税：\n\n扣除项：\n- 五险一金个人缴纳：¥4,500\n- 起征点：¥5,000\n- 专项附加扣除：子女教育¥2,000 + 住房贷款¥1,000\n\n累进税率表（月度）：\n- 不超过3000：3%\n- 3000-12000：10%（速算扣除数210）\n- 12000-25000：20%（速算扣除数1410）\n- 25000-35000：25%（速算扣除数2660）\n\n请计算该员工每月应缴个人所得税。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "某员工月薪税前¥25,000，需计算个人所得税：\n\n扣除项：\n- 五险一金个人缴纳：¥4,500\n- 起征点：¥5,000\n- 专项附加扣除：子女教育¥2,000 + 住房贷款¥1,000\n\n累进税率表（月度）：\n- 不超过3000：3%\n- 3000-12000：10%（速算扣除数210）\n- 12000-25000：20%（速算扣除数1410）\n- 25000-35000：25%（速算扣除数2660）\n\n请计算该员工每月应缴个人所得税。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1,
-   "toleranceMode": "absolute"
+   "tolerance": 0,
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "元"
   },
   "requirements": {
    "answer": 1090
@@ -32167,14 +32227,14 @@
    "progressive-rate",
    "payroll"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "b0d4a443d270d50e",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "e80d2ae3a4a6b8e0",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32188,15 +32248,17 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某创业项目的财务数据：\n- 初始投资：¥2,000,000\n- 月固定成本：¥150,000（房租+人员基本工资）\n- 产品单价：¥200/件\n- 单位变动成本：¥80/件\n- 月产能上限：5,000件\n- 前3个月为爬坡期，月销量分别为500、1000、2000件\n- 第4个月起月销量稳定在3,500件\n\n请计算：\n1. 盈亏平衡点（月销量多少件时不亏不赚）\n2. 从第几个月开始实现单月盈利？\n3. 从第几个月开始收回全部初始投资？\n\n最后一行输出格式：ANSWER: 盈亏平衡=[X]件，单月盈利=第[Y]月，回收投资=第[Z]月",
+  "promptTemplate": "某创业项目的财务数据：\n- 初始投资：¥2,000,000\n- 月固定成本：¥150,000（房租+人员基本工资）\n- 产品单价：¥200/件\n- 单位变动成本：¥80/件\n- 月产能上限：5,000件\n- 前3个月为爬坡期，月销量分别为500、1000、2000件\n- 第4个月起月销量稳定在3,500件\n\n请计算：\n1. 盈亏平衡点（月销量多少件时不亏不赚）\n2. 从第几个月开始实现单月盈利？\n3. 从第几个月开始收回全部初始投资？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 盈亏平衡=[X]件，单月盈利=第[Y]月，回收投资=第[Z]月",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
    "answer": "盈亏平衡=1250件，单月盈利=第3月，回收投资=第11月"
@@ -32207,14 +32269,14 @@
    "investment-recovery",
    "startup"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "c2df3e30725f8662",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "7b4900398065d020",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32228,19 +32290,21 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某员工3月考勤和工资信息：\n- 基本工资：¥8,000\n- 岗位津贴：¥2,000\n- 应出勤天数：22天\n- 实际出勤：20天\n- 迟到：2次（每次扣¥50）\n- 加班：周末加班2天（按日薪200%计算）\n- 请假：事假2天（扣日薪）\n\n日薪 = (基本工资 + 岗位津贴) / 应出勤天数\n\n请计算该员工3月实发工资（税前）。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "某员工3月考勤和工资信息：\n- 基本工资：¥8,000\n- 岗位津贴：¥2,000\n- 应出勤天数：22天\n- 实际出勤：20天\n- 迟到：2次（每次扣¥50）\n- 加班：周末加班2天（按日薪200%计算）\n- 请假：事假2天（扣日薪）\n\n日薪 = (基本工资 + 岗位津贴) / 应出勤天数\n\n请计算该员工3月实发工资（税前）。\n\n实际出勤20天与事假2天描述同一缺勤情况，只扣一次事假工资；周末加班另行计付。中间不舍入，最终金额四舍五入保留两位小数。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 1,
-   "toleranceMode": "absolute"
+   "tolerance": 0,
+   "toleranceMode": "absolute",
+   "comparisonMode": "strict",
+   "answerUnit": "元"
   },
   "requirements": {
-   "answer": 10545
+   "answer": 10809.09
   },
   "tags": [
    "chinese",
@@ -32248,14 +32312,14 @@
    "attendance",
    "calculation"
   ],
-  "scenarioVersion": "2.0.1",
-  "scenarioHash": "cb94383965c3752d",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "4cad5708b08744cb",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32269,18 +32333,26 @@
   "locale": "zh-CN",
   "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "分析以下统计数据，指出错误：\n\n\"某公司报告：\n- 今年销售额比去年增长了50%\n- 去年销售额比前年下降了50%\n- 因此，今年销售额和前年持平\"\n\n问题：\n1. 这个结论正确吗？（正确/错误）\n2. 如果前年销售额是100万，今年实际是多少万？\n3. 实际增长率是多少？（相对前年）\n4. 这种错误在统计学中叫什么？\n\n最后一行输出格式：ANSWER: 结论=[正确/错误]，今年=[X]万，增长率=[Y]%，错误名称=[Z]",
+  "promptTemplate": "分析以下统计数据，指出错误：\n\n\"某公司报告：\n- 今年销售额比去年增长了50%\n- 去年销售额比前年下降了50%\n- 因此，今年销售额和前年持平\"\n\n问题：\n1. 这个结论正确吗？（正确/错误）\n2. 如果前年销售额是100万，今年实际是多少万？\n3. 实际增长率是多少？（相对前年）\n4. 这种错误在统计学中叫什么？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 结论=[正确/错误]，今年=[X]万，增长率=[Y]%，错误名称=[Z]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
   "grader": "exact_answer_line",
-  "graderVersion": "exact_answer_v2",
+  "graderVersion": "exact_answer_v3",
   "scoring": {
    "type": "exact_answer_line",
-   "tolerance": 0.5
+   "tolerance": 0,
+   "comparisonMode": "strict",
+   "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "结论=错误，今年=75万，增长率=-25%，错误名称=百分比基数谬误"
+   "answer": "结论=错误，今年=75万，增长率=-25%，错误名称=百分比基数谬误",
+   "acceptedVariants": [
+    "结论=错误，今年=75万，增长率=-25%，错误名称=基数谬误",
+    "结论=错误，今年=75万，增长率=-25%，错误名称=基数不同",
+    "结论=错误，今年=75万，增长率=-25%，错误名称=百分比基数错误",
+    "结论=错误，今年=75万，增长率=-25%，错误名称=基数效应"
+   ]
   },
   "tags": [
    "chinese",
@@ -32288,14 +32360,14 @@
    "fallacy",
    "adversarial"
   ],
-  "scenarioVersion": "2.0.0",
-  "scenarioHash": "46b2ecc35edaccb0",
+  "scenarioVersion": "3.0.0",
+  "scenarioHash": "ab9399942d01bc55",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": null,
-  "reviewStatus": "unreviewed",
+  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
