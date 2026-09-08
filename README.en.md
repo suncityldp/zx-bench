@@ -2,14 +2,14 @@
 
 [中文文档](README.md) · English
 
-> Run any large language model (local GGUF / Ollama / OpenAI-compatible API) through **570 benchmark questions** across 10 dimensions (652 total bank size; 78 retired questions archived under data/scenarios/archive/; 4 disputed questions excluded) on a single machine — producing reproducible composite scores, dimension radar, leaderboards, AI deep-dive reports and cost-effectiveness analysis. Programming questions are **actually compiled and executed with hidden tests inside Docker containers**, so scores reflect real code behavior, not text similarity.
+> Run any large language model (local GGUF / Ollama / OpenAI-compatible API) through **574 benchmark questions** across 10 dimensions (652 total bank size; 78 retired questions archived under data/scenarios/archive/) on a single machine — producing reproducible composite scores, dimension radar, leaderboards, AI deep-dive reports and cost-effectiveness analysis. Programming questions are **actually compiled and executed with hidden tests inside Docker containers**, so scores reflect real code behavior, not text similarity.
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
 ## Highlights
 
 - **10 capability dimensions**: programming, reasoning & math, safety & authority, deep CLI tasks, data extraction, agent workflow, instruction following, tool/CLI workflow, hallucination resistance, structured output.
-- **570 evaluable benchmark questions** (652 lifetime bank, 78 retired archived): difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
+- **574 evaluable benchmark questions** (652 lifetime bank, 78 retired archived): difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
 - **Real code execution**: JS/TS/Python run in a subprocess sandbox; Go/Java/C/C++/Rust/PHP/C#/Bash/SQL run in Docker containers with real compile + hidden-test execution (ASan for memory errors, JUnit for Java, race detector for concurrency, SQLite for queries). The test_pass axis is the actual test pass rate — no keyword guessing.
 - **no_bug traps**: some code is already correct; the model must recognize no-bug instead of forcing a fix (false fixes score 0).
 - **Deterministic scoring + AI Judge dual channel**: rule-based evaluators score first; an AI Judge re-scores semantic items with coverage-aware weight handoff.
@@ -96,7 +96,7 @@ node scripts/export-scenarios.mjs # export benchmark.json + meta
 |-----------|-----------|--------|
 | program | 150 | 0.20 |
 | hallucination_resistance | 78 | 0.12 |
-| reasoning_math | 30 | 0.12 |
+| reasoning_math | 34 | 0.12 |
 | instruction_following | 42 | 0.12 |
 | safety_authority | 50 | 0.10 |
 | agent_workflow | 45 | 0.08 |
@@ -104,7 +104,7 @@ node scripts/export-scenarios.mjs # export benchmark.json + meta
 | data_extraction | 35 | 0.07 |
 | cli_deep_tasks | 56 | 0.07 |
 | structured_output | 28 | 0.05 |
-| **Total** | **570** | |
+| **Total** | **574** | |
 
 ### Three-step scoring chain
 
@@ -140,7 +140,7 @@ Historical math score ranges from before issue #7 require revalidation; they mus
 
 ## Reference-answer correction (issue #7)
 
-Prompts specify the final ANSWER line and rounding rules; equivalent numeric representations are accepted, with zero numerical tolerance. The 34 math contracts are now v3: 30 valid, 4 disputed and excluded. Historical math scores remain available but are excluded from the current leaderboard. Pulling code does not update database definitions. Preview with `node scripts/sync-math-reference-contracts.mjs`, back up the database, then add `--apply` for the targeted update. See the [audit and migration notes](docs/issue-7-reference-answer-audit.md).
+Prompts specify the final ANSWER line and rounding rules; equivalent numeric representations are accepted, with zero numerical tolerance. All 34 math contracts are valid: 013, 014, 028 and 031 have clarified prompts at scenario version 3.1.0; the other 30 remain at 3.0.0. All use exact_answer_v3. Results from obsolete or disputed prompt versions remain in history and are excluded from the current leaderboard. See the [restoration notes](docs/restored-math-questions-v3.1.md). Pulling code does not update database definitions. Preview with `node scripts/sync-math-reference-contracts.mjs`, back up the database, then add `--apply` for the targeted update. See the [audit and migration notes](docs/issue-7-reference-answer-audit.md).
 
 ## Pages
 
@@ -203,7 +203,7 @@ apps/server/     # Fastify backend + API + Prisma
 packages/core/   # evaluation engine
 packages/types/  # shared types
 packages/utils/  # utilities
-data/scenarios/  # 570 evaluable benchmark questions (+ archive/ retired set)
+data/scenarios/  # 574 evaluable benchmark questions (+ archive/ retired set)
 data/java-libs/  # JUnit jars
 scripts/         # import/export scripts
 docs/            # specs (fixture-spec) & screenshots

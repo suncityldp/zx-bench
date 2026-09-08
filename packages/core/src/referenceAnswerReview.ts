@@ -1,7 +1,8 @@
 /** Issue #7: old math scores remain audit evidence, but are not comparable with v3. */
 const mathIds = new Set(Array.from({ length: 35 }, (_, i) => i + 1)
   .filter(n => n !== 26).map(n => `RM-CN-${String(n).padStart(3, '0')}`));
-const disputedIds = new Set(['RM-CN-013', 'RM-CN-014', 'RM-CN-028', 'RM-CN-031']);
+// These IDs were disputed at 3.0.0 and became scoreable only after prompt repair.
+const restoredIds = new Set(['RM-CN-013', 'RM-CN-014', 'RM-CN-028', 'RM-CN-031']);
 
 export interface ReferenceAnswerRow {
   scenarioId?: string;
@@ -13,11 +14,10 @@ export function referenceAnswerWarnings(rows: ReferenceAnswerRow[]): string[] {
   const warnings = new Set<string>();
   for (const row of rows) {
     if (!row.scenarioId || !mathIds.has(row.scenarioId)) continue;
-    if (disputedIds.has(row.scenarioId)) {
-      warnings.add(`${row.scenarioId}: 题面存在歧义，已暂停计分（issue #7）`);
-    } else if (row.scenarioVersion !== '3.0.0'
+    const requiredVersion = restoredIds.has(row.scenarioId) ? '3.1.0' : '3.0.0';
+    if (row.scenarioVersion !== requiredVersion
       || !['exact_answer_line@exact_answer_v3', 'exact_answer_v3'].includes(row.graderVersion ?? '')) {
-      warnings.add(`${row.scenarioId}: 旧版参考答案或评分规则，需用 v3 题库重新评测（issue #7）`);
+      warnings.add(`${row.scenarioId}: 旧版或未核验的题面/评分规则，需用 ${requiredVersion} 题面及 exact_answer_v3 重新评测（issue #7）`);
     }
   }
   return [...warnings];

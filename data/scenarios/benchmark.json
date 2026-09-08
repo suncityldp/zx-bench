@@ -31443,9 +31443,9 @@
   "difficulty": "medium",
   "language": "general",
   "locale": "zh-CN",
-  "status": "ambiguous",
+  "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某仓库有10种商品，年消耗金额如下：\n\n| 商品 | 年消耗金额(万元) |\n|------|----------------|\n| A    | 500            |\n| B    | 300            |\n| C    | 200            |\n| D    | 80             |\n| E    | 60             |\n| F    | 40             |\n| G    | 30             |\n| H    | 20             |\n| I    | 15             |\n| J    | 5              |\n\nABC分类规则：\n- A类：累计占比前70%\n- B类：累计占比70%-90%\n- C类：累计占比90%-100%\n\n请计算各商品的累计占比并进行分类。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: A类=[商品]，B类=[商品]，C类=[商品]",
+  "promptTemplate": "某仓库有10种商品，年消耗金额如下：\n\n| 商品 | 年消耗金额(万元) |\n|------|----------------|\n| A    | 500            |\n| B    | 300            |\n| C    | 200            |\n| D    | 80             |\n| E    | 60             |\n| F    | 40             |\n| G    | 30             |\n| H    | 20             |\n| I    | 15             |\n| J    | 5              |\n\n本题采用以下明确的ABC分类口径：\n1. 按年消耗金额从高到低排列；金额相同时按商品字母升序排列。\n2. 每件商品的累计占比 = 从第一件到该商品（包含该商品）的年消耗金额之和 / 全部商品年消耗金额。\n3. 按加入该商品后的累计占比分类：不超过70%为A类；大于70%且不超过90%为B类；大于90%为C类。跨越阈值的商品归入加入后占比对应的类别，不拆分商品。\n4. 分类使用未舍入的累计占比；展示的百分比四舍五入保留一位小数，数值等价的末尾零可以省略。\n\n请计算每件商品的累计占比并分类。答案行先按A到J列出累计占比，再依次列出A类、B类、C类；每类内部保持上述排序，商品之间用英文逗号分隔。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 累计占比=A:[X]%,B:[X]%,C:[X]%,D:[X]%,E:[X]%,F:[X]%,G:[X]%,H:[X]%,I:[X]%,J:[X]%，A类=[商品]，B类=[商品]，C类=[商品]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
@@ -31458,8 +31458,7 @@
    "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "A类=A,B,C，B类=D,E,F，C类=G,H,I,J",
-   "reviewNote": "ABC累计占比跨越70%/90%阈值时归入哪一类未定义。"
+   "answer": "累计占比=A:40%,B:64%,C:80%,D:86.4%,E:91.2%,F:94.4%,G:96.8%,H:98.4%,I:99.6%,J:100%，A类=A,B，B类=C,D，C类=E,F,G,H,I,J"
   },
   "tags": [
    "chinese",
@@ -31467,14 +31466,14 @@
    "abc-analysis",
    "classification"
   ],
-  "scenarioVersion": "3.0.0",
-  "scenarioHash": "77bbd3d73a0ff56b",
+  "scenarioVersion": "3.1.0",
+  "scenarioHash": "908bef8e4dba4cce",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
-  "reviewStatus": "disputed",
+  "goldSource": "docs/restored-math-questions-v3.1.md; packages/core/src/evaluators/restoredMathQuestions.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -31486,9 +31485,9 @@
   "difficulty": "easy",
   "language": "general",
   "locale": "zh-CN",
-  "status": "ambiguous",
+  "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某会议室一天的预约情况：\n- 会议A：9:00-10:30\n- 会议B：10:00-11:00\n- 会议C：11:30-12:30\n- 会议D：14:00-15:30\n- 会议E：15:00-16:00\n- 会议F：16:30-17:30\n\n工作时间：9:00-18:00（中午12:30-14:00为午休，不安排会议）\n\n请回答：\n1. 哪些会议存在时间冲突？\n2. 去除冲突后（保留先预约的），最长连续空闲时段是多长？\n3. 如果要安排一个2小时的新会议，最早可以安排在几点？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 冲突=[会议对]，最长空闲=[X]分钟，最早安排=[HH:MM]",
+  "promptTemplate": "某会议室一天收到以下预约，提交先后顺序为A、B、C、D、E、F：\n- 会议A：9:00-10:30\n- 会议B：10:00-11:00\n- 会议C：11:30-12:30\n- 会议D：14:00-15:30\n- 会议E：15:00-16:00\n- 会议F：16:30-17:30\n\n工作时间：9:00-18:00；其中12:30-14:00为午休，不可安排会议，也不计为可用空闲。\n所有时间区间包含开始时刻、不包含结束时刻；前一会议结束时可立即开始下一会议。\n按预约提交顺序处理：保留最先提交的会议，若后提交会议与已保留会议重叠，则取消后提交的整场会议。不得移动、缩短或拆分保留的会议。\n\n请回答：\n1. 原始六个预约中哪些会议对存在时间重叠？每对中字母较小的在前，各对按字母顺序排列，例如A和B、D和E。\n2. 按上述规则取消冲突会议后，当天最长连续可用空闲时段有多少分钟？\n3. 在取消冲突会议后的日程中安排一场连续2小时的新会议，必须完全位于当天工作时间内且不能跨午休。最早开始时间是什么？若当天无法安排，输出“无法安排”，不考虑次日。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 冲突=[会议对]，最长空闲=[X]分钟，最早安排=[HH:MM或无法安排]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
@@ -31501,8 +31500,7 @@
    "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "冲突=A和B、D和E，最长空闲=90分钟，最早安排=11:30",
-   "reviewNote": "保留先预约者缺少预约先后信息；11:30与会议C及午休冲突，无法安排连续2小时新会议。"
+   "answer": "冲突=A和B、D和E，最长空闲=60分钟，最早安排=无法安排"
   },
   "tags": [
    "chinese",
@@ -31510,14 +31508,14 @@
    "conflict-detection",
    "time-slots"
   ],
-  "scenarioVersion": "3.0.0",
-  "scenarioHash": "8641166aca9a5e53",
+  "scenarioVersion": "3.1.0",
+  "scenarioHash": "162a1407121f3125",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
-  "reviewStatus": "disputed",
+  "goldSource": "docs/restored-math-questions-v3.1.md; packages/core/src/evaluators/restoredMathQuestions.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32033,9 +32031,9 @@
   "difficulty": "adversarial",
   "language": "general",
   "locale": "zh-CN",
-  "status": "ambiguous",
+  "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "分析以下推理是否正确：\n\n\"某公司规定：\n- 所有经理都参加了培训\n- 有些参加培训的人不是经理\n- 因此，有些不是经理的人参加了培训\"\n\n问题：\n1. 这个推理是否有效？（是/否）\n2. 如果改为\"所有参加培训的人都是经理\"，第二个前提还成立吗？\n3. 原推理的逆命题是什么？逆命题是否成立？\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 推理有效性=[是/否]，改后前提=[成立/不成立]，逆命题成立=[是/否]",
+  "promptTemplate": "在同一个人员集合中，令M(x)表示“x是经理”，T(x)表示“x参加了培训”。已知：\n- 前提P1：所有经理都参加了培训，即对所有x，M(x)→T(x)。\n- 前提P2：有些参加培训的人不是经理，即存在x，使T(x)且非M(x)。\n- 结论C：有些不是经理的人参加了培训，即存在x，使非M(x)且T(x)。\n\n请分别回答三个相互独立的问题：\n1. 从原前提P1、P2推出结论C是否有效？有效指所有满足原前提的情形都满足结论。\n2. 另设一个假设情形：将P1替换为“所有参加培训的人都是经理”，并假设替换后的P1为真。此时P2还能同时成立吗？本问只判断两命题能否同时为真，不将矛盾前提用于推导任意结论。\n3. 回到原前提P1、P2。仅针对P1中的条件命题M(x)→T(x)，将条件与结论互换，写出其全称逆命题（不是逆否命题），并判断该逆命题在原前提下是否成立。答案行使用“所有参加培训的人都是经理”这一表述。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: 推理有效性=[是/否]，改后前提=[成立/不成立]，逆命题=[全称命题]，逆命题成立=[是/否]",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
@@ -32048,8 +32046,7 @@
    "toleranceMode": "absolute"
   },
   "requirements": {
-   "answer": "推理有效性=是，改后前提=不成立，逆命题成立=否",
-   "reviewNote": "“原推理的逆命题”指代不明确，无法唯一确定第三问。"
+   "answer": "推理有效性=是，改后前提=不成立，逆命题=所有参加培训的人都是经理，逆命题成立=否"
   },
   "tags": [
    "chinese",
@@ -32057,14 +32054,14 @@
    "paradox",
    "adversarial"
   ],
-  "scenarioVersion": "3.0.0",
-  "scenarioHash": "9d3416d284eee8b1",
+  "scenarioVersion": "3.1.0",
+  "scenarioHash": "13ffcadd6c25820b",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
-  "reviewStatus": "disputed",
+  "goldSource": "docs/restored-math-questions-v3.1.md; packages/core/src/evaluators/restoredMathQuestions.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null
@@ -32159,9 +32156,9 @@
   "difficulty": "hard",
   "language": "general",
   "locale": "zh-CN",
-  "status": "ambiguous",
+  "status": "valid",
   "tier": "public_dev",
-  "promptTemplate": "某产品从原材料到消费者的供应链：\n\n1. 原材料采购：¥50/件\n2. 加工制造：人工¥20/件 + 设备折旧¥5/件\n3. 质检：抽检率10%，不合格率5%，不合格品报废（成本由合格品分摊）\n4. 包装：¥3/件\n5. 仓储：月仓储费¥2/件（平均库存周期1.5个月）\n6. 物流：¥8/件（500km以内），每增加100km加¥1.5\n7. 经销商加价：25%\n8. 零售商加价：40%\n\n客户距离工厂800km。\n\n请计算消费者最终购买价格。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
+  "promptTemplate": "某产品从原材料到消费者的供应链：\n\n1. 原材料采购：¥50/件。\n2. 加工制造：人工¥20/件 + 设备折旧¥5/件。\n3. 质检：全部产品完成制造后进行全检，不另收质检费；整批产品恰有5%不合格，全部在包装前报废，无残值。报废品的原材料、人工和设备折旧成本全部由其余95%的合格品分摊。\n4. 包装：每件合格品¥3。\n5. 仓储：每件合格品每月¥2，平均库存周期1.5个月，按时间比例计费。\n6. 物流：每件合格品500km以内¥8，超出500km的部分每增加100km加¥1.5。\n7. 工厂向经销商的每件供货价等于上述分摊后制造成本、包装、仓储和物流成本之和，不另加利润。\n8. 经销商在其进货价上加价25%后供给零售商；零售商再在其进货价上加价40%后销售给消费者。\n\n客户距离工厂800km。除上述项目外无其他费用、税费或损耗。中间计算不舍入，消费者最终购买价格四舍五入保留两位小数。\n请计算每件合格品的消费者最终购买价格。\n\n答案格式要求：推导可写在前文；最后一个非空行只输出下方模板规定的 ANSWER: 答案行，不附加解释、计算过程或多个候选答案，不使用代码块包裹。多字段题须保持模板的字段名称和字段顺序。数值等价的表示方式（如小数末尾零、合法千分位）均可接受，写出的单位必须正确；需要舍入时严格按本题规定的精度计算，不允许数值偏差。\n\n最后一行输出格式：ANSWER: [金额]元",
   "sourceCode": null,
   "functionName": null,
   "expectedVerdict": null,
@@ -32175,8 +32172,7 @@
    "answerUnit": "元"
   },
   "requirements": {
-   "answer": 168,
-   "reviewNote": "抽检率10%与不合格率5%的总体/样本分母及报废成本分摊范围未定义，168元无法复算。"
+   "answer": 170.53
   },
   "tags": [
    "chinese",
@@ -32184,14 +32180,14 @@
    "cost-analysis",
    "multistep"
   ],
-  "scenarioVersion": "3.0.0",
-  "scenarioHash": "aeee99c476914e50",
+  "scenarioVersion": "3.1.0",
+  "scenarioHash": "84f17252c562adf7",
   "responseMode": null,
   "outputPolicy": null,
   "environmentImage": null,
   "seed": null,
-  "goldSource": "docs/issue-7-reference-answer-audit.md; packages/core/src/evaluators/referenceAnswers.test.ts",
-  "reviewStatus": "disputed",
+  "goldSource": "docs/restored-math-questions-v3.1.md; packages/core/src/evaluators/restoredMathQuestions.test.ts",
+  "reviewStatus": "verified",
   "answerFirst": null,
   "maxAnswerTokens": null,
   "maxReasoningTokens": null

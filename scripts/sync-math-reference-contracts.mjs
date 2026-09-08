@@ -1,8 +1,17 @@
 // Targeted upsert: avoids the generic seed script's metadata-file crash (#6).
 // Defaults to a local dry run. Use --apply after backing up the deployment database.
 import fs from 'node:fs';
-const scenarios = JSON.parse(fs.readFileSync(new URL('../data/scenarios/benchmark.json', import.meta.url), 'utf8'))
+let scenarios = JSON.parse(fs.readFileSync(new URL('../data/scenarios/benchmark.json', import.meta.url), 'utf8'))
   .filter(s => s.dimension === 'reasoning_math');
+// Optional exact subset; reject unknown IDs before making any request.
+const idsArg = process.argv.find(arg => arg.startsWith('--ids='));
+if (idsArg !== undefined) {
+  const ids = idsArg.slice('--ids='.length).split(',');
+  if (!ids.length || ids.some(id => !id || !scenarios.some(s => s.id === id)) || new Set(ids).size !== ids.length) {
+    throw new Error('Invalid or duplicate math scenario IDs');
+  }
+  scenarios = scenarios.filter(s => ids.includes(s.id));
+}
 const apply = process.argv.includes('--apply');
 const base = process.env.BASE_URL || 'http://localhost:3001';
 if (!apply) {

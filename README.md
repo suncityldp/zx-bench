@@ -2,14 +2,14 @@
 
 [English](README.en.md) · 中文
 
-> 在一台机器上，对任意大模型（本地 GGUF / Ollama / OpenAI 兼容 API）跑完 10 大维度、**570 道**基准题（题库累计 652 道，其中 78 道已退役旧题归档于 `data/scenarios/archive/`，不参与评测；另有4道争议题暂停计分），产出可复现的综合分、维度雷达、排行榜、AI 深度报告与性价比分析。其中编程题在 **Docker 容器里真实编译并执行隐藏测试**，分数反映的是真实代码行为，而非「看起来像」的文本相似度。
+> 在一台机器上，对任意大模型（本地 GGUF / Ollama / OpenAI 兼容 API）跑完 10 大维度、**574 道**基准题（题库累计 652 道，其中 78 道已退役旧题归档于 `data/scenarios/archive/`，不参与评测），产出可复现的综合分、维度雷达、排行榜、AI 深度报告与性价比分析。其中编程题在 **Docker 容器里真实编译并执行隐藏测试**，分数反映的是真实代码行为，而非「看起来像」的文本相似度。
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
 ## 核心特性
 
 - **10 大能力维度**：编程、推理数学、安全权限、深度 CLI、数据抽取、智能体工作流、指令遵循、工具/CLI、幻觉抵抗、结构化输出。
-- **570 道可评测基准题**（题库累计 652 道，退役旧题归档保留版本史）：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
+- **574 道可评测基准题**（题库累计 652 道，退役旧题归档保留版本史）：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
 - **编程题真实执行**：JS/TS/Python 子进程沙箱；Go/Java/C/C++/Rust/PHP/C#/Bash/SQL 在 Docker 容器里**真实编译 + 运行隐藏测试**（ASan 检内存错误、JUnit 跑 Java、race detector 检并发、SQLite 跑查询），`test_pass` 轴 = 真实测试通过率——不再用关键词「猜」代码对不对。
 - **no_bug 陷阱题**：部分代码本身正确，模型须识别「无 bug」而非强行修改，误修会扣分。
 - **确定性评分 + AI Judge 双通道**：规则评分器先判，AI Judge 按维度权重补判语义项，覆盖率感知地「让渡」权重。
@@ -118,7 +118,7 @@ pnpm --filter server start
 
 ### 2026-09-08 推理题参考答案修订（issue #7）
 
-各题明确最终 ANSWER 行格式与所需舍入精度，接受数值等价的表示方式，评分不设数值容差。34 道推理题升级为 v3：30 道有效、4 道因题面歧义暂停计分。旧版推理结果保留在历史中，暂不参与当前榜单。已有部署须更新数据库中的题目定义；只拉取代码不会替换旧题。先运行 `node scripts/sync-math-reference-contracts.mjs` 查看更新清单，备份数据库后加 `--apply` 执行定向更新。该脚本不删除或重算历史结果，也不经过通用 seed 脚本的元数据遍历。详见[复核记录与迁移步骤](docs/issue-7-reference-answer-audit.md)。
+各题明确最终 ANSWER 行格式与所需舍入精度，接受数值等价的表示方式，评分不设数值容差。34 道推理题均有效：013、014、028、031 已澄清题面并恢复计分，题目版本为 3.1.0，其余为 3.0.0。评分器统一为 exact_answer_v3。旧版或争议题面的结果保留在历史中，不参与当前榜单。详见[四题恢复说明](docs/restored-math-questions-v3.1.md)。已有部署须更新数据库中的题目定义；只拉取代码不会替换旧题。先运行 `node scripts/sync-math-reference-contracts.mjs` 查看更新清单，备份数据库后加 `--apply` 执行定向更新。该脚本不删除或重算历史结果，也不经过通用 seed 脚本的元数据遍历。详见[复核记录与迁移步骤](docs/issue-7-reference-answer-audit.md)。
 
 ### 导入基准题集
 
@@ -137,7 +137,7 @@ node scripts/export-scenarios.mjs # 导出
 |------|--------|------|----------|
 | program | 编程能力 | 150 | 0.20 |
 | hallucination_resistance | 幻觉抵抗 | 78 | 0.12 |
-| reasoning_math | 推理与数学 | 30 | 0.12 |
+| reasoning_math | 推理与数学 | 34 | 0.12 |
 | instruction_following | 指令遵循 | 42 | 0.12 |
 | safety_authority | 安全与权限 | 50 | 0.10 |
 | agent_workflow | 智能体工作流 | 45 | 0.08 |
@@ -145,9 +145,9 @@ node scripts/export-scenarios.mjs # 导出
 | data_extraction | 数据抽取 | 35 | 0.07 |
 | cli_deep_tasks | 深度命令行任务 | 56 | 0.07 |
 | structured_output | 结构化输出 | 28 | 0.05 |
-| **合计** | | **570** | |
+| **合计** | | **574** | |
 
-> 题量 = `benchmark-meta.json` 中 status=valid 的当前可评测题；另有 78 道已退役旧题（v3 幻觉题集 HAL-*）归档于 `data/scenarios/archive/benchmark-retired.json`，保留版本史但不参与跑测；另有 4 道争议推理题暂不计分，原文保留在 benchmark.json。题库累计 652 道。
+> 题量 = `benchmark-meta.json` 中 status=valid 的当前可评测题；另有 78 道已退役旧题（v3 幻觉题集 HAL-*）归档于 `data/scenarios/archive/benchmark-retired.json`，保留版本史但不参与跑测。题库累计 652 道。
 
 ### 三步评分链
 
@@ -311,7 +311,7 @@ apps/server/     # Fastify 后端 + API + Prisma
 packages/core/   # 评测引擎核心（orchestrator / judge / evaluators / scoring / execution / contracts）
 packages/types/  # 共享类型
 packages/utils/  # 工具函数
-data/scenarios/  # 570 道可评测基准题（benchmark.json + 元数据 + CR2 备选题集；archive/ 为退役旧题归档）
+data/scenarios/  # 574 道可评测基准题（benchmark.json + 元数据 + CR2 备选题集；archive/ 为退役旧题归档）
 data/java-libs/  # Java 题 JUnit 依赖 jar
 scripts/         # 题库导入/导出脚本
 docs/            # 规范文档（fixture-spec 等）

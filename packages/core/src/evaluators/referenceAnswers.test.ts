@@ -150,11 +150,11 @@ describe('strict answer-contract regressions', () => {
     (s.scoring as any).toleranceMode='relative';
     expect((await evaluator.evaluate(s,'ANSWER: 0元',meta)).axisScores?.answer_accuracy).toBe(100);
   });
-  it('versions all changed contracts and quarantines unresolved prompts', () => {
+  it('versions all changed contracts and restores the four clarified prompts', () => {
     const math=scenarios.filter(s=>s.dimension==='reasoning_math');expect(math).toHaveLength(34);
-    expect(math.filter(s=>s.status==='ambiguous').map(s=>s.id)).toEqual(['RM-CN-013','RM-CN-014','RM-CN-028','RM-CN-031']);
-    expect(math.filter(s=>s.status==='valid')).toHaveLength(30);
-    for(const s of math){expect(s.scenarioVersion).toBe('3.0.0');expect(s.graderVersion).toBe('exact_answer_v3');expect((s.scoring as any).tolerance).toBe(0);expect(s.scenarioHash).toBe(hashScenarioShort(s));}
+    expect(math.filter(s=>s.status==='ambiguous')).toEqual([]);
+    expect(math.filter(s=>s.status==='valid')).toHaveLength(34);
+    for(const s of math){expect(s.scenarioVersion).toBe(['RM-CN-013','RM-CN-014','RM-CN-028','RM-CN-031'].includes(s.id)?'3.1.0':'3.0.0');expect(s.graderVersion).toBe('exact_answer_v3');expect((s.scoring as any).tolerance).toBe(0);expect(s.scenarioHash).toBe(hashScenarioShort(s));}
   });
   it('states the final-line format and rounding rules in the prompts', () => {
     for(const s of scenarios.filter(s=>s.dimension==='reasoning_math')) {
