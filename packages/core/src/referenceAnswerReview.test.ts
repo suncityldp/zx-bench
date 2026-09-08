@@ -12,6 +12,14 @@ import { hashScenarioShort } from './contracts/canonicalize.js';
 const old = { scenarioId: 'RM-CN-004', scenarioVersion: '2.0.1', graderVersion: 'exact_answer_line@exact_answer_v2' };
 const current = { ...old, scenarioVersion: '3.2.0', graderVersion: 'exact_answer_line@exact_answer_v4' };
 describe('reference answer compatibility and historical preservation', () => {
+  it('excludes retired HAL history and old new-bank versions without rewriting rows', () => {
+    const rows = [{scenarioId:'HAL-CN-001',scenarioVersion:'3.0.0',graderVersion:'hallucination_v3'}, {scenarioId:'FR-001',scenarioVersion:'4.0.0',graderVersion:'hallucination_v4'}];
+    const before = JSON.stringify(rows);
+    expect(referenceAnswerWarnings(rows)).toHaveLength(2);
+    expect(referenceAnswerWarnings([{scenarioId:'FR-001',scenarioVersion:'5.0.0',graderVersion:'hallucination_resistance@hallucination_v5'}])).toEqual([]);
+    expect(partitionReferenceAnswerRuns([{id:'old',results:rows}]).eligible).toEqual([]);
+    expect(JSON.stringify(rows)).toBe(before);
+  });
   it('isolates old gold, old scoring, missing versions and disputed scenarios', () => {
     for (const row of [old, { ...current, graderVersion: old.graderVersion }, { scenarioId: old.scenarioId }, { ...current, scenarioVersion: '3.1.0', scenarioId: 'RM-CN-031' }]) {
       expect(referenceAnswerWarnings([row]).length).toBe(1);

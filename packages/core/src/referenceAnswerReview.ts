@@ -14,6 +14,10 @@ export function referenceAnswerWarnings(rows: ReferenceAnswerRow[]): string[] {
   const warnings = new Set<string>();
   for (const row of rows) {
     if (!row.scenarioId) continue;
+    if (row.scenarioId.startsWith('HAL-')) {
+      warnings.add(`${row.scenarioId}: 已退役的旧幻觉抵抗题；历史结果保留，不与新版题集混算`);
+      continue;
+    }
     if (/^(?:FR|UB|TD|HP|GC|CI)-\d{3}$/.test(row.scenarioId)) {
       if (row.scenarioVersion !== '5.0.0' || !['hallucination_v5','hallucination_resistance@hallucination_v5'].includes(row.graderVersion ?? '')) warnings.add(row.scenarioId + ': needs reviewed hallucination 5.0.0 / hallucination_v5');
       continue;

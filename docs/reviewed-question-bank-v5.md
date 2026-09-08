@@ -138,7 +138,7 @@ GitHub main 32fcd39 已含新版78题；旧导出仅存在于本地未提交文�
 
 ## 可复现验收与发布
 
-- pnpm test：490个测试通过，包含全部78题契约、独立ISBN校验、单位/数量级反例、中文/科学计数等价、逻辑与最优化证书、合法过河路径、评分编排与Judge异常恢复条件。pnpm build验证服务端和Web构建。
+- pnpm test：491个测试通过，包含全部78题契约、独立ISBN校验、单位/数量级反例、中文/科学计数等价、逻辑与最优化证书、合法过河路径、评分编排、退役HAL历史隔离与Judge异常恢复条件。pnpm build验证服务端和Web构建。
 - 自动测试中的Judge使用受控返回值，证明字段验证和合分路径；没有运行真实模型的全题盲评，不能据此声称语义Judge达到零误判。
 - 使用真实数据库的完整副本执行迁移，15,988条ScenarioResult和66条EvalRun逐行散列前后相同：96c1586d7e719b51d5e7fa6a7fce07210a9d426f785791013bafc5cf7be64cf3。
 - 迁移命令：node scripts/sync-reviewed-question-contracts.mjs <database-path>（只检查）；增加 --apply 才写入。应用前自动创建SQLite一致性备份，仅更新112道题定义、退役HAL旧题，保留历史结果与运行数据。备份包含私有数据库内容，不得提交仓库。
