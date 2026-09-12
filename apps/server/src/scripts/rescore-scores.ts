@@ -17,6 +17,7 @@ import {
   bugFindingEvaluator, codeRepairEvaluator, structuredOutputEvaluator,
   dataExtractionEvaluator, exactAnswerLineEvaluator, instructionChecklistEvaluator,
   canaryAuthorityEvaluator, toolCallTraceEvaluator, agentTraceEvaluator, cliCommandEvaluator,
+  projectRepairEvaluator, hallucinationResistanceEvaluator, sandboxEvaluator, llmJudgeEvaluator,
 } from '@zxbench/core';
 import type { Scenario, Difficulty, QuestionStatus, ScenarioTier, Verdict, OutputPolicy } from '@zxbench/types';
 import { readFileSync, existsSync } from 'node:fs';
@@ -25,6 +26,7 @@ import { join } from 'node:path';
 // ===== 注册评分器（与 apps/server/src/index.ts 启动逻辑一致） =====
 registerEvaluator(bugFindingEvaluator);
 registerEvaluator(codeRepairEvaluator);
+registerEvaluator(projectRepairEvaluator);
 registerEvaluator(structuredOutputEvaluator);
 registerEvaluator(dataExtractionEvaluator);
 registerEvaluator(exactAnswerLineEvaluator);
@@ -33,6 +35,9 @@ registerEvaluator(canaryAuthorityEvaluator);
 registerEvaluator(toolCallTraceEvaluator);
 registerEvaluator(agentTraceEvaluator);
 registerEvaluator(cliCommandEvaluator);
+registerEvaluator(hallucinationResistanceEvaluator);
+registerEvaluator(sandboxEvaluator);
+registerEvaluator(llmJudgeEvaluator);
 
 // ===== 手动加载 apps/server/.env（DATABASE_URL） =====
 function loadEnv() {

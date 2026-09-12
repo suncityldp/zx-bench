@@ -525,6 +525,7 @@ function calculateScopeDiscipline(sourceCode: string | undefined, patch: string)
 export const codeRepairEvaluator: Evaluator = {
   name: 'code_repair',
   version: '3.3.0',
+  compatibleVersions: ['3.2.0', '3.1.0', '3.0.0', 'code_repair_v3'],
   aliases: ['3.1.0', '3.0.0', 'code_repair_v3'],
 
   async evaluate(

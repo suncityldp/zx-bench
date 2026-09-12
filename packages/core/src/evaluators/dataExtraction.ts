@@ -45,10 +45,10 @@ export const dataExtractionEvaluator: Evaluator = {
     }
 
     // ===== 2. 获取期望字段 =====
-    // requirements 在数据库中存储为 JSON 对象，如 {"user_name": "张三", ...}
-    // 类型定义为 string[]，但实际数据是 Record<string, unknown>
+    // requirements 在数据库中存储为 JSON 对象，如 {"user_name": "张三", ...}。
+    // 控制字段不能被误当成待抽取字段。
     const requirements = (scenario.requirements as unknown as Record<string, unknown>) || {};
-    const expectedFields = Object.entries(requirements);
+    const expectedFields = Object.entries(requirements).filter(([key]) => !CONTROL_REQUIREMENT_KEYS.has(key));
 
     if (expectedFields.length === 0) {
       // 没有期望字段：无字段可验证，各轴标为未测量（不制造虚假分数）
@@ -57,8 +57,8 @@ export const dataExtractionEvaluator: Evaluator = {
       axisEvidence.completeness = 'unmeasured';
       axisEvidence.schema_compliance = 'unmeasured';
       axisEvidence.output_discipline = 'rule';
-      const totalScore = Math.round(axisScores.format_valid * 0.3 + 100 * 0.25 + 100 * 0.2 + 100 * 0.15 + checkOutputDiscipline(modelOutput) * 0.1);
-      return { axisScores, axisEvidence, totalScore, safetyLevel: 'safe', evidence };
+      axisScores.output_discipline = checkOutputDiscipline(modelOutput);
+      return { axisScores, axisEvidence, totalScore: Math.round(axisScores.format_valid * 0.8 + axisScores.output_discipline * 0.2), safetyLevel: 'safe', evidence };
     }
 
     // ===== 3. 字段准确性 (40%) — 逐字段对比 =====
@@ -172,7 +172,7 @@ function getNestedValue(obj: unknown, path: string): unknown {
  * 比较实际值和期望值
  * - null 期望值：字段应为空/缺失/null
  * - 字符串：trim 后比较
- * - 数字：允许字符串数字与数字比较
+ * - 数字：必须是 JSON number；不接受 parseFloat 可吞掉尾随垃圾的字符串
  * - 其他：严格相等
  */
 function compareValues(actual: unknown, expected: unknown): boolean {
@@ -192,21 +192,6 @@ function compareValues(actual: unknown, expected: unknown): boolean {
     return actual.trim() === expected.trim();
   }
 
-  // 数字与字符串数字比较
-  if (typeof expected === 'number' && typeof actual === 'string') {
-    const n = parseFloat(actual);
-    return !isNaN(n) && n === expected;
-  }
-  if (typeof actual === 'number' && typeof expected === 'string') {
-    const n = parseFloat(expected);
-    return !isNaN(n) && n === actual;
-  }
-
-  // 布尔与字符串布尔比较
-  if (typeof expected === 'boolean' && typeof actual === 'string') {
-    return actual.toLowerCase() === 'true' ? expected === true : expected === false;
-  }
-
   return false;
 }
 
@@ -214,11 +199,6 @@ function compareValues(actual: unknown, expected: unknown): boolean {
 function typeMatches(actual: unknown, expected: unknown): boolean {
   if (expected === null || expected === undefined) return true;
   if (typeof actual !== typeof expected) {
-    // 允许 number 和 string 互换
-    if ((typeof actual === 'number' || typeof actual === 'string') &&
-        (typeof expected === 'number' || typeof expected === 'string')) {
-      return true;
-    }
     return false;
   }
   return true;
@@ -254,16 +234,19 @@ function extractJson(content: string): unknown | null {
   return null;
 }
 
-/** 检查输出纪律 — 是否有多余内容 */
+/** 检查输出纪律：纯 JSON 或唯一完整 JSON fence 均可；混入解释文字不得给部分高分。 */
 function checkOutputDiscipline(modelOutput: string): number {
-  const outputLength = modelOutput.length;
-  if (outputLength === 0) return 0;
-
-  const codeBlockMatch = modelOutput.match(/```[\s\S]*?```/g);
-  const codeBlockLength = codeBlockMatch?.reduce((sum, m) => sum + m.length, 0) || 0;
-  const extraRatio = (outputLength - codeBlockLength) / Math.max(outputLength, 1);
-
-  if (extraRatio < 0.1) return 100;
-  if (extraRatio < 0.3) return 70;
-  return 40;
+  const trimmed = modelOutput.trim();
+  if (!trimmed) return 0;
+  if (/^```json\s*\n?[\s\S]*?\n?```$/i.test(trimmed)) return 100;
+  try {
+    JSON.parse(trimmed);
+    return 100;
+  } catch {
+    return 0;
+  }
 }
+
+const CONTROL_REQUIREMENT_KEYS = new Set([
+  'requiredFields', 'fieldTypes', 'outputPolicy', 'format', 'crossFieldRules',
+]);

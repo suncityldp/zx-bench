@@ -27,11 +27,23 @@ const HASH_FIELDS = [
   'hiddenTests',
   'publicTests',
   'requirements',
+  'schema',
+  'constraints',
+  'bugInvariants',
+  'acceptablePatches',
+  'unacceptablePatches',
+  'outOfScope',
+  'judgeHint',
   'responseMode',
   'outputPolicy',
   'answerFirst',
   'maxAnswerTokens',
   'maxReasoningTokens',
+  'environmentImage',
+  'seed',
+  'goldSource',
+  'goldVerifiedAt',
+  'reviewStatus',
 ] as const;
 
 /** 深度稳定化：递归排序对象键、数组保持顺序、undefined → null */

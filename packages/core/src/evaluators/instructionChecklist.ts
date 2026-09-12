@@ -92,7 +92,7 @@ export const instructionChecklistEvaluator: Evaluator = {
     }
 
     // ===== 5. 计算分数 =====
-    const scoring = scenario.scoring as unknown as Record<string, unknown>;
+    const scoring = (scenario.scoring ?? {}) as unknown as Record<string, unknown>;
     const partialCredit = scoring.partialCredit !== false; // 默认开启部分给分
 
     if (partialCredit) {
@@ -111,10 +111,14 @@ export const instructionChecklistEvaluator: Evaluator = {
     }
 
     // ===== 7. 总分（格式 20% + 指令遵循 80%；coverage 仅按已配置轴计算，A3-1 修复） =====
-    const { score: totalScore, coverage: axisCoverage } = weightedScoreByCoverage([
+    let { score: totalScore, coverage: axisCoverage } = weightedScoreByCoverage([
       [axisScores.format_valid, 0.2],
       [axisScores.instruction_compliance, 0.8],
     ]);
+    if (results.some((result, index) => constraints[index].critical === true && !result.passed)) {
+      totalScore = Math.min(totalScore, 60);
+      evidence.push('Critical instruction constraint failed — total score capped at 60');
+    }
 
     return {
       axisScores,
@@ -151,6 +155,8 @@ function checkConstraint(text: string, constraint: Constraint): ConstraintResult
       return checkSentenceCount(text, id, type, description, check);
     case 'inclusion':
       return checkInclusion(text, id, type, description, check);
+    case 'ordered_inclusion':
+      return checkOrderedInclusion(text, id, type, description, check);
     case 'exclusion':
       return checkExclusion(text, id, type, description, check);
     case 'english_free':
@@ -365,7 +371,7 @@ function checkInclusion(
   const missingPatterns: string[] = [];
 
   for (const pattern of patterns) {
-    if (!text.includes(pattern)) {
+    if (!containsPositivePattern(text, pattern)) {
       missingPatterns.push(pattern);
     }
   }
@@ -388,6 +394,59 @@ function checkInclusion(
       ? `Found at least one of ${patterns.length} patterns`
       : `None of the ${patterns.length} required patterns found`,
   };
+}
+
+/**
+ * Ordered semantic inclusion: each step is a list of equivalent positive markers;
+ * the first positive marker of each next step must come after the prior one.
+ */
+function checkOrderedInclusion(
+  text: string, id: string, type: string, description: string, check: Record<string, unknown>,
+): ConstraintResult {
+  const steps = Array.isArray(check.steps) ? check.steps as unknown[] : [];
+  if (steps.length < 2) return { id, type, description, passed: false, detail: 'ordered_inclusion needs at least two steps' };
+  const positions: number[] = [];
+  for (const rawStep of steps) {
+    const patterns = Array.isArray(rawStep)
+      ? rawStep.map(String)
+      : rawStep && typeof rawStep === 'object' && Array.isArray((rawStep as Record<string, unknown>).patterns)
+        ? (rawStep as Record<string, unknown>).patterns as string[]
+        : [];
+    const position = firstPositivePosition(text, patterns);
+    if (position < 0) return { id, type, description, passed: false, detail: `Missing positive step: ${patterns.join(' / ')}` };
+    positions.push(position);
+  }
+  for (let i = 1; i < positions.length; i++) {
+    if (positions[i] <= positions[i - 1]) {
+      return { id, type, description, passed: false, detail: `Step ${i + 1} appears before or with step ${i}` };
+    }
+  }
+  return { id, type, description, passed: true, detail: `${steps.length} ordered positive steps found` };
+}
+
+function containsPositivePattern(text: string, pattern: string): boolean {
+  return firstPositivePosition(text, [pattern]) >= 0;
+}
+
+function firstPositivePosition(text: string, patterns: string[]): number {
+  const source = text.toLowerCase();
+  let best = -1;
+  for (const rawPattern of patterns) {
+    const pattern = rawPattern.toLowerCase();
+    if (!pattern) continue;
+    let index = source.indexOf(pattern);
+    while (index >= 0) {
+      const clauseStart = Math.max(source.lastIndexOf('。', index), source.lastIndexOf('；', index), source.lastIndexOf('\n', index)) + 1;
+      const prefix = source.slice(clauseStart, index);
+      const negated = /(?:不|未|无|没有|勿|禁止|拒绝|不要|不应|不能|无需|not|never|do not|don't)[\s\u4e00-\u9fff_a-z.-]{0,12}\s*$/i.test(prefix);
+      if (!negated && (best < 0 || index < best)) {
+        best = index;
+        break;
+      }
+      index = source.indexOf(pattern, index + pattern.length);
+    }
+  }
+  return best;
 }
 
 /** 排除检查：不得包含指定模式 */

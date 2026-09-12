@@ -48,7 +48,7 @@ export function validateScenario(
   }
 
   // 2. 版本是否匹配契约
-  if (contract.version !== scenario.graderVersion) {
+  if (contract.version !== scenario.graderVersion && !contract.compatibleVersions?.includes(scenario.graderVersion)) {
     push('warning', 'VERSION_MISMATCH',
       `graderVersion "${scenario.graderVersion}" 与契约版本 "${contract.version}" 不一致`);
   }

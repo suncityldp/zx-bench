@@ -58,26 +58,42 @@ function deriveKeywords(f: GroundTruthFinding): string[] {
   return [...new Set(kws.map(k => k.toLowerCase()))];
 }
 
-/** 在输出中定位某关键词的命中位置（返回首个位置，未命中 -1） */
-function findKeyword(output: string, kw: string): number {
-  return output.toLowerCase().indexOf(kw.toLowerCase());
+function sentenceAround(output: string, pos: number): string {
+  const starts = [output.lastIndexOf('。', pos), output.lastIndexOf('！', pos), output.lastIndexOf('？', pos), output.lastIndexOf('\n', pos), output.lastIndexOf('.', pos)];
+  const start = Math.max(...starts) + 1;
+  const ends = [output.indexOf('。', pos), output.indexOf('！', pos), output.indexOf('？', pos), output.indexOf('\n', pos), output.indexOf('.', pos)].filter((end) => end >= 0);
+  return output.slice(start, ends.length ? Math.min(...ends) : output.length);
 }
 
-/** 在关键词命中位置 ±100 字符窗口内取最近的严重级别词 */
-function severityAround(output: string, pos: number): string | null {
-  if (pos < 0) return null;
-  const start = Math.max(0, pos - 100);
-  const win = output.slice(start, Math.min(output.length, pos + 100)).toLowerCase();
-  const center = pos - start;
-  const ms = [...win.matchAll(SEV_RE)];
-  if (!ms.length) return null;
-  let best = ms[0];
-  let bestDist = Infinity;
-  for (const m of ms) {
-    const d = Math.abs((m.index ?? 0) - center);
-    if (d < bestDist) { bestDist = d; best = m; }
+function severityInSentence(sentence: string): string | null {
+  const matches = [...sentence.toLowerCase().matchAll(SEV_RE)];
+  return matches[0]?.[0] ?? null;
+}
+
+const DENIAL_RE = /(?:没有(?:任何)?(?:问题|缺陷|风险)|无(?:任何)?(?:问题|缺陷|风险)|无需(?:修复|改动)|不需要(?:修复|改动)|正常|无害|no\s+(?:issues?|findings?|problem)|not\s+(?:an?\s+)?issue|false\s+positive)/i;
+const FINDING_ASSERTION_RE = /(?:存在|导致|允许|接受|泄露|注入|绕过|竞态|不一致|失败|缺失|未(?:做|配置|校验|对账)|风险|漏洞|问题|缺陷|应(?:当)?(?:修复|改为|替换)|建议|can\s+|allows?|accepts?|causes?|missing|unsafe|vulnerab|race)/i;
+const ACTIONABLE_RE = /(?:建议|修复|改为|替换|增加|使用|加上|应(?:当)?|replace|use|add|fix|change|guard|parameteri[sz]e)/i;
+
+/**
+ * A keyword is evidence only when it is part of an asserted finding. Listing file
+ * names, quoted rubric words, or a “no issues” conclusion must not earn recall.
+ */
+function findAssertedFinding(output: string, finding: GroundTruthFinding): { pos: number; keyword: string; sentence: string; severity: string | null } | null {
+  if (DENIAL_RE.test(output)) return null;
+  const keywords = deriveKeywords(finding);
+  for (const keyword of keywords) {
+    let pos = output.toLowerCase().indexOf(keyword.toLowerCase());
+    while (pos >= 0) {
+      const sentence = sentenceAround(output, pos);
+      const localKeywordCount = keywords.filter((k) => sentence.toLowerCase().includes(k.toLowerCase())).length;
+      const severity = severityInSentence(sentence);
+      if (!DENIAL_RE.test(sentence) && (localKeywordCount >= 2 || FINDING_ASSERTION_RE.test(sentence))) {
+        return { pos, keyword, sentence, severity };
+      }
+      pos = output.toLowerCase().indexOf(keyword.toLowerCase(), pos + keyword.length);
+    }
   }
-  return best[0];
+  return null;
 }
 
 /** 用 Judge 模型评估「修复建议可落地程度」（0-100）。失败返回 null 以回退启发式。 */
@@ -141,22 +157,18 @@ export const llmJudgeEvaluator: Evaluator = {
     let detected = 0;
     let sevCorrect = 0;
     let sevScored = 0;
+    const assertedFindings = new Map<string, { sentence: string; severity: string | null }>();
     for (const g of real) {
-      const kws = deriveKeywords(g);
-      let hitPos = -1;
-      let hitKw = '';
-      for (const kw of kws) {
-        const p = findKeyword(modelOutput, kw);
-        if (p >= 0) { hitPos = p; hitKw = kw; break; }
-      }
-      if (hitPos >= 0) {
+      const hit = findAssertedFinding(modelOutput, g);
+      if (hit) {
         detected++;
-        const sev = severityAround(modelOutput, hitPos);
+        assertedFindings.set(g.id, { sentence: hit.sentence, severity: hit.severity });
+        const sev = hit.severity;
         if (sev) {
           sevScored++;
           if (normalizeSeverity(sev) === normalizeSeverity(g.severity)) sevCorrect++;
         }
-        evidence.push('HIT [' + g.id + '] ' + hitKw + (sev ? ' (sev=' + sev + ')' : ''));
+        evidence.push('HIT [' + g.id + '] ' + hit.keyword + (sev ? ' (sev=' + sev + ')' : ''));
       } else {
         evidence.push('MISS [' + g.id + '] ' + (g.file || g.area || g.finding.slice(0, 30)));
       }
@@ -171,16 +183,14 @@ export const llmJudgeEvaluator: Evaluator = {
     // 3. false_positive_control：是否把 FP 探针误报为真实缺陷
     let fpViolation = false;
     for (const f of fp) {
-      const kws = deriveKeywords(f);
-      for (const kw of kws) {
-        const p = findKeyword(modelOutput, kw);
-        if (p >= 0) {
-          const sev = severityAround(modelOutput, p);
-          // 若把 FP 标注为 critical/high/medium 即算误报
-          if (sev && ['critical', 'high', 'medium'].includes(sev)) { fpViolation = true; evidence.push('FP-FAIL [' + f.id + '] 将 ' + kw + ' 误报为 ' + sev); }
-          else evidence.push('FP-OK [' + f.id + '] ' + kw + (sev ? ' (sev=' + sev + ')' : ' (未标注级别)'));
-          break;
-        }
+      const hit = findAssertedFinding(modelOutput, f);
+      if (!hit) continue;
+      // 若把 FP 标注为 critical/high/medium 即算误报；仅提到它并不构成误报。
+      if (hit.severity && ['critical', 'high', 'medium'].includes(hit.severity)) {
+        fpViolation = true;
+        evidence.push('FP-FAIL [' + f.id + '] 将 ' + hit.keyword + ' 误报为 ' + hit.severity);
+      } else {
+        evidence.push('FP-OK [' + f.id + '] ' + hit.keyword + (hit.severity ? ' (sev=' + hit.severity + ')' : ' (无高危归类)'));
       }
     }
     axisScores.false_positive_control = fpViolation ? 0 : 100;
@@ -191,14 +201,14 @@ export const llmJudgeEvaluator: Evaluator = {
     const diffUnits = realFiles.length
       ? [...new Set(realFiles)]
       : (req.diff ? [...new Set([...req.diff.matchAll(/^\+\+\+ b\/([^\n]+)/gm)].map(m => m[1]))] : []);
-    const covered = diffUnits.filter(f => modelOutput.toLowerCase().includes(f.toLowerCase()) || modelOutput.toLowerCase().includes(f.split('/').pop()?.toLowerCase() || ''));
+    const covered = diffUnits.filter((file) => real.some((finding) => finding.file === file && assertedFindings.has(finding.id)));
     axisScores.diff_coverage = diffUnits.length ? Math.round((covered.length / diffUnits.length) * 100) : 100;
     axisEvidence.diff_coverage = 'rule';
     evidence.push('diff_coverage: ' + covered.length + '/' + diffUnits.length + ' 文件');
 
     // 5. actionable_feedback：修复建议可落地程度（优先 LLM Judge，失败回退启发式）
-    const suggCount = (modelOutput.match(/(建议|改为|修复|应改为|应当|replace|should|suggest|fix)/gi) || []).length;
-    const heuristicActionable = detected ? Math.min(100, Math.round((suggCount / detected) * 100)) : 0;
+    const actionableFindings = [...assertedFindings.values()].filter(({ sentence }) => ACTIONABLE_RE.test(sentence)).length;
+    const heuristicActionable = detected ? Math.round((actionableFindings / detected) * 100) : 0;
     let actionableScore = heuristicActionable;
     let actionableEvidence: AxisEvidence = 'rule';
     if (judgeModel) {

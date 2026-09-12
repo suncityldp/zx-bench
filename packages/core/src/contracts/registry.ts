@@ -13,6 +13,8 @@ export interface GraderContract {
   grader: string;
   /** 评分器版本（scenario.graderVersion） */
   version: string;
+  /** 明确验证过、可由当前实现兼容的历史版本；其他版本不可静默降级。 */
+  compatibleVersions?: string[];
   /** 归属维度 */
   dimension: string;
   /** evaluator 实际消费的 requirements 字段 */
@@ -32,7 +34,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 推理数学：精确答案行 ----
   exact_answer_line: {
     grader: 'exact_answer_line',
-    version: 'exact_answer_v2',
+    version: 'exact_answer_v4',
+    compatibleVersions: ['exact_answer_v2', 'exact_answer_v3'],
     dimension: 'reasoning_math',
     consumedFields: ['answer'],
     declaredFields: ['answer', 'acceptedVariants', 'answerGrammar', 'answerType', 'units', 'validUntil'],
@@ -40,12 +43,13 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     capabilities: {},
   },
 
-  // ---- 结构化输出：schema_compliance（format 目前从 scenario.schema/grader 推，未读 requirements.format —— 已知缺陷） ----
+  // ---- 结构化输出：schema_compliance ----
   schema_compliance: {
     grader: 'schema_compliance',
-    version: 'schema_compliance_v2',
+    version: 'schema_compliance_v3',
+    compatibleVersions: ['schema_compliance_v2'],
     dimension: 'structured_output',
-    consumedFields: [],
+    consumedFields: ['format', 'output_policy', 'requiredFields', 'crossFieldRules'],
     declaredFields: ['format', 'output_policy', 'requiredFields', 'crossFieldRules'],
     requiredFields: ['format'],
     capabilities: {
@@ -96,7 +100,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // aliases 保留 hallucination_v3/v2/v1：v4 评分器兼容旧题（无 verificationMode 走 v3 兼容路径）。
   hallucination_resistance: {
     grader: 'hallucination_resistance',
-    version: 'hallucination_v4',
+    version: 'hallucination_v5',
+    compatibleVersions: ['hallucination_v4', 'hallucination_v3', 'hallucination_v2', 'hallucination_v1'],
     dimension: 'hallucination_resistance',
     consumedFields: [
       'answerability', 'answerKeywords', 'answer', 'correctionKeywords',
@@ -146,7 +151,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     grader: 'agent_trace',
     version: 'agent_trace_v5',
     dimension: 'agent_workflow',
-    consumedFields: ['expectedActions', 'expectedStateChanges', 'completionKeywords', 'planningKeywords'],
+    consumedFields: ['expectedActions', 'expectedStateChanges', 'completionKeywords', 'planningKeywords', 'forbiddenActions', 'safetyCapActions'],
     declaredFields: [
       'expectedActions', 'expectedStateChanges', 'completionKeywords', 'planningKeywords',
       'forbiddenActions', 'safetyCapActions', 'stateFixture', 'responseMode',
@@ -176,7 +181,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 编程修复：code_repair（requirements 实际是对象，但 evaluator 当 string[] keywords 读 —— 已知缺陷） ----
   code_repair: {
     grader: 'code_repair',
-    version: '3.2.0',
+    version: '3.3.0',
+    compatibleVersions: ['3.2.0', '3.1.0', '3.0.0', 'code_repair_v3'],
     dimension: 'program',
     consumedFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap'],
     declaredFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'referenceSolution'],
@@ -191,7 +197,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 多文件项目修复：project_repair（长任务，多文件工作区 + 容器测试套件） ----
   project_repair: {
     grader: 'project_repair',
-    version: '1.0.0',
+    version: '1.3.0',
+    compatibleVersions: ['1.2.0'],
     dimension: 'program',
     consumedFields: ['files', 'hiddenTestFiles', 'hiddenTests', 'publicTests', 'functionName', 'explanationKeywords', 'image'],
     declaredFields: ['files', 'hiddenTestFiles', 'hiddenTests', 'publicTests', 'functionName', 'explanationKeywords', 'image'],

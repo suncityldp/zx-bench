@@ -12,7 +12,7 @@
 
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
-import { findToolCallIndex, findParam } from './callMatch.js';
+import { findToolCallIndex, findParamInToolCalls, getStructuredToolCalls } from './callMatch.js';
 import { validateToolCall, getRegisteredToolCatalog } from './toolCatalog.js';
 import { weightedScoreByCoverage } from './scoreAggregate.js';
 import { formatValidScore } from './responseState.js';
@@ -112,7 +112,7 @@ export const toolCallTraceEvaluator: Evaluator = {
         let totalParams = 0;
         for (const [key, value] of Object.entries(requirements.params)) {
           totalParams++;
-          if (findParam(modelOutput, key, String(value))) {
+          if (requirements.tool && findParamInToolCalls(modelOutput, requirements.tool, key, String(value))) {
             paramMatches++;
           } else {
             evidence.push(`Param mismatch: ${key}=${String(value)}`);
@@ -191,7 +191,7 @@ export const toolCallTraceEvaluator: Evaluator = {
       }
       if (requirements.should_not_call_any === true || requirements.minimal_calls === 0) {
         // 零调用约束：输出中不应出现任何结构化调用形态
-        const anyCall = /\b\w+\s*\(/.test(modelOutput.replace(/```[\s\S]*?```/g, '')) && /(?:调用|call|invoke|tool)/i.test(modelOutput);
+        const anyCall = getStructuredToolCalls(modelOutput).length > 0;
         checks.push(!anyCall);
         if (anyCall) evidence.push('Zero-call constraint violated: structured call detected');
       }

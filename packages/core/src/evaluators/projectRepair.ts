@@ -185,6 +185,7 @@ async function runScript(
 export const projectRepairEvaluator: Evaluator = {
   name: 'project_repair',
   version: '1.3.0',
+  compatibleVersions: ['1.2.0'],
 
   async evaluate(
     scenario: Scenario,

@@ -15,7 +15,7 @@ const scenario = { id: 'execution-audit', dimension: 'program', grader: 'executi
 const model = { name: 'mock', defaultParams: {} } as ModelConfig;
 beforeEach(() => {
   vi.clearAllMocks();
-  registerEvaluator({ name: 'execution_audit', version: 'new', evaluate: async () => ({
+  registerEvaluator({ name: 'execution_audit', version: 'new', compatibleVersions: ['old'], evaluate: async () => ({
     totalScore: 20, axisScores: { compilation: 0, test_pass: 0 }, axisEvidence: { compilation: 'verified', test_pass: 'verified' },
     axisCoverage: .4, runtimeEvaluation: runtime, evidence: [],
   }) });

@@ -70,6 +70,7 @@ export function getRegisteredCLISandboxRunner(): CLISandboxRunner | null {
 export const cliCommandEvaluator: Evaluator = {
   name: 'cli_command',
   version: 'cli_command_v4', // P0：真实执行钩子；P1-A3-2：v4 覆盖率感知（去默认 80 放水）
+  compatibleVersions: ['cli_command_v1', 'cli_command_v2'],
   aliases: ['cli_command_v1', 'cli_command_v2'],
 
   async evaluate(
@@ -150,13 +151,18 @@ export const cliCommandEvaluator: Evaluator = {
     // ===== 3. 非 sandbox 题：v4 覆盖率感知关键词匹配（A3-2 修复：去默认 80 放水） =====
     // 仅「场景实际配置」的轴参与加权；未配置轴标记 unmeasured 并从分母剔除，
     // 不再白送 80 分、也不再因缺省轴稀释确定性信号。
-    const output = modelOutput.toLowerCase();
+    // All rule checks below must inspect one executable command candidate, never
+    // explanatory prose or a comment containing command names.
+    const command = extractPrimaryCommand(modelOutput);
+    const output = command.toLowerCase();
+    if (!command) evidence.push('No executable shell command found in model output');
+    else evidence.push(`Command candidate: ${command.slice(0, 240)}`);
     const axes: Array<[number | undefined, number]> = [
       [axisScores.format_valid, 0.10],
     ];
 
     if (requirements.requiredCommands && requirements.requiredCommands.length > 0) {
-      const cmdHits = requirements.requiredCommands.filter((c) => output.includes(c.toLowerCase())).length;
+      const cmdHits = requirements.requiredCommands.filter((c) => commandContainsToken(output, c)).length;
       axisScores.command_usage = Math.round((cmdHits / requirements.requiredCommands.length) * 100);
       axisEvidence.command_usage = 'rule';
       evidence.push(`Commands matched: ${cmdHits}/${requirements.requiredCommands.length}`);
@@ -226,12 +232,27 @@ export const cliCommandEvaluator: Evaluator = {
  * 否则取首个看起来像 shell 命令的行。仅用于交给 sandbox runner 执行，不做评分判断。
  */
 export function extractPrimaryCommand(output: string): string {
-  const fences = [...output.matchAll(/```(?:\w+)?\n([\s\S]*?)```/g)].map((m) => m[1].trim()).filter(Boolean);
-  if (fences.length > 0) return fences[fences.length - 1];
-  const lines = output.split(/\n/).map((l) => l.trim()).filter(Boolean);
-  const shellHint = /\b(awk|sed|grep|sort|uniq|cat|head|tail|wc|find|ls|echo|cut|tr|jq|curl|wget|python|python3|node|bash|sh|tee|xargs|diff|comm)\b/;
-  const cmdLine = lines.find((l) => shellHint.test(l)) ?? output;
-  return cmdLine;
+  const fenced = [...output.matchAll(/```(?:bash|sh|shell|zsh|fish)?\s*\n([\s\S]*?)```/gi)]
+    .map((match) => selectCommandLine(match[1]));
+  const fromFence = fenced.reverse().find(Boolean);
+  if (fromFence) return fromFence;
+  return selectCommandLine(output);
+}
+
+const SHELL_COMMAND = /^(?:command\s+|env\s+)?(?:awk|sed|grep|sort|uniq|cat|head|tail|wc|find|ls|echo|cut|tr|jq|curl|wget|python3?|node|bash|sh|tee|xargs|diff|comm|mkdir|cp|mv|rm|touch|git|npm|pnpm)\b/i;
+
+function selectCommandLine(text: string): string {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n').map((line) => line.trim());
+  // A command is a non-comment line that starts with an executable token.
+  // This deliberately ignores “# awk …” and prose such as “use awk”.
+  const candidates = lines.filter((line) => line.length > 0 && !line.startsWith('#') && SHELL_COMMAND.test(line));
+  return candidates[candidates.length - 1] ?? '';
+}
+
+function commandContainsToken(command: string, token: string): boolean {
+  const first = token.trim().split(/\s+/)[0];
+  if (!first) return false;
+  return new RegExp(`(^|[\\s|;&])${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=$|[\\s|;&])`, 'i').test(command);
 }
 
 /**

@@ -1,73 +1,101 @@
 // ============================================================
-// 结构化调用检测（防"提及即得分"）
-// 工具/动作检查要求模型以"调用形态"使用工具，而非仅复述名称。
-// 供 tool_call_trace / agent_trace 等评分器使用。
+// 结构化调用检测
+// 只把可执行形态（function call / JSON tool call / tool tag）当成工具调用；
+// “不要调用…”，示例和注释里的调用文本都不是 action evidence。
 // ============================================================
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * 检测工具名是否以"结构化调用形态"出现在输出中。
- * 命中形态：<tool>name</tool> 标签 / name( 函数调用 / "name": 或 name: JSON 字段 / "调用 name" 等。
- * @returns 首次调用的下标；未找到返回 -1（可用于顺序校验）
- */
-export function findToolCallIndex(output: string, toolName: string): number {
-  const o = output.toLowerCase();
-  const t = escapeRe(toolName.toLowerCase());
-  if (!t) return -1;
+export interface StructuredToolCall {
+  toolName: string;
+  args: string;
+  index: number;
+  raw: string;
+}
 
-  const patterns: Array<[RegExp, () => number]> = [
-    // <tool>name</tool> / <tool_call> 内含 name
-    [new RegExp(`<tool[^>]*>\\s*${t}\\s*</tool>`), () => { const m = o.match(new RegExp(`<tool[^>]*>\\s*${t}\\s*</tool>`)); return m ? m.index ?? -1 : -1; }],
-    [new RegExp(`<tool_call[^>]*${t}`), () => { const m = o.match(new RegExp(`<tool_call[^>]*${t}`)); return m ? m.index ?? -1 : -1; }],
-    // 函数调用形态 name(
-    [new RegExp(`\\b${t}\\s*\\(`), () => { const m = o.match(new RegExp(`\\b${t}\\s*\\(`)); return m ? m.index ?? -1 : -1; }],
-    // JSON / 键值形态 "name": 或 name:
-    [new RegExp(`["']?${t}["']?\\s*[:=]`), () => { const m = o.match(new RegExp(`["']?${t}["']?\\s*[:=]`)); return m ? m.index ?? -1 : -1; }],
-    // JSON 值形态（严格 JSON 输出题）："tool_name": "get_weather" / "tool": get_weather
-    [new RegExp(`[:=]\\s*["']?${t}["']?`), () => { const m = o.match(new RegExp(`[:=]\\s*["']?${t}["']?`)); return m ? m.index ?? -1 : -1; }],
-    // 自然语言调用："调用 name" / "使用 name" / "tool: name"
-    [new RegExp(`(?:tool|工具|调用|use(?:ing)?|invoke)\\s*[:：]?\\s*${t}`), () => { const m = o.match(new RegExp(`(?:tool|工具|调用|use(?:ing)?|invoke)\\s*[:：]?\\s*${t}`)); return m ? m.index ?? -1 : -1; }],
-  ];
+/** Extract actual callable forms while discarding negated/example mentions. */
+export function getStructuredToolCalls(output: string): StructuredToolCall[] {
+  const calls: StructuredToolCall[] = [];
 
-  let best = -1;
-  for (const [re, pos] of patterns) {
-    if (re.test(o)) {
-      const idx = pos();
-      if (idx !== -1 && (best === -1 || idx < best)) best = idx;
+  // Function / SDK call: `call get_weather(location="北京")` or `get_weather(...)`.
+  const functionRe = /\b([A-Za-z_][\w.-]*)\s*\(([^()\n]*)\)/g;
+  for (const match of output.matchAll(functionRe)) {
+    const index = match.index ?? -1;
+    if (index >= 0 && !isMentionOnly(output, index)) {
+      calls.push({ toolName: match[1], args: match[2], index, raw: match[0] });
     }
   }
-  return best;
+
+  // JSON-style tool call. The bounded object is intentional: nested JSON should use a
+  // function form or a registered runner; a loose text scan would reintroduce false calls.
+  const jsonRe = /["'](?:tool|tool_name|name)["']\s*:\s*["']([A-Za-z_][\w.-]*)["'](?:\s*,\s*["'](?:args|arguments|parameters)["']\s*:\s*(\{[^{}]*\}))?/g;
+  for (const match of output.matchAll(jsonRe)) {
+    const index = match.index ?? -1;
+    if (index >= 0 && !isMentionOnly(output, index)) {
+      calls.push({ toolName: match[1], args: match[2] ?? '', index, raw: match[0] });
+    }
+  }
+
+  // XML-ish tool envelope used by several agent protocols: <tool name="x">key=value</tool>.
+  const tagRe = /<tool(?:_call)?\b[^>]*\bname\s*=\s*["']([A-Za-z_][\w.-]*)["'][^>]*>([\s\S]*?)<\/tool(?:_call)?>/gi;
+  for (const match of output.matchAll(tagRe)) {
+    const index = match.index ?? -1;
+    if (index >= 0 && !isMentionOnly(output, index)) {
+      calls.push({ toolName: match[1], args: match[2], index, raw: match[0] });
+    }
+  }
+
+  return calls.sort((a, b) => a.index - b.index);
+}
+
+export function findToolCalls(output: string, toolName: string): StructuredToolCall[] {
+  const target = toolName.toLowerCase();
+  return getStructuredToolCalls(output).filter((call) => call.toolName.toLowerCase() === target);
+}
+
+/** @returns first actionable call position; -1 means no actual call. */
+export function findToolCallIndex(output: string, toolName: string): number {
+  return findToolCalls(output, toolName)[0]?.index ?? -1;
 }
 
 export function findToolCall(output: string, toolName: string): boolean {
   return findToolCallIndex(output, toolName) !== -1;
 }
 
-/**
- * 检测参数 key/value 是否成对出现（key: value / key=value / "key": "value"）。
- * 要求 key 与 value 在同一表达式或同一行内共现，避免"输出中任意位置出现 value"即得分。
- */
-export function findParam(output: string, key: string, value: string): boolean {
-  const o = output.toLowerCase();
+/** Match a key/value inside one parsed tool call, never across prose or other calls. */
+export function callHasParam(call: StructuredToolCall, key: string, value?: string): boolean {
+  const args = call.args.toLowerCase();
   const k = escapeRe(key.toLowerCase());
+  const keyRe = new RegExp(`["']?${k}["']?\\s*[:=]`);
+  if (!keyRe.test(args)) return false;
+  if (value === undefined || value === '') return true;
   const v = escapeRe(String(value).toLowerCase());
+  return new RegExp(`["']?${k}["']?\\s*[:=]\\s*["']?${v}["']?\\s*(?:,|$|}\\s*$|\\]\\s*$)`).test(args);
+}
 
-  if (!v) {
-    // 空值：退化为"key 出现即命中"（无可比对的值）
-    return new RegExp(`["']?${k}["']?\\s*[:=]`).test(o) || o.includes(k.toLowerCase());
-  }
+export function findParamInToolCalls(output: string, toolName: string, key: string, value?: string): boolean {
+  return findToolCalls(output, toolName).some((call) => callHasParam(call, key, value));
+}
 
-  // 成对形态：key: value / key=value / "key": "value"
-  const pair = new RegExp(`["']?${k}["']?\\s*[:=]\\s*["']?${v}["']?`);
-  if (pair.test(o)) return true;
+/** Backward-compatible generic helper; callers with a known tool must use findParamInToolCalls. */
+export function findParam(output: string, key: string, value: string): boolean {
+  return getStructuredToolCalls(output).some((call) => callHasParam(call, key, value));
+}
 
-  // 兜底：同一行内 key 与 value 共现（仍是弱证据，但比裸 value 严格）
-  for (const line of o.split('\n')) {
-    const l = line.trim();
-    if (l.includes(key.toLowerCase()) && l.includes(String(value).toLowerCase())) return true;
-  }
-  return false;
+export function callContainsPattern(call: StructuredToolCall, pattern: string): boolean {
+  return call.args.toLowerCase().includes(pattern.toLowerCase());
+}
+
+function isMentionOnly(output: string, index: number): boolean {
+  // Scope the check to the current clause. A refusal in a previous sentence must not
+  // suppress a later call, while “不要调用 x()” and “示例 x()” are rejected.
+  const boundary = Math.max(
+    output.lastIndexOf('。', index), output.lastIndexOf('；', index), output.lastIndexOf('\n', index),
+  );
+  const prefix = output.slice(boundary + 1, index).trim();
+  return /(?:不要|禁止|不应|不可|不能|无需|不需要)\s*(?:调用|使用|执行|运行)?\s*$/i.test(prefix)
+    || /(?:示例|例如|比如|样例|example)\s*(?:为|：|:)?\s*(?:调用|call|使用)?\s*$/i.test(prefix)
+    || /(?:注释|comment)\s*(?:为|：|:)?\s*$/i.test(prefix);
 }

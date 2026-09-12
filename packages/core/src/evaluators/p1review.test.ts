@@ -53,7 +53,7 @@ describe('P1-A3-2: cli_command v4 覆盖率感知（去默认 80 放水）', () 
   beforeEach(() => registerCLISandboxRunner(null));
   it('配置 requiredCommands 且命中 → coverage=1、totalScore=100（不再白送默认分）', async () => {
     const s = scenario({ dimension: 'cli_deep_tasks', grader: 'cli_command', requirements: { requiredCommands: ['awk', 'sort'] } });
-    const r = await cliCommandEvaluator.evaluate(s, 'use awk and sort here', meta());
+    const r = await cliCommandEvaluator.evaluate(s, 'awk \'{print $1}\' access.log | sort', meta());
     expect(r.axisCoverage).toBeCloseTo(1.0, 5);
     expect(r.totalScore).toBe(100);
     expect(r.axisEvidence?.command_usage).toBe('rule');

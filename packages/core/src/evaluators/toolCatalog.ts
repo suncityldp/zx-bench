@@ -5,7 +5,7 @@
 // catalog 由编排层按需 registerToolCatalog() 注入；未注册时评分器回退到原有 findParam 匹配。
 // ============================================================
 
-import { findParam } from './callMatch.js';
+import { findParamInToolCalls } from './callMatch.js';
 
 export interface ToolParamSpec {
   /** 是否为必填参数；缺失 → 扣分 */
@@ -41,12 +41,6 @@ export interface ToolCallValidation {
   matchedParams: string[];
 }
 
-/** 仅检测参数 key 是否以「key: value / key=value」形态出现（不比对具体值） */
-function paramPresent(output: string, key: string): boolean {
-  const k = key.toLowerCase();
-  return new RegExp(`["']?${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']?\\s*[:=]`).test(output.toLowerCase());
-}
-
 /**
  * 依据目录校验一次工具调用（A1-4）。
  * @param output 模型输出
@@ -69,10 +63,10 @@ export function validateToolCall(output: string, toolName: string, catalog: Tool
 
   let matched = 0;
   for (const [key, p] of entries) {
-    const present = paramPresent(output, key);
+    const present = findParamInToolCalls(output, toolName, key);
     if (p.enum && p.enum.length > 0) {
-      // 枚举约束：输出中出现 key 且命中其一枚举值
-      const ok = p.enum.some((v) => output.toLowerCase().includes(String(v).toLowerCase()));
+      // 枚举值必须出现在同一个、正确工具的调用参数中。
+      const ok = p.enum.some((v) => findParamInToolCalls(output, toolName, key, String(v)));
       if (present && ok) {
         matched++;
         validation.matchedParams.push(key);

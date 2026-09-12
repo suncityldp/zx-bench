@@ -11,6 +11,7 @@ import { formatValidScore } from './responseState.js';
 export const exactAnswerLineEvaluator: Evaluator = {
   name: 'exact_answer_line',
   version: 'exact_answer_v4',
+  compatibleVersions: ['exact_answer_v2', 'exact_answer_v3'],
   aliases: ['exact_answer_v3'],
 
   async evaluate(

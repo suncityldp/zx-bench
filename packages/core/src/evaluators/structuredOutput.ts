@@ -1,192 +1,220 @@
 // ============================================================
-// Structured Output 评分器 v2（GPT5.6 结构化输出）
-// SO 维度：语法解析 20% + Schema 合规 25% + 字段约束 20%
-//         + 跨字段一致性 20% + 可执行/可渲染 10% + 输出纪律 5%
+// Structured Output 评分器 v3
+// 只对实际可解析、且满足场景声明字段/约束的内容给分。格式正确不等于内容正确；
+// 没有明确可验证的轴一律标记为 unmeasured，绝不以默认 100 填充。
 // ============================================================
 
-import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse } from '@zxbench/types';
+import type { AxisEvidence, ModelResponse, OutputMetadata, Scenario, ScenarioResult } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { parseByFormat, type SupportedFormat } from '../parsers/index.js';
 
+type Requirements = {
+  format?: SupportedFormat;
+  requiredFields?: string[];
+  crossFieldRules?: string[];
+  output_policy?: 'raw_only' | 'fenced_allowed';
+  outputPolicy?: 'raw_only' | 'fenced_allowed';
+};
+
+const SUPPORTED_FORMATS = new Set<SupportedFormat>([
+  'json', 'csv', 'xml', 'sql', 'html', 'yaml', 'regex', 'mermaid', 'markdown', 'toml',
+]);
+
 export const structuredOutputEvaluator: Evaluator = {
   name: 'schema_compliance',
-  version: 'schema_compliance_v2',
+  version: 'schema_compliance_v3',
+  compatibleVersions: ['schema_compliance_v2'],
   aliases: ['structured_output_v2'],
 
   async evaluate(
     scenario: Scenario,
     modelOutput: string,
-    metadata: OutputMetadata,
-    modelResponse: ModelResponse,
+    _metadata: OutputMetadata,
+    _modelResponse: ModelResponse,
   ): Promise<Partial<ScenarioResult>> {
     const axisScores: Record<string, number> = {};
+    const axisEvidence: Record<string, AxisEvidence> = {};
     const evidence: string[] = [];
-
-    // 确定输出格式
-    const format = detectFormat(scenario);
-
-    // 1. 语法解析 (20%)
-    const parseResult = parseByFormat(format, modelOutput, {
+    const requirements = readRequirements(scenario);
+    const format = detectFormat(scenario, requirements);
+    const parsed = parseByFormat(format, modelOutput, {
       schema: scenario.schema,
-      expectedColumns: scenario.constraints,
+      expectedColumns: format === 'csv' ? requirements.requiredFields : undefined,
     });
+    const errors = parsed.violations.filter((v) => v.severity === 'error');
 
-    if (parseResult.success) {
-      axisScores.syntax_parse = 100;
-      evidence.push(`Format "${format}" parsed successfully`);
-    } else {
-      const errorCount = parseResult.violations.filter((v) => v.severity === 'error').length;
-      axisScores.syntax_parse = Math.max(0, 100 - errorCount * 25);
-      evidence.push(`Format "${format}" parse errors: ${errorCount}`);
-      for (const v of parseResult.violations.filter((v) => v.severity === 'error').slice(0, 3)) {
-        evidence.push(`  - ${v.message}`);
-      }
-    }
+    // Syntax is intentionally independent of content constraints.
+    axisScores.syntax_parse = parsed.success ? 100 : Math.max(0, 100 - errors.length * 35);
+    axisEvidence.syntax_parse = 'rule';
+    evidence.push(parsed.success
+      ? `Format "${format}" parsed successfully`
+      : `Format "${format}" parse errors: ${errors.length}`);
+    for (const violation of errors.slice(0, 3)) evidence.push(`  - ${violation.message}`);
 
-    // 2. Schema 合规 (25%)
     if (scenario.schema) {
-      const schemaViolations = parseResult.violations.filter(
+      const schemaViolations = parsed.violations.filter(
         (v) => v.type === 'schema_mismatch' || v.type === 'missing_required',
       );
-      axisScores.schema_compliance = Math.max(0, 100 - schemaViolations.length * 20);
-      if (schemaViolations.length === 0) {
-        evidence.push('Schema validation passed');
-      } else {
-        evidence.push(`Schema violations: ${schemaViolations.length}`);
-      }
+      axisScores.schema_compliance = schemaViolations.length === 0 && parsed.success
+        ? 100
+        : Math.max(0, 100 - schemaViolations.length * 50);
+      axisEvidence.schema_compliance = 'rule';
+      evidence.push(schemaViolations.length === 0
+        ? 'Schema validation passed'
+        : `Schema violations: ${schemaViolations.length}`);
     } else {
-      axisScores.schema_compliance = parseResult.success ? 100 : 50;
-      evidence.push('No schema defined, using basic format check');
+      axisEvidence.schema_compliance = 'unmeasured';
     }
 
-    // 3. 字段约束 (20%)
-    if (scenario.constraints && scenario.constraints.length > 0 && parseResult.parsed) {
-      let constraintPass = 0;
-      for (const constraint of scenario.constraints) {
-        if (evaluateConstraint(constraint, parseResult.parsed)) {
-          constraintPass++;
-        }
-      }
-      axisScores.field_constraints = Math.round((constraintPass / scenario.constraints.length) * 100);
-      evidence.push(`Field constraints: ${constraintPass}/${scenario.constraints.length} passed`);
+    const declaredFields = requirements.requiredFields ?? [];
+    const declaredConstraints = Array.isArray(scenario.constraints) ? scenario.constraints : [];
+    const checks = [
+      ...declaredFields.map((field) => ({ label: `required field ${field}`, pass: hasRequiredField(format, parsed.parsed, field) })),
+      ...declaredConstraints.map((constraint) => ({ label: `constraint ${constraint}`, pass: evaluateConstraint(constraint, parsed.parsed) })),
+    ];
+    if (checks.length > 0) {
+      const passCount = checks.filter((check) => check.pass).length;
+      axisScores.field_constraints = Math.round((passCount / checks.length) * 100);
+      axisEvidence.field_constraints = 'rule';
+      const failures = checks.filter((check) => !check.pass).map((check) => check.label);
+      evidence.push(`Declared fields/constraints: ${passCount}/${checks.length} passed`);
+      if (failures.length > 0) evidence.push(`Missing or invalid: ${failures.slice(0, 5).join(', ')}`);
     } else {
-      axisScores.field_constraints = 100;
+      axisEvidence.field_constraints = 'unmeasured';
     }
 
-    // 4. 跨字段一致性 (20%)
-    if (parseResult.parsed && typeof parseResult.parsed === 'object') {
-      const consistencyScore = checkCrossFieldConsistency(parseResult.parsed as Record<string, unknown>);
-      axisScores.cross_field_consistency = consistencyScore;
-      evidence.push(`Cross-field consistency: ${consistencyScore}%`);
+    const crossRules = requirements.crossFieldRules ?? [];
+    if (crossRules.length > 0) {
+      const passCount = crossRules.filter((rule) => evaluateCrossFieldRule(rule, parsed.parsed)).length;
+      axisScores.cross_field_consistency = Math.round((passCount / crossRules.length) * 100);
+      axisEvidence.cross_field_consistency = 'rule';
+      evidence.push(`Cross-field rules: ${passCount}/${crossRules.length} passed`);
     } else {
-      axisScores.cross_field_consistency = 50;
+      axisEvidence.cross_field_consistency = 'unmeasured';
     }
 
-    // 5. 可执行/可渲染 (10%)
-    if (format === 'sql') {
-      axisScores.executable = parseResult.success ? 80 : 20;
-    } else if (format === 'html') {
-      axisScores.executable = parseResult.success ? 80 : 20;
-    } else if (format === 'regex') {
-      axisScores.executable = parseResult.success ? 90 : 10;
-    } else {
-      axisScores.executable = parseResult.success ? 100 : 0;
-    }
+    // Parsing is not execution/rendering. Keep this axis absent until a sandbox or renderer is configured.
+    axisEvidence.executable = 'unmeasured';
+    axisScores.output_discipline = checkOutputDiscipline(modelOutput, requirements.outputPolicy ?? requirements.output_policy ?? 'raw_only');
+    axisEvidence.output_discipline = 'rule';
+    if (axisScores.output_discipline < 100) evidence.push('Output contains a fence or non-format text forbidden by raw_only policy');
 
-    // 6. 输出纪律 (5%) — 是否有额外无关内容
-    const outputLength = modelOutput.length;
-    const codeBlockLength = modelOutput.match(/```[\s\S]*?```/g)?.reduce((sum, m) => sum + m.length, 0) || 0;
-    const extraRatio = (outputLength - codeBlockLength) / Math.max(outputLength, 1);
-    if (extraRatio < 0.2) {
-      axisScores.output_discipline = 100;
-    } else if (extraRatio < 0.5) {
-      axisScores.output_discipline = 70;
-    } else {
-      axisScores.output_discipline = 40;
-      evidence.push(`Excessive extra content outside code block: ${Math.round(extraRatio * 100)}%`);
-    }
+    const totalScore = weightedMeasuredScore(axisScores, axisEvidence, {
+      syntax_parse: 0.30,
+      schema_compliance: 0.20,
+      field_constraints: 0.40,
+      cross_field_consistency: 0.05,
+      output_discipline: 0.05,
+    });
 
-    // 总分
-    const totalScore = Math.round(
-      axisScores.syntax_parse * 0.20 +
-      axisScores.schema_compliance * 0.25 +
-      axisScores.field_constraints * 0.20 +
-      axisScores.cross_field_consistency * 0.20 +
-      axisScores.executable * 0.10 +
-      axisScores.output_discipline * 0.05
-    );
-
-    return {
-      axisScores,
-      totalScore,
-      safetyLevel: 'safe',
-      evidence,
-    };
+    return { axisScores, axisEvidence, totalScore, safetyLevel: 'safe', evidence };
   },
 };
 
-/** 检测输出格式类型 */
-function detectFormat(scenario: Scenario): SupportedFormat {
-  // 从 grader 名称或 schema 推断
+function readRequirements(scenario: Scenario): Requirements {
+  const raw = scenario.requirements as unknown;
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Requirements : {};
+}
+
+function detectFormat(scenario: Scenario, requirements: Requirements): SupportedFormat {
+  if (requirements.format && SUPPORTED_FORMATS.has(requirements.format)) return requirements.format;
+  const schemaFormat = scenario.schema && (scenario.schema as Record<string, unknown>).format;
+  if (typeof schemaFormat === 'string' && SUPPORTED_FORMATS.has(schemaFormat as SupportedFormat)) {
+    return schemaFormat as SupportedFormat;
+  }
   const grader = scenario.grader.toLowerCase();
-  if (grader.includes('json') || grader.includes('structured')) return 'json';
-  if (grader.includes('csv')) return 'csv';
-  if (grader.includes('xml')) return 'xml';
-  if (grader.includes('sql')) return 'sql';
-  if (grader.includes('html')) return 'html';
-  if (grader.includes('yaml')) return 'yaml';
-  if (grader.includes('regex')) return 'regex';
-
-  // 从 schema 推断
-  if (scenario.schema) {
-    const schemaFormat = (scenario.schema as Record<string, unknown>).format;
-    if (typeof schemaFormat === 'string') return schemaFormat as SupportedFormat;
-  }
-
-  return 'json'; // 默认 JSON
+  for (const format of SUPPORTED_FORMATS) if (grader.includes(format)) return format;
+  return 'json';
 }
 
-/** 基础跨字段一致性检查 */
-function checkCrossFieldConsistency(data: Record<string, unknown>): number {
-  let issues = 0;
-  const values = Object.values(data);
-
-  // 检查 null/undefined 一致性
-  const nullCount = values.filter((v) => v === null || v === undefined).length;
-  if (nullCount > 0 && nullCount < values.length) {
-    issues += 1; // 部分字段为空
-  }
-
-  // 检查类型一致性（数值字段不应包含字符串）
-  const numericFields = Object.entries(data).filter(
-    ([, v]) => typeof v === 'number',
+function hasRequiredField(format: SupportedFormat, parsed: unknown, field: string): boolean {
+  if (format === 'json') return getPath(parsed, field) !== undefined;
+  if (format === 'csv') return Boolean(
+    parsed && typeof parsed === 'object' && Array.isArray((parsed as { headers?: unknown }).headers)
+      && ((parsed as { headers: string[] }).headers.includes(field)),
   );
-  const stringNumericFields = Object.entries(data).filter(
-    ([, v]) => typeof v === 'string' && !isNaN(Number(v)) && v.trim() !== '',
-  );
-  if (numericFields.length > 0 && stringNumericFields.length > 0) {
-    issues += 1; // 数值字段不一致
-  }
 
-  return Math.max(0, 100 - issues * 20);
+  const text = typeof parsed === 'string' ? parsed : '';
+  if (!text) return false;
+  const escaped = escapeRegExp(field);
+  switch (format) {
+    case 'yaml':
+      return new RegExp(`^\\s*${escaped}\\s*:`, 'mi').test(text);
+    case 'toml':
+      return new RegExp(`(?:^\\s*\\[${escaped}\\]\\s*$|^\\s*${escaped}\\s*=)`, 'mi').test(text);
+    case 'xml':
+      return new RegExp(`<(?:\\w+:)?${escaped}(?:\\s|>|/)`, 'i').test(text)
+        || new RegExp(`\\s${escaped}\\s*=`, 'i').test(text);
+    case 'html':
+      if (field.toUpperCase() === 'DOCTYPE') return /^<!doctype\s+html/i.test(text);
+      return new RegExp(`<(?:${escaped})(?:\\s|>)`, 'i').test(text);
+    case 'sql':
+      return new RegExp(`\\b${escaped.replace(/\\ /g, '\\s+')}\\b`, 'i').test(text);
+    case 'mermaid':
+    case 'markdown':
+    case 'regex':
+      return text.includes(field);
+    default:
+      return false;
+  }
 }
 
-/** 简单约束评估 */
+function getPath(value: unknown, path: string): unknown {
+  const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
+  let current = value;
+  for (const part of parts) {
+    if (Array.isArray(current)) current = current[Number(part)];
+    else if (current && typeof current === 'object') current = (current as Record<string, unknown>)[part];
+    else return undefined;
+  }
+  return current;
+}
+
 function evaluateConstraint(constraint: string, data: unknown): boolean {
-  // 基础约束类型
-  if (constraint.startsWith('required:')) {
-    const field = constraint.slice(9).trim();
-    return data !== null && typeof data === 'object' && field in (data as Record<string, unknown>);
+  if (constraint.startsWith('required:')) return getPath(data, constraint.slice(9).trim()) !== undefined;
+  const type = constraint.match(/^type:([^=]+)=(\w+)$/);
+  if (type) return typeof getPath(data, type[1].trim()) === type[2];
+  return false;
+}
+
+/** Small, explicit rule language: equal:a,b | different:a,b | nonempty:a */
+function evaluateCrossFieldRule(rule: string, data: unknown): boolean {
+  const [kind, payload] = rule.split(':', 2);
+  if (!payload) return false;
+  if (kind === 'nonempty') {
+    const value = getPath(data, payload.trim());
+    return value !== undefined && value !== null && value !== '';
   }
-  if (constraint.startsWith('type:')) {
-    // type:field=number
-    const match = constraint.match(/type:(\w+)=(\w+)/);
-    if (match && data && typeof data === 'object') {
-      const [, field, type] = match;
-      const value = (data as Record<string, unknown>)[field];
-      return typeof value === type;
-    }
+  const [left, right] = payload.split(',').map((part) => getPath(data, part.trim()));
+  if (left === undefined || right === undefined) return false;
+  if (kind === 'equal') return left === right;
+  if (kind === 'different') return left !== right;
+  return false;
+}
+
+function checkOutputDiscipline(output: string, policy: 'raw_only' | 'fenced_allowed'): number {
+  const trimmed = output.trim();
+  if (!trimmed) return 0;
+  const exactFence = /^```[\w-]*\s*\n?[\s\S]*?\n?```$/.test(trimmed);
+  if (policy === 'fenced_allowed') return exactFence || !trimmed.includes('```') ? 100 : 0;
+  return trimmed.includes('```') ? 0 : 100;
+}
+
+function weightedMeasuredScore(
+  scores: Record<string, number>,
+  evidence: Record<string, AxisEvidence>,
+  weights: Record<string, number>,
+): number {
+  let numerator = 0;
+  let denominator = 0;
+  for (const [axis, weight] of Object.entries(weights)) {
+    if (evidence[axis] === 'unmeasured' || scores[axis] === undefined) continue;
+    numerator += scores[axis] * weight;
+    denominator += weight;
   }
-  // 默认通过
-  return true;
+  return denominator === 0 ? 0 : Math.round(numerator / denominator);
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
