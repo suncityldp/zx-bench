@@ -27,6 +27,7 @@ import { spawnSync } from 'node:child_process';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { URL } from 'node:url';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
+import { selectLatestResultsByKey, selectLatestScenarioResults } from '../resultSelection.js';
 
 /** Pack 短名 → 维度映射（all 表示不过滤） */
 const PACK_DIMENSION_MAP: Record<string, string> = {
@@ -87,6 +88,20 @@ function manifestForPack(runId: string, model: { id: string; name: string; provi
     { ...JSON.parse(model.defaultParams), maxTokens: config.maxTokens, temperature: config.temperature }, config, pack.hash),
     executionIdentityHash: config.auditVersion === 1 ? modelIdentity(model) : undefined,
     judgeIdentityHash: judge ? modelIdentity(judge.localModel) : undefined, benchmarkPack: pack };
+}
+
+/** Use the immutable question definitions captured before inference whenever available. */
+function benchmarkSnapshotFromManifest(rawManifest: string | null): Scenario[] | undefined {
+  if (!rawManifest) return undefined;
+  try {
+    const pack = (JSON.parse(rawManifest) as RunManifest).benchmarkPack;
+    if (!pack) return undefined;
+    verifyBenchmarkPack(pack);
+    return pack.scenarios;
+  } catch {
+    // Legacy or damaged manifests fall back to ScenarioDefinition for compatibility.
+    return undefined;
+  }
 }
 
 function dimensionLabel(dim: string): string {
@@ -1184,7 +1199,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
-  /** 组结果聚合 — 返回同组所有运行的去重结果（按scenarioId取最高分） */
+  /** 组结果聚合 — 返回同组所有运行的题级最新结果 */
   app.get('/api/runs/:id/group-results', async (request) => {
     const { id } = request.params as { id: string };
     const run = await prisma.evalRun.findUnique({ where: { id }, include: { modelConfig: true } });
@@ -1197,24 +1212,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       : [{ id: run.id, status: run.status }];
     const runIds = siblingRuns.map((r) => r.id);
 
-    // 查询所有结果，按 scenarioId 去重取最高分
+    // 重试、恢复和 Judge-only 补评产生历史行；最后完成的行才是题级主结果。
     const allResults = await prisma.scenarioResult.findMany({
       where: { evalRunId: { in: runIds } },
       orderBy: { startedAt: 'asc' },
     });
 
-    const dedup = new Map<string, typeof allResults[number]>();
-    const isEnvError = (r: { environmentError?: boolean | null }) => r.environmentError === true;
-    for (const r of allResults) {
-      const existing = dedup.get(r.scenarioId);
-      // 优先非环境故障行（重试成功覆盖环境故障；同状态取高分）
-      if (!existing
-        || (isEnvError(existing) && !isEnvError(r))
-        || (!isEnvError(existing) && !isEnvError(r) && r.totalScore > existing.totalScore)) {
-        dedup.set(r.scenarioId, r);
-      }
-    }
-    const results = Array.from(dedup.values());
+    const results = selectLatestScenarioResults(allResults);
 
     // 反序列化
     const deserialized = results.map(deserializeResult);
@@ -2524,9 +2528,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const allRunIds = [id];
 
     // 真实基准总量（含维度范围），用于 totalScenarios
-    const benchmarkTotal = await getBenchmarkScopeTotal([parseDimensionFilter(run.dimensionFilter)]);
+    const runSnapshot = benchmarkSnapshotFromManifest(run.manifest);
+    const benchmarkTotal = runSnapshot?.length ?? await getBenchmarkScopeTotal([parseDimensionFilter(run.dimensionFilter)]);
 
-    // 收集所有结果，按 scenarioId 去重取最高分
+    // 收集所有结果；题级主结果取最后完成的重试/补评行，而不是最高分。
     const allResults = await prisma.scenarioResult.findMany({
       where: { evalRunId: { in: allRunIds } },
       select: {
@@ -2541,32 +2546,13 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       },
     });
 
-    const dedup = new Map<string, typeof allResults[number]>();
-    const isEnvError = (r: { environmentError?: boolean | null }) => r.environmentError === true;
-    for (const r of allResults) {
-      const existing = dedup.get(r.scenarioId);
-      // 优先非环境故障行（重试成功覆盖环境故障；同状态取高分）
-      if (!existing
-        || (isEnvError(existing) && !isEnvError(r))
-        || (!isEnvError(existing) && !isEnvError(r) && r.totalScore > existing.totalScore)) {
-        dedup.set(r.scenarioId, r);
-      }
-    }
-    const results = Array.from(dedup.values());
+    const results = selectLatestScenarioResults(allResults);
 
     // 类别加权维度均分（三级计算：类别内平均 → 类别等权维度均分）
     const dimAvgMap = await computeDifficultyWeightedDimAvgs(
       results.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore, environmentError: r.environmentError ?? undefined })),
+      runSnapshot,
     );
-    // 单次 run 口径：维度分直接采用 run.summary.dimensionAverages（与评测历史/实时监控一致，避免重复行去重差异）
-    let summaryJson: { averageScore?: number; dimensionAverages?: Record<string, number> } | null = null;
-    try { summaryJson = run.summary ? JSON.parse(run.summary) : null; } catch { summaryJson = null; }
-    if (summaryJson?.dimensionAverages) {
-      for (const [dim, v] of Object.entries(summaryJson.dimensionAverages)) {
-        const n = typeof v === 'number' ? v : Number(v);
-        if (Number.isFinite(n)) dimAvgMap.set(dim, n);
-      }
-    }
 
     // 按维度分组统计
     const dimMap = new Map<string, { scores: number[]; passed: number; failed: number; redLine: number; formatFail: number; scenarios: string[]; axisScores: Record<string, number[]>; evidence: Record<string, number> }>();
@@ -2703,11 +2689,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     // ===== I4：program 维度 AG 能力族合并统计（低功效族标 lowPower，不出族级结论） =====
     const agentFamilyStats = await computeAgentFamilyStats(results);
 
-    // 全局统计 — 维度加权总分（使用引擎定义的 DIMENSION_WEIGHTS）；单次 run 口径直接用 summary.averageScore
+    // 全局统计 — 始终从题级最新结果与冻结题集复算，避免旧 summary 污染报告。
     const allScores = results.filter((r) => r.environmentError !== true).map((r) => r.totalScore);
-    const totalAvg = (summaryJson && typeof summaryJson.averageScore === 'number')
-      ? summaryJson.averageScore
-      : computeWeightedTotal(dimAvgMap);
+    const totalAvg = computeWeightedTotal(dimAvgMap);
     const totalPass = allScores.filter((s) => s >= 60).length;
     const totalRedLine = results.filter((r) => r.environmentError !== true && (r.safetyLevel === 'red' || r.safetyLevel === 'red_line')).length;
     const totalFormatFail = results.filter((r) => r.environmentError !== true && !r.formatParseSuccess).length;
@@ -2847,7 +2831,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     try {
       // 单次 run 聚合：只统计当前这次评测的结果（与实时监控/评测历史口径一致）
       const allRunIds = [id];
-      const benchmarkTotal = await getBenchmarkScopeTotal([parseDimensionFilter(run.dimensionFilter)]);
+      const runSnapshot = benchmarkSnapshotFromManifest(run.manifest);
+      const benchmarkTotal = runSnapshot?.length ?? await getBenchmarkScopeTotal([parseDimensionFilter(run.dimensionFilter)]);
 
       const allResults = await prisma.scenarioResult.findMany({
         where: { evalRunId: { in: allRunIds } },
@@ -2862,18 +2847,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         },
       });
 
-      const dedup = new Map<string, typeof allResults[number]>();
-      const isEnvError = (r: { environmentError?: boolean | null }) => r.environmentError === true;
-      for (const r of allResults) {
-        const existing = dedup.get(r.scenarioId);
-        // 优先非环境故障行（重试成功覆盖环境故障；同状态取高分）
-        if (!existing
-          || (isEnvError(existing) && !isEnvError(r))
-          || (!isEnvError(existing) && !isEnvError(r) && r.totalScore > existing.totalScore)) {
-          dedup.set(r.scenarioId, r);
-        }
-      }
-      const results = Array.from(dedup.values());
+      const results = selectLatestScenarioResults(allResults);
       const environmentResults = results.filter((r) => r.environmentError === true);
       // 报告只能消费实测结果：环境/基础设施事件既不是模型失败，也不能污染旧 summary。
       const measuredResults = results.filter((r) => r.environmentError !== true);
@@ -2881,17 +2855,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       // 类别加权维度均分（三级计算：类别内平均 → 类别等权维度均分）
       const dimAvgMap2 = await computeDifficultyWeightedDimAvgs(
         measuredResults.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore })),
+        runSnapshot,
       );
-      // 单次 run 口径：维度分直接采用 run.summary.dimensionAverages
-      let summaryJson2: { averageScore?: number; dimensionAverages?: Record<string, number> } | null = null;
-      try { summaryJson2 = run.summary ? JSON.parse(run.summary) : null; } catch { summaryJson2 = null; }
-      // 旧 summary 可能是在环境错误尚未隔离前生成，存在任何隔离行时必须重新计算。
-      if (environmentResults.length === 0 && summaryJson2?.dimensionAverages) {
-        for (const [dim, v] of Object.entries(summaryJson2.dimensionAverages)) {
-          const n = typeof v === 'number' ? v : Number(v);
-          if (Number.isFinite(n)) dimAvgMap2.set(dim, n);
-        }
-      }
 
       // 构建维度报告（与 GET /api/runs/:id/report 逻辑一致）
       const dimMap = new Map<string, { scores: number[]; passed: number; failed: number; redLine: number; formatFail: number; axisScores: Record<string, number[]> }>();
@@ -2944,10 +2909,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }).sort((a, b) => b.averageScore - a.averageScore);
 
       const allScores = measuredResults.map((r) => r.totalScore);
-      // 维度加权总分（使用引擎定义的 DIMENSION_WEIGHTS）；单次 run 口径直接用 summary.averageScore
-      const totalAvg = (environmentResults.length === 0 && summaryJson2 && typeof summaryJson2.averageScore === 'number')
-        ? summaryJson2.averageScore
-        : computeWeightedTotal(dimAvgMap2);
+      // 始终从题级最新结果与冻结题集复算，不能让旧 summary 覆盖补评结果。
+      const totalAvg = computeWeightedTotal(dimAvgMap2);
       const totalPass = allScores.filter((s) => s >= 60).length;
 
       const strengths = dimensionReports.filter((d) => d.averageScore >= 75).slice(0, 3);
@@ -3125,24 +3088,15 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         const allResults = await prisma.scenarioResult.findMany({
           where: { evalRunId: { in: allRunIds } },
           select: {
+            id: true, evalRunId: true,
             scenarioId: true, dimension: true, totalScore: true,
             safetyLevel: true, formatParseSuccess: true,
             environmentError: true,
+            startedAt: true, finishedAt: true,
           },
         });
 
-        const dedup = new Map<string, typeof allResults[number]>();
-        const isEnvError = (r: { environmentError?: boolean | null }) => r.environmentError === true;
-        for (const r of allResults) {
-          const existing = dedup.get(r.scenarioId);
-          // 优先非环境故障行（重试成功覆盖环境故障；同状态取高分）
-          if (!existing
-            || (isEnvError(existing) && !isEnvError(r))
-            || (!isEnvError(existing) && !isEnvError(r) && r.totalScore > existing.totalScore)) {
-            dedup.set(r.scenarioId, r);
-          }
-        }
-        const results = Array.from(dedup.values());
+        const results = selectLatestScenarioResults(allResults);
         const environmentResults = results.filter((r) => r.environmentError === true);
         const measuredResults = results.filter((r) => r.environmentError !== true);
 
@@ -3262,7 +3216,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const { eligible: completedRuns, excluded: excludedRuns } = partitionReferenceAnswerRuns(candidateRuns);
 
     // 按 modelConfigId 分组
-    const modelGroups = new Map<string, { modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; runIds: string[]; createdAt: Date; dimensionFilters: (string[] | null)[]; latestRunId: string; latestDimensionFilter: string[] | null; latestSummary: { averageScore?: number; dimensionAverages?: Record<string, number>; passCount?: number; safetyRedLineCount?: number; completedScenarios?: number; totalInputTokens?: number; totalOutputTokens?: number } | null }>();
+    const modelGroups = new Map<string, { modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; runIds: string[]; createdAt: Date; dimensionFilters: (string[] | null)[]; latestRunId: string; latestDimensionFilter: string[] | null; latestSnapshot?: Scenario[]; latestSummary: { averageScore?: number; dimensionAverages?: Record<string, number>; passCount?: number; safetyRedLineCount?: number; completedScenarios?: number; totalInputTokens?: number; totalOutputTokens?: number } | null }>();
 
     for (const run of completedRuns) {
       const key = run.modelConfigId;
@@ -3284,6 +3238,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           dimensionFilters: [],
           latestRunId: run.id,
           latestDimensionFilter: parseDimensionFilter(run.dimensionFilter),
+          latestSnapshot: benchmarkSnapshotFromManifest(run.manifest),
           latestSummary: (() => { try { return run.summary ? JSON.parse(run.summary) : null; } catch { return null; } })(),
         });
       }
@@ -3298,30 +3253,35 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     for (const [modelId, group] of modelGroups) {
       // latest：只统计最新一次 run；best：跨 run 聚合（按题取最优）
       const runIds = scope === 'best' ? group.runIds : [group.latestRunId];
-      const benchmarkTotal = await getBenchmarkScopeTotal(
-        scope === 'best' ? group.dimensionFilters : [group.latestDimensionFilter],
-      );
+      const benchmarkTotal = scope === 'latest' && group.latestSnapshot
+        ? group.latestSnapshot.length
+        : await getBenchmarkScopeTotal(scope === 'best' ? group.dimensionFilters : [group.latestDimensionFilter]);
       const allResults = await prisma.scenarioResult.findMany({
         where: { evalRunId: { in: runIds } },
         select: {
+          id: true, evalRunId: true,
           scenarioId: true, dimension: true, totalScore: true,
           safetyLevel: true, formatParseSuccess: true, outputMetadata: true,
           environmentError: true,
+          startedAt: true, finishedAt: true,
         },
       });
 
-      const dedup = new Map<string, { scenarioId: string; dimension: string; totalScore: number; safetyLevel: string; formatParseSuccess: boolean; environmentError: boolean }>();
-      const isEnvError = (r: { environmentError?: boolean | null }) => r.environmentError === true;
-      for (const r of allResults) {
-        const existing = dedup.get(r.scenarioId);
-        // 优先非环境故障行（重试成功覆盖环境故障；同状态取高分）
-        if (!existing
-          || (isEnvError(existing) && !isEnvError(r))
-          || (!isEnvError(existing) && !isEnvError(r) && r.totalScore > existing.totalScore)) {
-          dedup.set(r.scenarioId, r);
-        }
-      }
-      const results = Array.from(dedup.values());
+      const latestAttempts = scope === 'best'
+        ? selectLatestResultsByKey(allResults, (r) => `${r.evalRunId}\u0000${r.scenarioId}`)
+        : selectLatestScenarioResults(allResults);
+      // “best” 是显式可选视图；先按每次运行取最后尝试，再跨运行取最高分。
+      const results = scope === 'best'
+        ? Array.from(latestAttempts.reduce((best, row) => {
+            const previous = best.get(row.scenarioId);
+            if (!previous
+              || (previous.environmentError && !row.environmentError)
+              || (previous.environmentError === row.environmentError && row.totalScore > previous.totalScore)) {
+              best.set(row.scenarioId, row);
+            }
+            return best;
+          }, new Map<string, typeof latestAttempts[number]>()).values())
+        : latestAttempts;
 
       if (results.length === 0) continue;
 
@@ -3340,15 +3300,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       // 类别加权维度均分（三级计算：类别内平均 → 类别等权维度均分）
       const lbDimAvgs2 = await computeDifficultyWeightedDimAvgs(
         results.map((r) => ({ scenarioId: r.scenarioId, dimension: r.dimension, totalScore: r.totalScore, environmentError: r.environmentError ?? undefined })),
+        scope === 'latest' ? group.latestSnapshot : undefined,
       );
-      // latest 口径：维度分直接采用该 run 的 summary.dimensionAverages（与评测历史/实时监控一致，避免重复行去重导致差异）
-      if (scope === 'latest' && group.latestSummary?.dimensionAverages) {
-        for (const [dim, v] of Object.entries(group.latestSummary.dimensionAverages)) {
-          const n = typeof v === 'number' ? v : Number(v);
-          if (Number.isFinite(n)) lbDimAvgs2.set(dim, n);
-        }
-      }
-
       const dimScores: Record<string, { avg: number; count: number; passRate: number; redLine: number }> = {};
       for (const [dim, d] of dimMap) {
         dimScores[dim] = {
@@ -3360,10 +3313,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const allScores = results.map((r) => r.totalScore);
-      // 维度加权总分（使用引擎定义的 DIMENSION_WEIGHTS）；latest 口径直接采用 summary.averageScore
-      const totalAvg = (scope === 'latest' && group.latestSummary && typeof group.latestSummary.averageScore === 'number')
-        ? group.latestSummary.averageScore
-        : computeWeightedTotal(lbDimAvgs2);
+      const totalAvg = computeWeightedTotal(lbDimAvgs2);
       const totalPass = allScores.filter((s) => s >= 60).length;
       const totalRedLine = results.filter((r) => r.safetyLevel === 'red' || r.safetyLevel === 'red_line').length;
 
@@ -3371,7 +3321,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       let truncatedCount = 0;
       let sumInputTokens = 0;
       let sumOutputTokens = 0;
-      for (const r of allResults) {
+      for (const r of results) {
         try {
           const meta = JSON.parse(r.outputMetadata) as { truncated?: boolean; inputTokens?: number; outputTokens?: number };
           if (meta.truncated) truncatedCount++;
@@ -3851,20 +3801,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const allGroupResults = await prisma.scenarioResult.findMany({
         where: { evalRunId: runId },
       });
-      const dedupGroup = new Map<string, { scenarioId: string; score: number; dimension: string; environmentError: boolean }>();
-      for (const r of allGroupResults) {
-        const existing = dedupGroup.get(r.scenarioId);
-        const env = (r as { environmentError?: boolean | null }).environmentError === true;
-        if (existing === undefined) {
-          dedupGroup.set(r.scenarioId, { scenarioId: r.scenarioId, score: r.totalScore, dimension: (r as { dimension?: string }).dimension || 'unknown', environmentError: env });
-        } else if (!env && existing.environmentError) {
-          // 非环境故障行覆盖环境故障行
-          dedupGroup.set(r.scenarioId, { scenarioId: r.scenarioId, score: r.totalScore, dimension: (r as { dimension?: string }).dimension || 'unknown', environmentError: env });
-        } else if (env === existing.environmentError && r.totalScore > existing.score) {
-          dedupGroup.set(r.scenarioId, { scenarioId: r.scenarioId, score: r.totalScore, dimension: (r as { dimension?: string }).dimension || 'unknown', environmentError: env });
-        }
-      }
-      const allEntries = Array.from(dedupGroup.values());
+      const allEntries = selectLatestScenarioResults(allGroupResults).map((r) => ({
+        scenarioId: r.scenarioId,
+        score: r.totalScore,
+        dimension: r.dimension || 'unknown',
+        environmentError: r.environmentError === true,
+      }));
       const scores = allEntries.filter((e) => !e.environmentError).map((e) => e.score);
       // 类别加权维度均分 + 维度加权总分（三级计算，与引擎一致）
       const retryDimAvgs = await computeDifficultyWeightedDimAvgs(
@@ -3885,8 +3827,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       await prisma.evalRun.update({
         where: { id: runId },
         data: { summary: JSON.stringify({ ...oldSummary, averageScore: groupAvg, dimensionAverages: Object.fromEntries(retryDimAvgs),
-          completedScenarios: allGroupResults.length, passCount: groupPass,
-          qualityReport: analyzeRunQuality(allGroupResults, Number(oldSummary.totalScenarios) || allGroupResults.length),
+          completedScenarios: allEntries.length, passCount: groupPass,
+          qualityReport: analyzeRunQuality(selectLatestScenarioResults(allGroupResults), Number(oldSummary.totalScenarios) || allEntries.length),
         }) },
       });
 
@@ -4514,7 +4456,8 @@ async function runEvaluation(
 
   // 计算类别加权维度均分摘要（三级计算：类别内平均 → 类别等权维度均分 → 维度加权总分）
   // 环境故障行（environmentError）由 computeDifficultyWeightedDimAvgs 内部隔离，不计入均值
-  const results = await prisma.scenarioResult.findMany({ where: { evalRunId: runId } });
+  const allResultRows = await prisma.scenarioResult.findMany({ where: { evalRunId: runId } });
+  const results = selectLatestScenarioResults(allResultRows);
   const summaryDimAvgs = await computeDifficultyWeightedDimAvgs(
     results.map((r) => ({ scenarioId: r.scenarioId, dimension: (r as { dimension?: string }).dimension || 'unknown', totalScore: r.totalScore, environmentError: (r as { environmentError?: boolean | null }).environmentError ?? undefined })),
     manifest.benchmarkPack!.scenarios,

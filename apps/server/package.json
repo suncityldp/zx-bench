@@ -17,7 +17,8 @@
     "prisma:studio": "prisma studio",
     "type-check": "tsc --noEmit",
     "scenario:health": "tsx src/scripts/scenario-health-check.ts",
-    "scenario:gaps": "tsx src/scripts/audit-config-gaps.ts"
+    "scenario:gaps": "tsx src/scripts/audit-config-gaps.ts",
+    "run:verify-score": "tsx src/scripts/verify-run-score.ts"
   },
   "dependencies": {
     "@zxbench/core": "workspace:*",
