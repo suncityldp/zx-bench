@@ -9,8 +9,11 @@ import {
 import type { RunManifest } from '@zxbench/types';
 import { copyFileSync } from 'node:fs';
 import path from 'node:path';
+import { loadEnvFile } from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { selectLatestScenarioResults } from '../resultSelection.js';
+
+try { loadEnvFile(fileURLToPath(new URL('../../.env', import.meta.url))); } catch { /* optional */ }
 
 const runId = process.argv[2];
 if (!runId) {
