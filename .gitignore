@@ -45,6 +45,13 @@ scenario-health.json
 # 本地模型对比报告、逐题结果、媒体资源与 Remotion 渲染工程不入库
 reports/zxbench-final-comparison-2026-09-04/
 
+# Local evaluation traces and process state can be very large or machine-specific.
+**/response.sse
+**/wire.sse
+**/server_pid.txt
+**/__pycache__/
+*.pyc
+
 # ===== Agent / 本地工具 =====
 .workbuddy/
 

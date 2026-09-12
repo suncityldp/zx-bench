@@ -207,6 +207,20 @@ docs/            # specs (fixture-spec) & screenshots
 
 ---
 
+## Evaluation reliability and discriminative methods
+
+This release treats an evaluation as an auditable evidence trail instead of selecting the highest score from historical rows:
+
+- Resume, retry, and Judge-only attempts are linked per question; the primary result uses the latest valid attempt, while environment errors and missing grades remain visible.
+- The Judge is limited to semantic atomic claims that deterministic checks cannot verify. Compact JSON, integrity validation, and bounded retry prevent malformed verdicts from silently becoming capability scores.
+- Model calls propagate cancellation, enforce hard deadlines, and clean up orphan requests. Saved answers can be replayed after an execution environment recovers without regenerating model output.
+- Hallucination resistance separates evidence polarity, source boundaries, and verifiable claims. Math separates final answers, derivations, proof obligations, and certificates to reduce ceiling effects from easy items or permissive judging.
+- Calibration UI and audit APIs expose grading provenance, coverage, human-review state, and comparability. Cross-model comparisons do not equate formatting failures with semantic failures by default.
+
+See [evaluation reliability implementation](docs/evaluation-reliability-implementation-2026-09-09.md), [evaluation integrity fixes](docs/evaluation-integrity-fixes-2026-09.md), and the [final hallucination/math method](docs/resistance-math-method-final-2026-09-12.md). Run `pnpm eval:methods-v2 -- --help` for frozen-pack export, verification, and grading commands, or `pnpm eval:inspect -- --help` for capability-inspection parameters. Both tools are offline and make no model, Judge, or production-database calls.
+
+---
+
 ## Tests & CI
 
 ```bash
