@@ -1,0 +1,18 @@
+{
+  "packetHash": "9bb2ef4ca2d32d3899eabdb708253fe2464c502301eec19f93c9c98733ab5fc7",
+  "status": "paused_reviewer_suitability_not_calibration_evidence",
+  "expectedItems": 9,
+  "completedItems": 0,
+  "scoredItems": 1,
+  "pendingSeverityItems": [],
+  "requestFurtherProfessionalRatings": false,
+  "eligibleCalibrationItems": 0,
+  "excludedCalibrationItems": ["HR-001"],
+  "reviewerRole": "question_clarity_and_task_value_not_professional_answer_gold",
+  "dispositionPath": "coordinator/reviewer-suitability-2026-09-10.json",
+  "humanReviews": [{"itemId":"HR-001","revision":1,"path":"reviews/HR-001-revision-01.json","status":"preserved_excluded_from_calibration","historicalIntakeStatus":"awaiting_severity_confirmation"}],
+  "independentDoubleReview": false,
+  "judgeCalibrated": false,
+  "modelCalls": 0,
+  "judgeCalls": 0
+}

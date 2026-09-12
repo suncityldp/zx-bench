@@ -30,14 +30,27 @@ function transpileTsForSandbox(code: string): string {
       module: ts.ModuleKind.None,
       isolatedModules: true,
     },
-    reportDiagnostics: false,
+    reportDiagnostics: true,
   });
+  const errors = out.diagnostics?.filter(d => d.category === ts.DiagnosticCategory.Error) ?? [];
+  if (errors.length) throw new SyntaxError(errors.map(d => ts.flattenDiagnosticMessageText(d.messageText, '\n')).join('\n'));
   return out.outputText;
 }
 
 /** 供沙箱运行的最终代码：TS 检测后转译，纯 JS 透传 */
 function toRunnableJs(code: string): string {
   return looksLikeTypeScript(code) ? transpileTsForSandbox(code) : code;
+}
+
+/** Parse the candidate without executing it; TS validation here is syntactic only. */
+export function checkJavaScriptSyntax(code: string): { passed: boolean; error?: string } {
+  try {
+    const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+    new AsyncFunction(toRunnableJs(code));
+    return { passed: true };
+  } catch (error) {
+    return { passed: false, error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 // ============================================================
@@ -53,6 +66,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { HiddenTestCase, TestDetail } from '@zxbench/types';
 import ts from 'typescript';
+import { randomUUID } from 'node:crypto';
 
 export interface SandboxResult {
   success: boolean;
@@ -62,6 +76,8 @@ export interface SandboxResult {
   duration: number;     // ms
   timedOut: boolean;
   oomKilled: boolean;
+  /** Received an authenticated terminal message, rather than just exit(0). */
+  completed?: boolean;
 }
 
 export interface SandboxOptions {
@@ -80,7 +96,9 @@ function getWorkerScript(): string {
   const workerCode = `
 // Sandbox Worker — 在独立进程中执行不可信代码
 process.on('message', (msg) => {
-  const { code, timeout } = msg;
+  const { code, timeout, token } = msg;
+  const send = process.send.bind(process);
+  const exit = process.exit.bind(process);
 
   // 重定向 console 输出到父进程
   const origLog = console.log;
@@ -111,29 +129,29 @@ process.on('message', (msg) => {
     // 使用 AsyncFunction 构造器（而非 eval）：支持测试代码顶层 await（异步函数验证），
     // 同步代码行为不变；fn() 返回 Promise，等待其完成后再退出，避免异步断言被提前截断
     const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
-    const fn = new AsyncFunction(code);
+    const fn = new AsyncFunction(code + '\\nreturn ' + JSON.stringify(token) + ';');
     Promise.resolve()
       .then(() => fn())
-      .then(() => {
+      .then((value) => {
         clearTimeout(timer);
-        process.send?.({ type: 'done', exitCode: 0 });
-        process.exit(0);
+        // A top-level return in the candidate must not skip the test footer.
+        send({ type: 'done', token, completed: value === token }, () => exit(value === token ? 0 : 1));
       })
       .catch((e) => {
         clearTimeout(timer);
-        process.send?.({
+        send({
           type: 'error',
           message: e instanceof Error ? e.message : String(e),
         });
-        process.exit(1);
+        send({ type: 'done', token, completed: true }, () => exit(1));
       });
   } catch (e) {
     clearTimeout(timer);
-    process.send?.({
+    send({
       type: 'error',
       message: e instanceof Error ? e.message : String(e),
     });
-    process.exit(1);
+    send({ type: 'done', token, completed: true }, () => exit(1));
   }
 });
 `;
@@ -165,6 +183,8 @@ export function runInSandbox(code: string, options: SandboxOptions = {}): Promis
     let resolved = false;
     let timedOut = false;
     let oomKilled = false;
+    let completed = false;
+    const token = randomUUID();
 
     const child: ChildProcess = fork(workerPath, [], {
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
@@ -197,6 +217,7 @@ export function runInSandbox(code: string, options: SandboxOptions = {}): Promis
       if (msg.type === 'stderr') stderrLines.push(String(msg.data));
       if (msg.type === 'timeout') timedOut = true;
       if (msg.type === 'error') stderrLines.push(String(msg.message));
+      if (msg.type === 'done' && msg.token === token) completed = msg.completed === true;
     });
 
     // 子进程退出
@@ -209,9 +230,11 @@ export function runInSandbox(code: string, options: SandboxOptions = {}): Promis
 
       const duration = Date.now() - startedAt;
       const exitCode = code ?? (timedOut ? 124 : 1);
+      if (!completed && !timedOut) stderrLines.push('TEST_EXECUTION_INCOMPLETE: worker exited before test completion');
 
       resolve({
-        success: exitCode === 0 && !timedOut,
+        success: completed && exitCode === 0 && !timedOut,
+        completed,
         stdout: stdoutLines.join('\n'),
         stderr: stderrLines.join('\n'),
         exitCode,
@@ -239,7 +262,7 @@ export function runInSandbox(code: string, options: SandboxOptions = {}): Promis
     });
 
     // 发送代码到 worker
-    child.send({ code, timeout });
+    child.send({ code, timeout, token });
   });
 }
 
@@ -287,7 +310,7 @@ export async function runTestCase(
   return {
     testId: testCase.id,
     testType: testCase.type,
-    passed,
+    passed: passed && result.completed === true && !result.timedOut && result.exitCode === (testCase.expectedExitCode ?? 0),
     actualOutput: result.stdout.trim() || undefined,
     expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
     stdout: result.stdout,
@@ -333,7 +356,7 @@ export async function runReplacedCodeTest(
   return {
     testId: testCase.id,
     testType: testCase.type,
-    passed,
+    passed: passed && result.completed === true && !result.timedOut && result.exitCode === (testCase.expectedExitCode ?? 0),
     actualOutput: result.stdout.trim() || undefined,
     expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
     stdout: result.stdout,
@@ -412,7 +435,8 @@ export async function runReplacedCodeTestPython(
     };
   }
 
-  const fullCode = `${replacedCode}\n\n# ===== 测试代码 =====\n${testCase.testCode}\n`;
+  const completionMarker = `ZXBENCH_TEST_COMPLETED_${randomUUID()}`;
+  const fullCode = `${replacedCode}\n\n# ===== 测试代码 =====\n${testCase.testCode}\nprint("\\n${completionMarker}")\n`;
   const dir = mkdtempSync(join(tmpdir(), 'bl-pytest-'));
   const file = join(dir, 'test_run.py');
   const timeout = testCase.timeout || options.timeout || 10000;
@@ -427,13 +451,15 @@ export async function runReplacedCodeTestPython(
     });
     const timedOut = res.error != null && (res.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     const exitCode = res.status ?? (timedOut ? 124 : 1);
-    const stdout = (res.stdout || '').trim();
-    const stderr = (res.stderr || '').trim();
+    const rawStdout = (res.stdout || '').trim();
+    const completed = rawStdout === completionMarker || rawStdout.endsWith('\n' + completionMarker);
+    const stdout = completed ? rawStdout.slice(0, -completionMarker.length).trimEnd() : rawStdout;
+    const stderr = [(res.stderr || '').trim(), ...(!completed && exitCode === 0 ? ['TEST_EXECUTION_INCOMPLETE: Python exited before test completion'] : [])].filter(Boolean).join('\n');
 
     return {
       testId: testCase.id,
       testType: testCase.type,
-      passed: exitCode === 0 && !timedOut,
+      passed: completed && exitCode === 0 && !timedOut,
       actualOutput: stdout || undefined,
       expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
       stdout,
@@ -510,7 +536,8 @@ export async function runTestCaseInContainer(
   let modifiedCode = sourceCode;
   if (patch) modifiedCode = applyPatch(sourceCode, patch);
   const fullCode = `\n${modifiedCode}\n\n// ===== 测试代码 =====\n${testCase.testCode}\n`;
-  const runnable = toRunnableJs(fullCode);
+  const completionMarker = `ZXBENCH_TEST_COMPLETED_${randomUUID()}`;
+  const runnable = toRunnableJs(fullCode) + `\nconsole.log("\\n${completionMarker}");\n`;
 
   const res = await runInContainer({
     image: CONTAINER_IMAGES.javascript,
@@ -519,9 +546,12 @@ export async function runTestCaseInContainer(
     timeoutMs: testCase.timeout || options.timeout || 10000,
   });
 
+  const rawStdout = res.stdout.trim();
+  const completed = rawStdout === completionMarker || rawStdout.endsWith('\n' + completionMarker);
+  const stdout = completed ? rawStdout.slice(0, -completionMarker.length).trimEnd() : rawStdout;
   let passed = false;
   if (testCase.expectedOutput !== undefined) {
-    passed = res.stdout.trim() === String(testCase.expectedOutput).trim();
+    passed = stdout === String(testCase.expectedOutput).trim();
   } else if (testCase.expectedExitCode !== undefined) {
     passed = res.exitCode === testCase.expectedExitCode;
   } else {
@@ -531,11 +561,11 @@ export async function runTestCaseInContainer(
   return {
     testId: testCase.id,
     testType: testCase.type,
-    passed,
-    actualOutput: res.stdout.trim() || undefined,
+    passed: passed && completed && !res.timedOut && res.exitCode === (testCase.expectedExitCode ?? 0),
+    actualOutput: stdout || undefined,
     expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
-    stdout: res.stdout,
-    stderr: res.stderr,
+    stdout,
+    stderr: !completed && res.exitCode === 0 ? `${res.stderr}\nTEST_EXECUTION_INCOMPLETE: container exited before test completion` : res.stderr,
     exitCode: res.exitCode,
     duration: res.durationMs,
     timedOut: res.timedOut,
@@ -551,7 +581,8 @@ export async function runReplacedCodeTestPythonInContainer(
   options: SandboxOptions = {},
 ): Promise<TestDetail> {
   const startedAt = new Date().toISOString();
-  const fullCode = `${replacedCode}\n\n# ===== 测试代码 =====\n${testCase.testCode}\n`;
+  const completionMarker = `ZXBENCH_TEST_COMPLETED_${randomUUID()}`;
+  const fullCode = `${replacedCode}\n\n# ===== 测试代码 =====\n${testCase.testCode}\nprint("\\n${completionMarker}")\n`;
   const res = await runInContainer({
     image: CONTAINER_IMAGES.python,
     command: ['python', 'main.py'],
@@ -559,15 +590,18 @@ export async function runReplacedCodeTestPythonInContainer(
     timeoutMs: testCase.timeout || options.timeout || 10000,
   });
 
-  const passed = res.exitCode === 0 && !res.timedOut;
+  const rawStdout = res.stdout.trim();
+  const completed = rawStdout === completionMarker || rawStdout.endsWith('\n' + completionMarker);
+  const stdout = completed ? rawStdout.slice(0, -completionMarker.length).trimEnd() : rawStdout;
+  const passed = completed && res.exitCode === 0 && !res.timedOut;
   return {
     testId: testCase.id,
     testType: testCase.type,
     passed,
-    actualOutput: res.stdout.trim() || undefined,
+    actualOutput: stdout || undefined,
     expectedOutput: testCase.expectedOutput !== undefined ? String(testCase.expectedOutput) : undefined,
-    stdout: res.stdout,
-    stderr: res.stderr,
+    stdout,
+    stderr: !completed && res.exitCode === 0 ? `${res.stderr}\nTEST_EXECUTION_INCOMPLETE: container exited before test completion` : res.stderr,
     exitCode: res.exitCode,
     duration: res.durationMs,
     timedOut: res.timedOut,

@@ -12,6 +12,9 @@ import { spawn } from 'node:child_process';
 import { rm as rmAsync } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createDockerReadiness } from './dockerReadiness.js';
+import { containerProxyEnv } from './containerProxy.js';
+import { randomUUID } from 'node:crypto';
 
 /**
  * 异步清理工作区目录（带重试与超时放弃）。
@@ -189,8 +192,6 @@ const DOCKER_STARTUP_TIMEOUT_MS = Math.max(
 );
 const DOCKER_STARTUP_POLL_MS = 2_000;
 
-/** Docker 是否可用。只缓存成功：Desktop 可以在服务启动后才准备就绪。 */
-let dockerAvailableCache: boolean | null = null;
 let dockerStartupPromise: Promise<boolean> | null = null;
 
 async function probeDockerDaemon(timeout = 8_000): Promise<boolean> {
@@ -217,9 +218,10 @@ async function startDockerDesktopIfNeeded(): Promise<boolean> {
       return false;
     }
 
+    let launchError: Error | undefined;
     try {
       const child = spawn(executable, [], { detached: true, stdio: 'ignore', windowsHide: true });
-      child.once('error', (err) => console.warn(`[CT] Docker Desktop launch failed: ${err.message}`));
+      child.once('error', (err) => { launchError = err; console.warn(`[CT] Docker Desktop launch failed: ${err.message}`); });
       child.unref();
       console.log('[CT] Docker daemon unavailable; starting Docker Desktop and waiting for readiness');
     } catch (err) {
@@ -230,8 +232,8 @@ async function startDockerDesktopIfNeeded(): Promise<boolean> {
     const deadline = Date.now() + DOCKER_STARTUP_TIMEOUT_MS;
     while (Date.now() < deadline) {
       await wait(DOCKER_STARTUP_POLL_MS);
+      if (launchError) return false;
       if (await probeDockerDaemon(Math.min(8_000, DOCKER_STARTUP_POLL_MS + 1_000))) {
-        dockerAvailableCache = true;
         console.log('[CT] Docker daemon is ready');
         return true;
       }
@@ -247,15 +249,10 @@ async function startDockerDesktopIfNeeded(): Promise<boolean> {
   }
 }
 
-export async function isDockerAvailable(): Promise<boolean> {
-  if (dockerAvailableCache === true) return true;
-  if (await probeDockerDaemon()) {
-    dockerAvailableCache = true;
-    return true;
-  }
-  // 不缓存 false：Docker Desktop 可能在项目服务启动之后才启动/完成初始化。
-  return startDockerDesktopIfNeeded();
-}
+export const isDockerAvailable = createDockerReadiness({
+  probe: probeDockerDaemon,
+  start: startDockerDesktopIfNeeded,
+});
 
 /** 获取镜像 digest（审计链用；未拉取返回 undefined） */
 export async function getImageDigest(image: string): Promise<string | undefined> {
@@ -329,6 +326,7 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
 
   if (T) console.log('[CT] 物化临时目录开始');
   const hostDir = mkdtempSync(join(tmpdir(), 'zxbench-run-'));
+  const containerName = `zxbench-${randomUUID()}`;
   // 关键：mkdtempSync 默认 0700（宿主用户），容器以 UID 65534 非 root 运行，
   // 即使 bind mount 成 readOnly:false 也写不进去 —— mvn 的 target/、pip/npm 产物
   // 全部 Permission denied，整题被误判为模型失败。必须放权。
@@ -346,7 +344,7 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
 
     const src = hostDir.split('\\\\').join('/');
     const args = [
-      'run', '--rm',
+      'run', '--rm', '--name', containerName,
       '--network', networkDisabled ? 'none' : 'bridge',
       '--memory', memoryMb + 'm',
       '--cpus', String(cpuLimit),
@@ -359,7 +357,7 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
     ];
     if (user) args.push('--user', user);
     else if (runAsNonRoot) args.push('--user', '65534:65534');
-    for (const [k, v] of Object.entries(env)) args.push('-e', k + '=' + v);
+    for (const [k, v] of Object.entries({ ...containerProxyEnv(networkDisabled, process.env.ZXB_CONTAINER_HTTP_PROXY), ...env })) args.push('-e', k + '=' + v);
     for (const m of mounts) {
       args.push('--mount', 'type=bind,src=' + m.src.split('\\').join('/') + ',dst=' + m.dst + (m.readonly === false ? '' : ',readonly'));
     }
@@ -371,15 +369,22 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
 
     const timedOut = res.error != null && (res.error as NodeJS.ErrnoException).code === 'ETIMEDOUT';
     const exitCode = res.status ?? (timedOut ? 124 : 1);
+    // Windows connection errors can exit 1, not only Docker's reserved 125.
+    // Probe independently so candidate stderr cannot spoof infrastructure loss.
+    // Never retry user code automatically after a possibly partial execution.
+    const daemonLost = exitCode !== 0 && !(await probeDockerDaemon());
     return {
       success: exitCode === 0 && !timedOut,
       stdout: (res.stdout || '').trim(),
-      stderr: (res.stderr || '').trim(),
+      stderr: daemonLost ? `Docker unavailable — container execution skipped\n${(res.stderr || '').trim()}` : (res.stderr || '').trim(),
       exitCode,
       timedOut,
       durationMs: Date.now() - startedAt,
     };
   } finally {
+    // Killing the Docker CLI on timeout does NOT stop the daemon-side container.
+    // Target only this invocation's unique name (never other workloads or volumes).
+    await execAsync('docker', ['rm', '-f', containerName], { timeout: 15_000 }).catch(() => {});
     // 关键：异步、不 await 完成（不阻塞返回值路径）。旧实现用同步 rmSync 删
     // docker 刚卸载的目录，会与 Docker/WSL2 句柄释放竞态，把主线程钉死（v3 四次冻结根因）。
     if (T) console.log('[CT] finally 发起异步清理 ' + hostDir);

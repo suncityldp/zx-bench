@@ -16,6 +16,7 @@ interface Constraint {
   type: string;
   description: string;
   check: Record<string, unknown>;
+  critical?: boolean;
 }
 
 interface ConstraintResult {
@@ -40,6 +41,9 @@ export const instructionChecklistEvaluator: Evaluator = {
     const axisScores: Record<string, number> = {};
     const axisEvidence: Record<string, AxisEvidence> = {};
     const evidence: string[] = [];
+    const requirements = (scenario.requirements as unknown as Record<string, unknown>) || {};
+    const constraints: Constraint[] = Array.isArray(requirements.constraints)
+      ? requirements.constraints as Constraint[] : [];
 
     // ===== 1. 格式化基础检查 =====
     if (!modelOutput || modelOutput.trim().length === 0) {
@@ -50,6 +54,8 @@ export const instructionChecklistEvaluator: Evaluator = {
         axisScores,
         axisEvidence,
         totalScore: 0,
+        criterionResults: constraints.map(c => ({ id: c.id, description: c.description,
+          status: 'fail' as const, critical: c.critical === true, evidence: 'Empty model output', source: 'rule' as const })),
         safetyLevel: 'safe',
         evidence,
       };
@@ -59,10 +65,6 @@ export const instructionChecklistEvaluator: Evaluator = {
     axisEvidence.format_valid = 'rule';
 
     // ===== 2. 加载约束列表 =====
-    const requirements = (scenario.requirements as unknown as Record<string, unknown>) || {};
-    const constraints: Constraint[] = Array.isArray(requirements.constraints)
-      ? requirements.constraints as Constraint[]
-      : [];
 
     if (constraints.length === 0) {
       // 无约束配置：指令遵循无法验证 → 题集配置缺陷，标记为人工复核 + 不虚高打分。
@@ -118,6 +120,16 @@ export const instructionChecklistEvaluator: Evaluator = {
       axisScores,
       axisEvidence,
       axisCoverage,
+      criterionResults: results.map((r, i) => {
+        const unmeasured = /UNKNOWN_CONSTRAINT_TYPE:|INVALID_REGEX:|specified — skipped/.test(r.detail)
+          || !r.id || results.filter(other => other.id === r.id).length > 1;
+        return { id: r.id, description: r.description,
+          status: unmeasured ? 'unmeasured' as const : r.passed ? 'pass' as const : 'fail' as const,
+          critical: constraints[i].critical === true,
+          evidence: unmeasured ? `Unmeasured/configuration issue: ${r.detail}` : r.detail,
+          source: unmeasured ? 'unmeasured' as const : 'rule' as const,
+        };
+      }),
       totalScore,
       safetyLevel: 'safe',
       evidence,

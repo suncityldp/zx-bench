@@ -1,0 +1,32 @@
+{
+  "contractHash": "5068a66f574a30de78b5044906aed92a2e0f69877d5a526ba967b29dcdf23adc",
+  "runId": "run/gsq-rco-iq3s",
+  "modelId": "J:/AI/LM STUDIO/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+  "modelFamily": "Qwen-family",
+  "answers": [
+    {
+      "id": "V2-6c9a67844c6c3e",
+      "questionHash": "4d5ebf7d7318bcf6381b5280d9e4a0739f08752d6b2a19fd0893b28f16f83341",
+      "outcome": "completed",
+      "output": "{\"status\":\"insufficient\",\"sources\":[\"D32\",\"D27\",\"D72\",\"D91\"]}"
+    },
+    {
+      "id": "V2-09b0c5a81c4828",
+      "questionHash": "e75dbec20035a4f7c0bc560873b147f90f818aa342b2c767bcda5d6e16ce4683",
+      "outcome": "completed",
+      "output": "{\"status\":\"refuted\",\"sources\":[\"D32\",\"D27\",\"D06\",\"D72\"]}"
+    },
+    {
+      "id": "V2-e86b29945c8382",
+      "questionHash": "0242123e150d2cac1b3bc44f65eef11d4ebc6c3b35c4bcc144b725c646df26f5",
+      "outcome": "completed",
+      "output": "{\"status\":\"supported\",\"sources\":[\"D32\",\"D27\",\"D72\",\"D85\"]}"
+    },
+    {
+      "id": "V2-8c77df5beb0c58",
+      "questionHash": "9b5a97c7a2639733f3f05c4dd1d01040bbdaa74f8bb7a00469f43174228c172d",
+      "outcome": "completed",
+      "output": "{\"status\":\"conflict\",\"sources\":[\"D32\",\"D27\",\"D72\",\"D85\",\"D06\"]}"
+    }
+  ]
+}

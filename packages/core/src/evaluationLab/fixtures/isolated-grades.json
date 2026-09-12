@@ -1,0 +1,231 @@
+{
+  "version": "resistance-math-methods-2026-09-12-v2.1",
+  "contractHash": "5068a66f574a30de78b5044906aed92a2e0f69877d5a526ba967b29dcdf23adc",
+  "runId": "run/gsq-rco-iq3s",
+  "modelId": "J:/AI/LM STUDIO/ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF/Qwen3.8-27B-GSQ-RCO-IQ3_S-mtp.gguf",
+  "modelFamily": "Qwen-family",
+  "split": "holdout",
+  "options": {
+    "split": "holdout",
+    "seed": 20260913,
+    "instances": 1
+  },
+  "rows": [
+    {
+      "id": "V2-6c9a67844c6c3e",
+      "family": "temporal_validity",
+      "group": "V2-47f13dd521d65e",
+      "variant": "insufficient",
+      "dimension": "hallucination_resistance",
+      "outputHash": "ffe91052e0af793405e6d871a7d8e366807934141a2e4443f5ed5ec178b5600a",
+      "goldStatus": "insufficient",
+      "state": "completed",
+      "pass": false,
+      "verification": {
+        "formatValid": true,
+        "pass": false,
+        "checks": {
+          "stance": true,
+          "citations": false
+        },
+        "status": "insufficient"
+      }
+    },
+    {
+      "id": "V2-b6a289e8fd1a11",
+      "family": "linear_certificate",
+      "group": "V2-1a20d91f49ddf4",
+      "variant": "irrelevant",
+      "dimension": "reasoning_math",
+      "outputHash": null,
+      "state": "missing",
+      "pass": null
+    },
+    {
+      "id": "V2-09b0c5a81c4828",
+      "family": "temporal_validity",
+      "group": "V2-47f13dd521d65e",
+      "variant": "refuted",
+      "dimension": "hallucination_resistance",
+      "outputHash": "44fcc024df808264554533a9f28c63c31b02c4885c6824c79cfac5ba9f3c2d80",
+      "goldStatus": "refuted",
+      "state": "completed",
+      "pass": true,
+      "verification": {
+        "formatValid": true,
+        "pass": true,
+        "checks": {
+          "stance": true,
+          "citations": true
+        },
+        "status": "refuted"
+      }
+    },
+    {
+      "id": "V2-19fe2d1c7f3c40",
+      "family": "linear_certificate",
+      "group": "V2-1a20d91f49ddf4",
+      "variant": "base",
+      "dimension": "reasoning_math",
+      "outputHash": null,
+      "state": "missing",
+      "pass": null
+    },
+    {
+      "id": "V2-5a8b760250ce94",
+      "family": "linear_certificate",
+      "group": "V2-1a20d91f49ddf4",
+      "variant": "parameter",
+      "dimension": "reasoning_math",
+      "outputHash": null,
+      "state": "missing",
+      "pass": null
+    },
+    {
+      "id": "V2-d3af2e3d5182e0",
+      "family": "linear_certificate",
+      "group": "V2-1a20d91f49ddf4",
+      "variant": "inconsistent",
+      "dimension": "reasoning_math",
+      "outputHash": null,
+      "state": "missing",
+      "pass": null
+    },
+    {
+      "id": "V2-e86b29945c8382",
+      "family": "temporal_validity",
+      "group": "V2-47f13dd521d65e",
+      "variant": "supported",
+      "dimension": "hallucination_resistance",
+      "outputHash": "0dae2706a25d0a748924b1bb1db8125ebc7dd89c38f2c79a750fb99334d31951",
+      "goldStatus": "supported",
+      "state": "completed",
+      "pass": true,
+      "verification": {
+        "formatValid": true,
+        "pass": true,
+        "checks": {
+          "stance": true,
+          "citations": true
+        },
+        "status": "supported"
+      }
+    },
+    {
+      "id": "V2-8c77df5beb0c58",
+      "family": "temporal_validity",
+      "group": "V2-47f13dd521d65e",
+      "variant": "conflict",
+      "dimension": "hallucination_resistance",
+      "outputHash": "5a88f7ee8d42e92d76291860fd597201235beeab3091e6943612dc23cc0fc7ac",
+      "goldStatus": "conflict",
+      "state": "completed",
+      "pass": true,
+      "verification": {
+        "formatValid": true,
+        "pass": true,
+        "checks": {
+          "stance": true,
+          "citations": true
+        },
+        "status": "conflict"
+      }
+    }
+  ],
+  "families": [
+    {
+      "family": "temporal_validity",
+      "dimension": "hallucination_resistance",
+      "planned": 4,
+      "measured": 4,
+      "passed": 3,
+      "observedPassRate": 0.75,
+      "score": 75
+    },
+    {
+      "family": "linear_certificate",
+      "dimension": "reasoning_math",
+      "planned": 4,
+      "measured": 0,
+      "passed": 0,
+      "observedPassRate": null,
+      "score": null
+    }
+  ],
+  "dimensions": [
+    {
+      "dimension": "hallucination_resistance",
+      "planned": 4,
+      "measured": 4,
+      "score": 75,
+      "weighting": "equal_family"
+    },
+    {
+      "dimension": "reasoning_math",
+      "planned": 4,
+      "measured": 0,
+      "score": null,
+      "weighting": "equal_family"
+    }
+  ],
+  "groups": [
+    {
+      "group": "V2-47f13dd521d65e",
+      "family": "temporal_validity",
+      "planned": 4,
+      "measured": 4,
+      "allVariantsPass": false,
+      "baseAndIrrelevantPass": null,
+      "parameterRegression": null,
+      "note": "paired_diagnostics_not_independent_samples_or_additional_score"
+    },
+    {
+      "group": "V2-1a20d91f49ddf4",
+      "family": "linear_certificate",
+      "planned": 4,
+      "measured": 0,
+      "allVariantsPass": null,
+      "baseAndIrrelevantPass": null,
+      "parameterRegression": null,
+      "note": "paired_diagnostics_not_independent_samples_or_additional_score"
+    }
+  ],
+  "combinedScore": null,
+  "judgeCalls": 0,
+  "productionEligible": false,
+  "hallucinationDiagnostics": {
+    "scope": "observed_measured_items_only_not_full_score",
+    "measured": 4,
+    "validFormat": 4,
+    "formatFailures": 0,
+    "attempted": 2,
+    "incorrectAttempts": 0,
+    "incorrectAmongAttempts": 0,
+    "answerable": 2,
+    "unnecessaryAbstentions": 0,
+    "unnecessaryAbstentionRate": 0,
+    "unknownOrConflicting": 2,
+    "unsupportedCommitments": 0,
+    "unsupportedCommitmentRate": 0,
+    "stanceAccuracy": 1,
+    "jointEvidenceAccuracy": 0.75
+  },
+  "budgetPolicy": {
+    "concurrency": 1,
+    "hardTimeoutSeconds": 1200,
+    "maxTokens": 90000,
+    "contextLength": 131072,
+    "temperature": 0.6,
+    "topP": 0.95,
+    "topK": 20,
+    "minP": 0,
+    "seed": 20260910,
+    "enableThinking": true,
+    "repetitionPenalty": 1,
+    "presencePenalty": 0,
+    "frequencyPenalty": 0
+  },
+  "independentGold": false,
+  "difficultyCalibrated": false,
+  "codeHash": "8d509c2b42ba1cdc2aa1e73b2f709e3e4c21f3ab7ba28d1222ad54030f9211ef"
+}

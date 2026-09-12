@@ -1,0 +1,7 @@
+{
+  "id":"03","rawHash":"01d36f51932f5a9368c543d3ab575edc26b725defa30dee574abcc4c42b69aac",
+  "reviewer":"codex_operational_not_independent_human_gold","decision":"stop",
+  "reasonsSupported":false,"quotesPreserveStance":true,"sourceLinksRelevant":false,
+  "notes":["Checked the actual API request, not only author gold. RA-474 D32 admits only D06, so refuted is correct; Judge's D66 support is inadmissible.","RA-4e7 D32 admits only D72, which reports sample size without assignment; insufficient is correct. Judge used unlisted D06/D66 to fabricate conflict.","Two false-positive semantic error flags despite valid JSON and existing D IDs. The previous 24 controlled calibration items did not establish generalization to this real closed-evidence protocol.","Stop calls04..08, no automatic prompt repair or retry. Preserve the useful reviewed proof issue in call02 separately, but do not mark the whole trial qualified."],
+  "officialScoreChanged":false
+}

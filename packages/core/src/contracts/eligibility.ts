@@ -6,6 +6,7 @@
 
 import type { Scenario, ScenarioEligibility } from '@zxbench/types';
 import { validateScenario } from './validateScenario.js';
+import { hashScenario, hashScenarioShort } from './canonicalize.js';
 
 /** 官方资格要求的 tier */
 const OFFICIAL_TIERS = new Set(['private_validation', 'blind_holdout']);
@@ -27,11 +28,16 @@ export function checkScenarioEligibility(scenario: Scenario): ScenarioEligibilit
   if (!OFFICIAL_TIERS.has(scenario.tier)) {
     reasons.push(`tier=${scenario.tier}（官方要求 private_validation/blind_holdout）`);
   }
-  if (!scenario.goldSource) {
+  if (!scenario.goldSource?.trim()) {
     reasons.push('缺少 goldSource（gold 来源不可溯源）');
   }
   if (!scenario.goldVerifiedAt) {
     reasons.push('缺少 goldVerifiedAt（gold 未经独立验证）');
+  } else if (!Number.isFinite(new Date(scenario.goldVerifiedAt).getTime())) {
+    reasons.push('goldVerifiedAt 不是合法时间');
+  }
+  if (scenario.scenarioHash !== hashScenario(scenario) && scenario.scenarioHash !== hashScenarioShort(scenario)) {
+    reasons.push('scenarioHash 与题目内容不匹配（须重新审核并冻结）');
   }
 
   return { eligible: reasons.length === 0, reasons };

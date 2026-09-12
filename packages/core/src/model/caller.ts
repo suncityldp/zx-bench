@@ -490,10 +490,17 @@ export async function callModelWithRetry(
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    // Never turn a user/server cancellation into delayed retry traffic.
+    if (options.signal?.aborted) {
+      throw options.signal.reason instanceof Error
+        ? options.signal.reason
+        : new DOMException('Model call cancelled by evaluation controller', 'AbortError');
+    }
     try {
       return await callModel(options);
     } catch (err) {
       lastError = err as Error;
+      if (options.signal?.aborted) throw err;
       // 超时错误不重试：达到 hardTimeLimitMs 仍未返回，说明是"思考拖尾"而非网络抖动，
       // 重试大概率仍会超时，只会成倍浪费时间和占用本地模型队列。
       const isTimeout =
@@ -504,7 +511,14 @@ export async function callModelWithRetry(
       }
       if (attempt < maxRetries) {
         const delay = Math.min(1000 * 2 ** attempt, 10000);
-        await new Promise((r) => setTimeout(r, delay));
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(resolve, delay);
+          const abort = () => {
+            clearTimeout(timeout);
+            reject(options.signal?.reason ?? new DOMException('Model retry cancelled by evaluation controller', 'AbortError'));
+          };
+          options.signal?.addEventListener('abort', abort, { once: true });
+        });
       }
     }
   }

@@ -56,6 +56,39 @@ export type { OrchestrateOptions } from './orchestrator.js';
 // 多轮稳定性评测
 export { runMultipleEvaluations, batchMultiRunEvaluation } from './multi-run/index.js';
 export type { MultiRunOptions } from './multi-run/index.js';
+export { attachEvaluationAudit, summarizeCriteria } from './audit.js';
+export { calibrationSplit, normalizeReviewer, validateCalibrationReview, summarizeCalibration, validateReviewTransition, sampleCalibrationCandidates } from './calibration.js';
+export { analyzeRubricQuality } from './rubricQA.js';
+// Read-only, opt-in capability lab inspection; does not alter production grading.
+export { inspectCapabilitySubmission } from './evaluationLab/capabilityInspection.js';
+export type { InspectionKind, ClaimReviewAttachment } from './evaluationLab/capabilityInspection.js';
+export { confirmProbabilityComparison } from './evaluationLab/probabilityConfirmation.js';
+export type { ProbabilityTrial } from './evaluationLab/probabilityConfirmation.js';
+export { observedDiscrimination } from './evaluationLab/observedDiscrimination.js';
+export type { ObservedDimensionModel } from './evaluationLab/observedDiscrimination.js';
+export { judgeRoleEvidence } from './evaluationLab/judgeRoleEvidence.js';
+export type { BoundedJudgeControl, BoundedJudgeRealSignal } from './evaluationLab/judgeRoleEvidence.js';
+export { buildLatentCensoringProbability, latentCensoringReference, verifyLatentCensoring, scoreLatentCensoring } from './evaluationLab/latentCensoringProbability.js';
+export type { LatentCensoringProblem, LatentCensoringCase } from './evaluationLab/latentCensoringProbability.js';
+export { buildEvidenceMatrix, evidenceMatrixReference, verifyEvidenceMatrix, scoreEvidenceMatrix } from './evaluationLab/evidenceMatrix.js';
+export type { EvidenceMatrixGold, EvidenceMatrixCase } from './evaluationLab/evidenceMatrix.js';
+export { buildEvidenceLedger, evidenceLedgerReference, verifyEvidenceLedger, scoreEvidenceLedger } from './evaluationLab/evidenceLedgerV13.js';
+export type { EvidenceLedgerGold, EvidenceLedgerCase } from './evaluationLab/evidenceLedgerV13.js';
+export { buildEvidenceLedgerV14, evidenceLedgerV14Reference, verifyEvidenceLedgerV14, scoreEvidenceLedgerV14 } from './evaluationLab/evidenceLedgerV14.js';
+export { buildEvidenceLedgerV15, evidenceLedgerV15Reference, verifyEvidenceLedgerV15, scoreEvidenceLedgerV15 } from './evaluationLab/evidenceLedgerV15.js';
+export type { EvidenceLedgerV15Gold, EvidenceLedgerV15Case } from './evaluationLab/evidenceLedgerV15.js';
+export { buildEvidenceLedgerV16, evidenceLedgerV16Reference, verifyEvidenceLedgerV16, scoreEvidenceLedgerV16 } from './evaluationLab/evidenceLedgerV16.js';
+export type { EvidenceLedgerV16Gold, EvidenceLedgerV16Case } from './evaluationLab/evidenceLedgerV16.js';
+export { buildEvidenceLedgerV17, evidenceLedgerV17Reference, verifyEvidenceLedgerV17, scoreEvidenceLedgerV17 } from './evaluationLab/evidenceLedgerV17.js';
+export type { EvidenceLedgerV17Gold, EvidenceLedgerV17Case } from './evaluationLab/evidenceLedgerV17.js';
+export { buildEvidenceLedgerV18, evidenceLedgerV18Reference, verifyEvidenceLedgerV18, scoreEvidenceLedgerV18 } from './evaluationLab/evidenceLedgerV18.js';
+export type { EvidenceLedgerV18Gold, EvidenceLedgerV18Case } from './evaluationLab/evidenceLedgerV18.js';
+export { DIMENSION_EVALUATION_POLICY_V1, routeDimensionEvaluation, isRetiredJudgeModel } from './evaluationLab/dimensionEvaluationPolicyV1.js';
+export type { EvaluationRouteInput } from './evaluationLab/dimensionEvaluationPolicyV1.js';
+export { buildHardApiControlPlan, hardApiBody, gradeHardApi } from './evaluationLab/hardApiControlPlan.js';
+export { checkRegression, parseRegressionExport } from './regression.js';
+export type { RegressionRun } from './regression.js';
+export { createBenchmarkPack, verifyBenchmarkPack, snapshotHash } from './contracts/pack.js';
 
 // 报告生成
 export { analyzeRunQuality } from './quality.js';
@@ -81,4 +114,5 @@ export type { GraderContract } from './contracts/index.js';
 
 // 容器执行后端（Phase 2）
 export { runInContainer, isDockerAvailable, getImageDigest, CONTAINER_IMAGES, buildGoTestHarness, runGoTestsInContainer, runGoProgramInContainer, buildJavaHarness, runJavaTestsInContainer, buildCHarness, runCTestsInContainer, runCppTestsInContainer, runCppTsanInContainer, buildRustHarness, runRustTestsInContainer, runRustMiriInContainer, buildPhpHarness, runPhpTestsInContainer, buildCsharpHarness, runCsharpTestsInContainer, buildSqlHarness, runSqlInContainer, buildBashHarness, runBashTestsInContainer, runTypeScriptTypeCheck } from './execution/index.js';
+export { DOCKER_NOT_READY, isDockerInfrastructureFailure } from './execution/dockerReadiness.js';
 export type { ContainerRunOptions, ContainerRunResult, ContainerFile, TypeCheckCase, TypeCheckResult, RustMiriResult } from './execution/index.js';

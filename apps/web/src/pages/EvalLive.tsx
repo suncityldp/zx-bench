@@ -608,9 +608,9 @@ export default function EvalLive() {
       {isPaused && (
         <Alert
           message={lang === 'en' ? 'Evaluation paused' : '评测已暂停'}
-          description={lang === 'en'
+          description={progress?.pauseReason || (lang === 'en'
             ? 'Evaluation is paused. Completed results are saved. Click "Resume" to continue from where it stopped.'
-            : '评测已暂停，已完成的题目结果已保存。点击「继续评测」可从中断处恢复。'}
+            : '评测已暂停，已完成的题目结果已保存。点击「继续评测」可从中断处恢复。')}
           type="warning"
           showIcon
           icon={<PauseCircleOutlined />}

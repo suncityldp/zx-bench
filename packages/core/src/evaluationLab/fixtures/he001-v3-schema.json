@@ -1,0 +1,231 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": [
+        "HE-001-evidence-profile-v0.3"
+      ]
+    },
+    "claimExtraction": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "incomplete"
+      ]
+    },
+    "claims": {
+      "type": "array",
+      "maxItems": 120,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1
+          },
+          "label": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "refuted",
+              "unsupported",
+              "qualified_hypothesis",
+              "nonfactual",
+              "disputed"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence": {
+            "type": "array",
+            "maxItems": 6,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "D1",
+                "D2",
+                "D3",
+                "D4",
+                "D5",
+                "D6"
+              ]
+            }
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "citation": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "enum": [
+                  "adequate",
+                  "partial",
+                  "missing",
+                  "misleading",
+                  "not_applicable"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "label",
+              "reason"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "quote",
+          "label",
+          "reason",
+          "evidence",
+          "critical",
+          "citation"
+        ]
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "sensor_observation",
+              "controller_observation",
+              "recovery_observation",
+              "source_dependency"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "quote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "quote",
+          "reason"
+        ]
+      }
+    },
+    "boundaries": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "history",
+              "causality",
+              "repair",
+              "factor"
+            ]
+          },
+          "level": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "quote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "level",
+          "quote",
+          "reason"
+        ]
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "specific": {
+          "type": "boolean"
+        },
+        "contrastingOutcomes": {
+          "type": "boolean"
+        },
+        "respectsHistoryLimit": {
+          "type": "boolean"
+        },
+        "quote": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "specific",
+        "contrastingOutcomes",
+        "respectsHistoryLimit",
+        "quote",
+        "reason"
+      ]
+    }
+  },
+  "required": [
+    "version",
+    "claimExtraction",
+    "claims",
+    "findings",
+    "boundaries",
+    "verification"
+  ]
+}

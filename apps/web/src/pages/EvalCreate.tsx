@@ -73,6 +73,7 @@ export default function EvalCreate() {
       if (hasActiveConstraint && values.onLimit) constraints.onLimit = values.onLimit;
 
       const config = {
+        evaluationMode: values.evaluationMode || 'development',
         maxTokens: values.maxTokens || 8192,
         temperature: values.temperature ?? null,
         runsPerQuestion: values.runsPerQuestion || 1,
@@ -253,7 +254,10 @@ export default function EvalCreate() {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label={t('eval.runsPerQuestion')} name="runsPerQuestion" initialValue={1} tooltip="每道测试题重复运行的次数。多次运行可减少随机性影响">
+              <Form.Item label="评测发布模式" name="evaluationMode" initialValue="development">
+                <Select options={[{ value: 'development', label: '开发评测（允许未审核题）' }, { value: 'official', label: '正式评测（必须通过金标准审核门槛）' }]} />
+              </Form.Item>
+              <Form.Item label={t('eval.runsPerQuestion')} name="runsPerQuestion" initialValue={1} tooltip="真实重复调用被测模型，按次数增加 token 与耗时；Judge 重复判分另行统计。">
                 <InputNumber min={1} max={10} style={{ width: '100%' }} />
               </Form.Item>
             </Col>

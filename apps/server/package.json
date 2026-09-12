@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "evaluation:challenge": "tsx ../../packages/core/src/scripts/challenge-bank.ts",
+    "evaluation:lab": "tsx ../../packages/core/src/scripts/evaluation-lab.ts",
+    "regression:check": "tsx src/scripts/check-regression.ts",
+    "calibration:intake": "tsx src/scripts/calibration-intake.ts",
+    "calibration:qa": "tsx src/scripts/calibration-qa.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",

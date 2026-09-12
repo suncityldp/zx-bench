@@ -1,0 +1,546 @@
+{
+  "version": "hall-holdout-draft-2026-09-10-v0.2",
+  "status": "unrun_draft_requires_human_review",
+  "independentFamilies": 4,
+  "independentHumanGold": false,
+  "modelCalls": 0,
+  "productionReplacement": false,
+  "questionReview": [
+    {
+      "family": "effective-key-and-registry-authority",
+      "feedback": "用户指出D1解题路径提示过强，并认可改用字段说明与原始记录，作为边界一致性检查而非高难度主力题。",
+      "scope": "wording_and_intended_use_only_not_answer_gold",
+      "empiricalDifficulty": "unmeasured"
+    }
+  ],
+  "entries": [
+    {
+      "case": {
+        "id": "HB-04",
+        "dimension": "hallucination_resistance",
+        "family": "incident-identity-and-final-cause",
+        "title": "维修措施与事件根因",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "事件报告中的结案字段root记录该事件唯一确认根因，S表示传感器损坏，V表示阀门卡滞。结案报告按事件UUID定位；同修订号签名报告同级，替代须指明旧报告编号。维修动作字段不等同于root。",
+          "D2": "目标故障发生于A42设备，事件UUID=e17；同设备另一故障事件UUID=e71。",
+          "D3": "e17维修工单：更换传感器，并拆洗阀门。",
+          "D4": "A24设备旧案例以传感器损坏结案，报告的设备型号与A42相同。",
+          "D5": "宣传简报把A42检修后的恢复运行归因于传感器更换，附图来自维修工单。",
+          "D6": "签名结案报告M：事件UUID=e71，修订号2，root=V。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "目标故障事件的最终确认根因是否为传感器损坏？",
+            "expected": {
+              "value": null,
+              "status": "insufficient",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "同设备不同事件；宣传归因和维修动作不能代替目标事件结案。",
+      "variantGroup": "incident-identity-and-final-cause",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-06",
+        "dimension": "hallucination_resistance",
+        "family": "certificate-full-scope-versus-excerpt",
+        "title": "附件与证书认证范围",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "证书协议：认证范围按法律主体ID与产品ID的二元组定义，不沿商标许可转移。只有带签名的范围附件构成范围依据；同一证书同一修订号的附件同级，覆盖须写明被替代附件编号。完整附件之外的二元组不在该证书范围内，节录则只保留所展示的条目。",
+          "D2": "目标企业“砺川”的主体ID=C89，目标产品“北辰”的产品ID=K4。同名系列另有K7；“栗川”的主体ID=C88。",
+          "D3": "C89 获得 C88 的系列商标使用许可，许可页面展示证书 Z 的图标。",
+          "D4": "C89 的 K4 原型已通过实验室内部热循环测试，测试编号 L36。",
+          "D5": "证书 Z 索引：最新修订号5，附件X；索引不存放认证范围字段。",
+          "D6": "签名附件X，证书Z，修订号5，标记EXCERPT，展示范围表一行：(C88,K4)。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "目标企业生产的目标产品，是否在证书 Z 的认证范围内？",
+            "expected": {
+              "value": null,
+              "status": "insufficient",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "节录不能据未出现断言C89被排除，也不能据许可推定获证。",
+      "variantGroup": "certificate-full-scope-versus-excerpt",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-09",
+        "dimension": "hallucination_resistance",
+        "family": "effective-key-and-registry-authority",
+        "title": "流转记录中的授权状态",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "登记接口字段说明：application_uuid 为申请标识；effective_at 为本条记录描述的业务时点；received_at 为网关接收文件的时间；revision 为业务记录修订号；q 为执行许可状态，A=许可、R=不许可；replaces 为本条记录替代的旧记录编号，为 null 表示未登记替代关系。业务记录按 application_uuid、effective_at 定位。系统保留收到的各份签名记录，不根据接收顺序修改其业务字段。",
+          "D2": "目标申请的外部编号为 PX-41；映射表记载 PX-41→UUID u8，PX-14→UUID u3。",
+          "D3": "网关回执：外部编号 PX-41，事件 RECEIVE，接收时刻 11:58；事件字段由网关处理流程产生。",
+          "D4": "流转记录：UUID u8，业务时点 11:30，环节为待审。",
+          "D5": "展示页缓存卡片：PX-41“可执行”。页面数据取自上一次演示批次，不属于签名登记正本。",
+          "D6": "签名登记记录：\n{\"record_id\":\"G\",\"application_uuid\":\"u8\",\"effective_at\":\"12:00\",\"revision\":4,\"q\":\"A\",\"received_at\":\"12:03\",\"replaces\":null}\n{\"record_id\":\"H\",\"application_uuid\":\"u8\",\"effective_at\":\"12:00\",\"revision\":4,\"q\":\"R\",\"received_at\":\"12:05\",\"replaces\":null}"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "在业务时点 12:00，目标申请是否已经获准执行？",
+            "expected": {
+              "value": null,
+              "status": "conflict",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "同一业务键和修订号的签名记录状态相反，未登记替代关系；网关接收时间不表示业务记录被更正。",
+      "variantGroup": "effective-key-and-registry-authority",
+      "changedDocument": "D6",
+      "intendedUse": "boundary_consistency_check_not_high_difficulty"
+    },
+    {
+      "case": {
+        "id": "HB-12",
+        "dimension": "hallucination_resistance",
+        "family": "versioned-deployment-versus-staged-build",
+        "title": "构建清单与实际服务实例",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "运行记录按服务UUID、环境、观测时点定位实例。配置键 ar：1为启用自动回滚，0为关闭。签名快照同级；观测时点相同的相反值须有明确更正或优先级才能裁决，文件下载时间不建立优先级。",
+          "D2": "业务名“归帆”的生产服务UUID为s9；预发布服务UUID为s4。两个环境可部署同一构建。",
+          "D3": "构建B62通过流水线测试，构建清单包含自动回滚实现；清单不保存各实例运行配置。",
+          "D4": "部署作业D208把构建B62写入s9生产槽位，作业结束时间15:50。",
+          "D5": "s9生产环境15:00签名快照：ar=0。",
+          "D6": "签名快照Q：UUID s9，环境production，观测16:00，ar=1，下载16:02。签名快照R：UUID s9，环境production，观测16:00，ar=0，下载16:08；两份快照没有更正或优先级字段。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "观测时点 16:00，生产服务是否启用了自动回滚？",
+            "expected": {
+              "value": null,
+              "status": "conflict",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "同一实例时点互斥值矛盾，下载先后不能当更新先后。",
+      "variantGroup": "versioned-deployment-versus-staged-build",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-17",
+        "dimension": "hallucination_resistance",
+        "family": "effective-key-and-registry-authority",
+        "title": "流转记录中的授权状态",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "登记接口字段说明：application_uuid 为申请标识；effective_at 为本条记录描述的业务时点；received_at 为网关接收文件的时间；revision 为业务记录修订号；q 为执行许可状态，A=许可、R=不许可；replaces 为本条记录替代的旧记录编号，为 null 表示未登记替代关系。业务记录按 application_uuid、effective_at 定位。系统保留收到的各份签名记录，不根据接收顺序修改其业务字段。",
+          "D2": "目标申请的外部编号为 PX-41；映射表记载 PX-41→UUID u8，PX-14→UUID u3。",
+          "D3": "网关回执：外部编号 PX-41，事件 RECEIVE，接收时刻 11:58；事件字段由网关处理流程产生。",
+          "D4": "流转记录：UUID u8，业务时点 11:30，环节为待审。",
+          "D5": "展示页缓存卡片：PX-41“可执行”。页面数据取自上一次演示批次，不属于签名登记正本。",
+          "D6": "签名登记记录：\n{\"record_id\":\"G\",\"application_uuid\":\"u8\",\"effective_at\":\"12:00\",\"revision\":4,\"q\":\"A\",\"received_at\":\"12:03\",\"replaces\":null}"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "在业务时点 12:00，目标申请是否已经获准执行？",
+            "expected": {
+              "value": true,
+              "status": "determined",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "业务键精确匹配，A为获准。",
+      "variantGroup": "effective-key-and-registry-authority",
+      "changedDocument": "D6",
+      "intendedUse": "boundary_consistency_check_not_high_difficulty"
+    },
+    {
+      "case": {
+        "id": "HB-23",
+        "dimension": "hallucination_resistance",
+        "family": "versioned-deployment-versus-staged-build",
+        "title": "构建清单与实际服务实例",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "运行记录按服务UUID、环境、观测时点定位实例。配置键 ar：1为启用自动回滚，0为关闭。签名快照同级；观测时点相同的相反值须有明确更正或优先级才能裁决，文件下载时间不建立优先级。",
+          "D2": "业务名“归帆”的生产服务UUID为s9；预发布服务UUID为s4。两个环境可部署同一构建。",
+          "D3": "构建B62通过流水线测试，构建清单包含自动回滚实现；清单不保存各实例运行配置。",
+          "D4": "部署作业D208把构建B62写入s9生产槽位，作业结束时间15:50。",
+          "D5": "s9生产环境15:00签名快照：ar=0。",
+          "D6": "签名快照Q：UUID s9，环境production，观测16:00，ar=1，下载16:02。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "观测时点 16:00，生产服务是否启用了自动回滚？",
+            "expected": {
+              "value": true,
+              "status": "determined",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "匹配生产实例和观测时间；不是从构建具有功能推定启用。",
+      "variantGroup": "versioned-deployment-versus-staged-build",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-31",
+        "dimension": "hallucination_resistance",
+        "family": "certificate-full-scope-versus-excerpt",
+        "title": "附件与证书认证范围",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "证书协议：认证范围按法律主体ID与产品ID的二元组定义，不沿商标许可转移。只有带签名的范围附件构成范围依据；同一证书同一修订号的附件同级，覆盖须写明被替代附件编号。完整附件之外的二元组不在该证书范围内，节录则只保留所展示的条目。",
+          "D2": "目标企业“砺川”的主体ID=C89，目标产品“北辰”的产品ID=K4。同名系列另有K7；“栗川”的主体ID=C88。",
+          "D3": "C89 获得 C88 的系列商标使用许可，许可页面展示证书 Z 的图标。",
+          "D4": "C89 的 K4 原型已通过实验室内部热循环测试，测试编号 L36。",
+          "D5": "证书 Z 索引：最新修订号5，附件X；索引不存放认证范围字段。",
+          "D6": "签名附件X，证书Z，修订号5，标记FULL，范围表仅一行：(C88,K4)。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "目标企业生产的目标产品，是否在证书 Z 的认证范围内？",
+            "expected": {
+              "value": false,
+              "status": "determined",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "完整范围排除C89，许可不转移证书。",
+      "variantGroup": "certificate-full-scope-versus-excerpt",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-37",
+        "dimension": "hallucination_resistance",
+        "family": "incident-identity-and-final-cause",
+        "title": "维修措施与事件根因",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "事件报告中的结案字段root记录该事件唯一确认根因，S表示传感器损坏，V表示阀门卡滞。结案报告按事件UUID定位；同修订号签名报告同级，替代须指明旧报告编号。维修动作字段不等同于root。",
+          "D2": "目标故障发生于A42设备，事件UUID=e17；同设备另一故障事件UUID=e71。",
+          "D3": "e17维修工单：更换传感器，并拆洗阀门。",
+          "D4": "A24设备旧案例以传感器损坏结案，报告的设备型号与A42相同。",
+          "D5": "宣传简报把A42检修后的恢复运行归因于传感器更换，附图来自维修工单。",
+          "D6": "签名结案报告M：事件UUID=e17，修订号2，root=V。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "目标故障事件的最终确认根因是否为传感器损坏？",
+            "expected": {
+              "value": false,
+              "status": "determined",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "当前事件结案根因为阀门，不能从换件动作改写根因。",
+      "variantGroup": "incident-identity-and-final-cause",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-42",
+        "dimension": "hallucination_resistance",
+        "family": "effective-key-and-registry-authority",
+        "title": "流转记录中的授权状态",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "登记接口字段说明：application_uuid 为申请标识；effective_at 为本条记录描述的业务时点；received_at 为网关接收文件的时间；revision 为业务记录修订号；q 为执行许可状态，A=许可、R=不许可；replaces 为本条记录替代的旧记录编号，为 null 表示未登记替代关系。业务记录按 application_uuid、effective_at 定位。系统保留收到的各份签名记录，不根据接收顺序修改其业务字段。",
+          "D2": "目标申请的外部编号为 PX-41；映射表记载 PX-41→UUID u8，PX-14→UUID u3。",
+          "D3": "网关回执：外部编号 PX-41，事件 RECEIVE，接收时刻 11:58；事件字段由网关处理流程产生。",
+          "D4": "流转记录：UUID u8，业务时点 11:30，环节为待审。",
+          "D5": "展示页缓存卡片：PX-41“可执行”。页面数据取自上一次演示批次，不属于签名登记正本。",
+          "D6": "签名登记记录：\n{\"record_id\":\"G\",\"application_uuid\":\"u3\",\"effective_at\":\"12:00\",\"revision\":4,\"q\":\"A\",\"received_at\":\"12:03\",\"replaces\":null}"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "在业务时点 12:00，目标申请是否已经获准执行？",
+            "expected": {
+              "value": null,
+              "status": "insufficient",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "记录属于另一申请；回执、旧时点与演示缓存不能填补目标时点。",
+      "variantGroup": "effective-key-and-registry-authority",
+      "changedDocument": "D6",
+      "intendedUse": "boundary_consistency_check_not_high_difficulty"
+    },
+    {
+      "case": {
+        "id": "HB-49",
+        "dimension": "hallucination_resistance",
+        "family": "versioned-deployment-versus-staged-build",
+        "title": "构建清单与实际服务实例",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "运行记录按服务UUID、环境、观测时点定位实例。配置键 ar：1为启用自动回滚，0为关闭。签名快照同级；观测时点相同的相反值须有明确更正或优先级才能裁决，文件下载时间不建立优先级。",
+          "D2": "业务名“归帆”的生产服务UUID为s9；预发布服务UUID为s4。两个环境可部署同一构建。",
+          "D3": "构建B62通过流水线测试，构建清单包含自动回滚实现；清单不保存各实例运行配置。",
+          "D4": "部署作业D208把构建B62写入s9生产槽位，作业结束时间15:50。",
+          "D5": "s9生产环境15:00签名快照：ar=0。",
+          "D6": "签名快照Q：UUID s4，环境staging，观测16:00，ar=1，下载16:02。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "观测时点 16:00，生产服务是否启用了自动回滚？",
+            "expected": {
+              "value": null,
+              "status": "insufficient",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "新快照只属于预发布，旧生产快照不能保证16:00状态。",
+      "variantGroup": "versioned-deployment-versus-staged-build",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-58",
+        "dimension": "hallucination_resistance",
+        "family": "certificate-full-scope-versus-excerpt",
+        "title": "附件与证书认证范围",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "证书协议：认证范围按法律主体ID与产品ID的二元组定义，不沿商标许可转移。只有带签名的范围附件构成范围依据；同一证书同一修订号的附件同级，覆盖须写明被替代附件编号。完整附件之外的二元组不在该证书范围内，节录则只保留所展示的条目。",
+          "D2": "目标企业“砺川”的主体ID=C89，目标产品“北辰”的产品ID=K4。同名系列另有K7；“栗川”的主体ID=C88。",
+          "D3": "C89 获得 C88 的系列商标使用许可，许可页面展示证书 Z 的图标。",
+          "D4": "C89 的 K4 原型已通过实验室内部热循环测试，测试编号 L36。",
+          "D5": "证书 Z 索引：最新修订号5，附件X；索引不存放认证范围字段。",
+          "D6": "签名附件X，证书Z，修订号5，标记FULL，范围表仅一行：(C88,K4)。另一签名附件Y，证书Z，修订号5，标记FULL，范围表两行：(C88,K4)、(C89,K4)；Y的被替代附件编号字段为空。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "目标企业生产的目标产品，是否在证书 Z 的认证范围内？",
+            "expected": {
+              "value": null,
+              "status": "conflict",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "完整同级附件对目标范围相反，索引是定位表而非优先级裁决。",
+      "variantGroup": "certificate-full-scope-versus-excerpt",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    },
+    {
+      "case": {
+        "id": "HB-65",
+        "dimension": "hallucination_resistance",
+        "family": "incident-identity-and-final-cause",
+        "title": "维修措施与事件根因",
+        "citationPolicy": "sufficiency-relevance-v2",
+        "documents": {
+          "D1": "事件报告中的结案字段root记录该事件唯一确认根因，S表示传感器损坏，V表示阀门卡滞。结案报告按事件UUID定位；同修订号签名报告同级，替代须指明旧报告编号。维修动作字段不等同于root。",
+          "D2": "目标故障发生于A42设备，事件UUID=e17；同设备另一故障事件UUID=e71。",
+          "D3": "e17维修工单：更换传感器，并拆洗阀门。",
+          "D4": "A24设备旧案例以传感器损坏结案，报告的设备型号与A42相同。",
+          "D5": "宣传简报把A42检修后的恢复运行归因于传感器更换，附图来自维修工单。",
+          "D6": "签名结案报告M：事件UUID=e17，修订号2，root=V。签名结案报告N：事件UUID=e17，修订号2，root=S；N未指定被替代报告编号。"
+        },
+        "fields": [
+          {
+            "id": "claim",
+            "question": "目标故障事件的最终确认根因是否为传感器损坏？",
+            "expected": {
+              "value": null,
+              "status": "conflict",
+              "sources": [
+                "D1",
+                "D2",
+                "D6"
+              ]
+            },
+            "allowedSources": [
+              "D1",
+              "D2",
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          }
+        ]
+      },
+      "rationale": "同事件同级结案根因互斥，不能自动优先最后列出的报告。",
+      "variantGroup": "incident-identity-and-final-cause",
+      "changedDocument": "D6",
+      "intendedUse": "unclassified_pending_question_review"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { callModel, type CallModelOptions } from './caller.js';
+import { callModel, callModelWithRetry, type CallModelOptions } from './caller.js';
 
 const options = { config: { name: 'test', provider: 'openai', baseUrl: 'http://unused/v1' }, params: {}, userPrompt: 'test', stream: true } as CallModelOptions;
 const event = (data: unknown) => `data: ${JSON.stringify(data)}\n\n`;
@@ -21,6 +21,17 @@ describe('OpenAI-compatible usage and reasoning streams', () => {
     expect(settled).toBe(false);
     await vi.advanceTimersByTimeAsync(600000);
     expect(await pending).toContain('1200000ms');
+  });
+  it('does not retry a request cancelled by its owning evaluation', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn((_url, init) => new Promise((_resolve, reject) => {
+      init.signal.addEventListener('abort', () => reject(init.signal.reason), { once: true });
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const pending = callModelWithRetry({ ...options, signal: controller.signal }, 3);
+    controller.abort(new DOMException('Evaluation cancelled', 'AbortError'));
+    await expect(pending).rejects.toThrow('Evaluation cancelled');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it('stops at the protocol DONE marker even if the proxy leaves the connection open', async () => {
     const cancel = vi.fn();

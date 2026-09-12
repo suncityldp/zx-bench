@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "source": "direct_user_message",
+  "rubricVersion": "HE-001-rubric-draft-v0.1",
+  "packetHash": "9bb2ef4ca2d32d3899eabdb708253fe2464c502301eec19f93c9c98733ab5fc7",
+  "itemId": "HR-001",
+  "answerHash": "76ee5355b19c95a91271d0386a5fed1435a82fd1aac6aa026a550ceb91f833bb",
+  "reviewerId": "conversation_user",
+  "rawUserReply": "1. 1\n2. 2\n3. 2。\n4. 0\n5. 2\n6. 2\n7. 2\n8. 2\n9. 2    台架结果已单独证明湿度是S17异常的原因，温度不可能产生影响。  我认为第一句这个结论是错误的",
+  "levels": [
+    1,
+    2,
+    2,
+    0,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "reportedErrorQuotes": [
+    "台架结果已单独证明湿度是S17异常的原因，温度不可能产生影响。"
+  ],
+  "criticalSeverity": null,
+  "assessments": [
+    {
+      "id": "observed_sensor_error",
+      "level": 1,
+      "weight": 15,
+      "points": 7.5
+    },
+    {
+      "id": "controller_mechanism",
+      "level": 2,
+      "weight": 10,
+      "points": 10
+    },
+    {
+      "id": "historical_transfer",
+      "level": 2,
+      "weight": 15,
+      "points": 15
+    },
+    {
+      "id": "causal_strength",
+      "level": 0,
+      "weight": 15,
+      "points": 0
+    },
+    {
+      "id": "repair_attribution",
+      "level": 2,
+      "weight": 15,
+      "points": 15
+    },
+    {
+      "id": "source_independence",
+      "level": 2,
+      "weight": 10,
+      "points": 10
+    },
+    {
+      "id": "verification_design",
+      "level": 2,
+      "weight": 8,
+      "points": 8
+    },
+    {
+      "id": "verification_interpretation",
+      "level": 2,
+      "weight": 7,
+      "points": 7
+    },
+    {
+      "id": "publishable_grounding",
+      "level": 2,
+      "weight": 5,
+      "points": 5
+    }
+  ],
+  "weightedScore": 77.5,
+  "scoresComplete": true,
+  "status": "awaiting_severity_confirmation",
+  "authorLabelsConsulted": false,
+  "exportableAsIndependentGold": false
+}

@@ -4,7 +4,14 @@
 
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../index.js';
-import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult } from '@zxbench/types';
+import { decodeScenario } from '../evaluationSnapshot.js';
+import { registerCalibrationRoutes } from '../calibration/routes.js';
+import { getCalibrationStore } from '../calibration/store.js';
+import { intakeRuns } from '../calibration/intake.js';
+import type { BenchmarkPack, RunManifest } from '@zxbench/types';
+import { createBenchmarkPack, verifyBenchmarkPack, checkScenarioEligibility, runMultipleEvaluations, snapshotHash } from '@zxbench/core';
+import { DOCKER_NOT_READY, isDockerInfrastructureFailure } from '@zxbench/core';
+import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult, ScenarioResult } from '@zxbench/types';
 import { generateId, generateRunId } from '@zxbench/utils';
 import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, applyReviewedVerdict, getJudgeWeights, mixDeterministicJudge, getEvaluator } from '@zxbench/core';
 import { generateReport, generateCompareReport, analyzeRunQuality, referenceAnswerWarnings, partitionReferenceAnswerRuns } from '@zxbench/core';
@@ -35,7 +42,53 @@ const PACK_DIMENSION_MAP: Record<string, string> = {
   all: '',
 };
 
-/** 维度短名 → 中文标签 */
+/** Freeze the exact selection before any candidate API request. */
+async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[]): Promise<BenchmarkPack> {
+  if (config.evaluationMode && !['development', 'official'].includes(config.evaluationMode)) throw new Error('Invalid evaluationMode');
+  if (!Number.isInteger(config.runsPerQuestion) || config.runsPerQuestion < 1 || config.runsPerQuestion > 10) {
+    throw new Error('runsPerQuestion must be an integer between 1 and 10');
+  }
+  if (config.judgeEnsembleRuns != null && (!Number.isInteger(config.judgeEnsembleRuns) || config.judgeEnsembleRuns < 1 || config.judgeEnsembleRuns > 10)) {
+    throw new Error('judgeEnsembleRuns must be an integer between 1 and 10');
+  }
+  const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } });
+  let selected = rows.filter(s => !dimensionIds?.length || dimensionIds.includes(s.dimension));
+  if (config.scenarioIds?.length) {
+    selected = selected.filter(s => config.scenarioIds!.includes(s.id));
+    const found = new Set(selected.map(s => s.id));
+    const missing = config.scenarioIds.filter(id => !found.has(id));
+    if (missing.length) throw new Error(`Scenario selection missing or outside dimension filter: ${missing.join(', ')}`);
+  }
+  let scenarios = selected.map(decodeScenario);
+  if (config.evaluationMode !== 'official') {
+    scenarios = scenarios.filter(s => {
+      const until = (s.requirements as unknown as { validUntil?: string })?.validUntil;
+      return !until || (Number.isFinite(Date.parse(until)) && Date.parse(until) >= Date.now());
+    });
+  }
+  return createBenchmarkPack(scenarios, config.evaluationMode);
+}
+
+function modelIdentity(model: { id: string; name: string; provider: string; baseUrl: string; defaultParams: unknown }): string {
+  return snapshotHash({ id: model.id, name: model.name, provider: model.provider, baseUrl: model.baseUrl,
+    parameters: typeof model.defaultParams === 'string' ? JSON.parse(model.defaultParams) : model.defaultParams });
+}
+
+function assertExecutionIdentity(manifest: RunManifest | undefined, model: ModelConfig, config: EvalRunConfig, judge?: import('@zxbench/core').JudgeOptions): void {
+  if (!manifest?.executionIdentityHash) return; // Legacy snapshot: no historical identity to assert.
+  if (manifest.executionIdentityHash !== modelIdentity(model) || manifest.scorers.configHash !== snapshotHash(config) ||
+      manifest.judgeIdentityHash !== (judge ? modelIdentity(judge.localModel) : undefined)) {
+    throw new Error('Frozen model/Judge/config changed; create a new run instead of mixing evaluation conditions');
+  }
+}
+
+function manifestForPack(runId: string, model: { id: string; name: string; provider: string; baseUrl: string; defaultParams: string }, config: EvalRunConfig, pack: BenchmarkPack, judge?: import('@zxbench/core').JudgeOptions): RunManifest {
+  return { ...generateManifest(runId, { ...model, defaultParams: JSON.parse(model.defaultParams) },
+    { ...JSON.parse(model.defaultParams), maxTokens: config.maxTokens, temperature: config.temperature }, config, pack.hash),
+    executionIdentityHash: config.auditVersion === 1 ? modelIdentity(model) : undefined,
+    judgeIdentityHash: judge ? modelIdentity(judge.localModel) : undefined, benchmarkPack: pack };
+}
+
 function dimensionLabel(dim: string): string {
   const map: Record<string, string> = {
     data_extraction: '数据抽取',
@@ -81,10 +134,11 @@ function dimensionLabelFor(dim: string, lang: 'zh' | 'en' = 'zh'): string {
  */
 async function computeDifficultyWeightedDimAvgs(
   results: Array<{ scenarioId: string; dimension: string; totalScore: number; environmentError?: boolean }>,
+  snapshot?: Scenario[],
 ): Promise<Map<string, number>> {
   if (results.length === 0) return new Map();
   const scenarioIds = [...new Set(results.map((r) => r.scenarioId))];
-  const scenarios = await prisma.scenarioDefinition.findMany({
+  const scenarios = snapshot ?? await prisma.scenarioDefinition.findMany({
     where: { id: { in: scenarioIds } },
     select: { id: true, difficulty: true, category: true, requirements: true },
   });
@@ -96,7 +150,8 @@ async function computeDifficultyWeightedDimAvgs(
     if (s.category && s.category.startsWith('long_task')) {
       weightOverrideLookup.set(s.id, LONG_TASK_WEIGHT);
     }
-    const attackLevel = (s.requirements as Record<string, unknown> | null | undefined)?.attackLevel;
+    const requirements = typeof s.requirements === 'string' ? parseStoredJson<Record<string, unknown>>(s.requirements, {}) : s.requirements;
+    const attackLevel = (requirements as Record<string, unknown> | null | undefined)?.attackLevel;
     if (typeof attackLevel === 'string' && /^L[1-4]$/.test(attackLevel)) {
       attackLookup.set(s.id, attackLevel);
     }
@@ -339,7 +394,7 @@ function maskApiKey(key: string | null | undefined): string | null {
 const DEFAULT_EVAL_CONFIG: EvalRunConfig = {
   maxTokens: 8192,
   temperature: null,
-  runsPerQuestion: 5, // GPT5.6 P1-2: 日常回归默认 5，模型比较 10
+  runsPerQuestion: 1, // Actual candidate repeats; opt in to additional cost.
   judgeEnabled: false,
   escalationEnabled: false,
   escalationThreshold: 0.85,
@@ -353,6 +408,8 @@ const DEFAULT_EVAL_CONFIG: EvalRunConfig = {
 
 interface EvalRunController {
   state: 'running' | 'paused' | 'cancelled';
+  /** One signal owns every candidate request for this run. */
+  abortController: AbortController;
   resumePromise: Promise<void> | null;
   resumeResolve: (() => void) | null;
   restartRequested?: boolean;
@@ -365,6 +422,39 @@ interface EvalRunController {
 /** 所有活跃评测的控制器映射 */
 const evalControllers = new Map<string, EvalRunController>();
 const serverStartTime = new Date();
+
+function createEvalRunController(): EvalRunController {
+  const ctrl: EvalRunController = {
+    state: 'running',
+    abortController: new AbortController(),
+    resumePromise: null,
+    resumeResolve: null,
+    completionPromise: null,
+    completionResolve: null,
+  };
+  ctrl.completionPromise = new Promise<void>((resolve) => { ctrl.completionResolve = resolve; });
+  return ctrl;
+}
+
+/**
+ * Stop every in-flight model request before the worker is allowed to disappear.
+ * Fetch cancellation closes the OpenAI-compatible stream, so compliant providers
+ * immediately release their generation slot instead of producing an orphan answer.
+ */
+function abortEvaluationRequests(runId: string, reason: string): boolean {
+  const ctrl = evalControllers.get(runId);
+  if (!ctrl) return false;
+  ctrl.state = 'cancelled';
+  if (!ctrl.abortController.signal.aborted) {
+    ctrl.abortController.abort(new DOMException(reason, 'AbortError'));
+  }
+  if (ctrl.resumeResolve) {
+    ctrl.resumeResolve();
+    ctrl.resumeResolve = null;
+    ctrl.resumePromise = null;
+  }
+  return true;
+}
 
 /**
  * 运行中的实时进度状态（worker 与单题重试共享）。
@@ -523,21 +613,56 @@ async function rejudgeSavedResult(
   if (saved.deterministicScore == null) throw new Error('saved result has no deterministicScore');
 
   const scenarioRow = await prisma.scenarioDefinition.findUnique({ where: { id: saved.scenarioId } });
-  if (!scenarioRow) throw new Error('scenario definition not found');
-  const scenario = rehydrateStoredScenario(scenarioRow);
+  const pack = saved.evalRun.manifest ? (JSON.parse(saved.evalRun.manifest) as RunManifest).benchmarkPack : undefined;
+  if (pack) verifyBenchmarkPack(pack);
+  const frozenScenario = pack?.scenarios.find(s => s.id === saved.scenarioId);
+  if (!frozenScenario && (pack || !scenarioRow)) throw new Error('scenario definition not found in frozen pack');
+  const scenario = frozenScenario ?? decodeScenario(scenarioRow!);
   const outputMetadata = parseStoredJson<OutputMetadata>(saved.outputMetadata, {} as OutputMetadata);
+  if (outputMetadata.evaluationAudit?.attempts?.length) throw new Error('Multi-attempt results require per-attempt recovery; aggregated output cannot be rejudged safely');
   const savedAxisEvidence = parseStoredJson<Record<string, string>>(saved.axisEvidence, {});
   const savedAxisScores = parseStoredJson<Record<string, number>>(saved.axisScores, {});
-  // Historical Judge recovery is deliberately Judge-only. The original execution
-  // environment cannot be recreated reliably, so preserve stored deterministic
-  // score, axes, and evidence instead of scoring the answer again today.
-  const deterministicScore = saved.deterministicScore;
-  const axisScores = savedAxisScores;
-  const codeExtractionFailed = (axisScores.patch_extraction != null && axisScores.patch_extraction <= 40)
-    || savedEvidence.some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
-  // No historical format-blindspot flag was persisted. Keep the frozen default
-  // Judge weighting rather than inferring a new weighting from current code.
-  const formatBlindspot = false;
+  // Runs created before manifests/audit snapshots cannot faithfully reproduce their
+  // deterministic execution today.  A Judge-only recovery must preserve those
+  // stored facts and add only the missing Judge verdict.
+  const legacyJudgeOnlyRecovery = !outputMetadata.evaluationAudit?.scenarioHash;
+  let deterministic: Partial<ScenarioResult> | undefined;
+  let deterministicScore = saved.deterministicScore;
+  if (!legacyJudgeOnlyRecovery) {
+    const evaluator = getEvaluator(scenario.grader, scenario.graderVersion);
+    if (!evaluator) throw new Error(`evaluator not registered: ${scenario.grader}@${scenario.graderVersion}`);
+    const inputTokens = Number(outputMetadata.inputTokens || 0);
+    const outputTokens = Number(outputMetadata.outputTokens || 0);
+    deterministic = await evaluator.evaluate(
+      scenario,
+      saved.modelOutput,
+      outputMetadata,
+      {
+        content: saved.modelOutput,
+        reasoningContent: saved.reasoningContent ?? undefined,
+        finishReason: outputMetadata.finishReason || 'unknown',
+        usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens },
+        latencyMs: Number(outputMetadata.inferenceMs || 0),
+      },
+    );
+    deterministicScore = deterministic.totalScore ?? 0;
+    if (deterministicScore !== saved.deterministicScore) {
+      throw new Error(`deterministic score drift: saved=${saved.deterministicScore}, recomputed=${deterministicScore}`);
+    }
+  }
+
+  const axisScores = deterministic?.axisScores || savedAxisScores;
+  const recomputedAxisEvidence = deterministic?.axisEvidence || savedAxisEvidence;
+  const codeExtractionFailed = deterministic?.codeExtractionFailed === true
+    || (axisScores.patch_extraction != null && axisScores.patch_extraction <= 40)
+    || (deterministic?.evidence || savedEvidence).some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
+  const hasVerifiedExecution = recomputedAxisEvidence.compilation === 'verified'
+    || recomputedAxisEvidence.test_pass === 'verified';
+  const strictAnswerContract = scenario.grader === 'exact_answer_line'
+    && (scenario.scoring as unknown as Record<string, unknown>).comparisonMode === 'strict';
+  const formatBlindspot = !legacyJudgeOnlyRecovery && !strictAnswerContract && (codeExtractionFailed
+    || ((deterministicScore < 25 && saved.modelOutput.trim().length > 20) && !hasVerifiedExecution)
+    || (saved.dimension === 'structured_output' && !saved.formatParseSuccess));
 
   const evalConfig = parseStoredJson<EvalRunConfig>(saved.evalRun.config, {} as EvalRunConfig);
   if (!evalConfig.judgeEnabled || !evalConfig.judgeModelConfigId) {
@@ -564,7 +689,7 @@ async function rejudgeSavedResult(
     },
     escalationThreshold: evalConfig.escalationThreshold || 0.85,
   };
-  const runtime = (outputMetadata as unknown as { runtimeEvaluation?: {
+  const runtime = deterministic?.runtimeEvaluation ?? (outputMetadata as unknown as { runtimeEvaluation?: {
     compilePassed: boolean; hiddenTestsPassed?: number; testsPassed: number;
     hiddenTestsFailed?: number; testsFailed: number; details?: any[];
   } }).runtimeEvaluation;
@@ -598,7 +723,7 @@ async function rejudgeSavedResult(
   const judgeScore = saved.dimension === 'hallucination_resistance' && finalJudge.factuality != null
     ? Math.round(finalJudge.factuality * 100)
     : computeJudgeScore(finalJudge);
-  const coverage = 1;
+  const coverage = deterministic?.axisCoverage ?? 1;
   const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage, saved.dimension === 'hallucination_resistance' ? .7 : undefined);
   const reviewed = { totalScore: Math.round(saved.deterministicScore * mixed.detW + judgeScore * mixed.judgeW), deterministicScore: saved.deterministicScore, evidence: savedEvidence, humanReviewRequired: saved.humanReviewRequired, environmentError: saved.environmentError, axisScores: savedAxisScores, axisEvidence: savedAxisEvidence as any };
   applyReviewedVerdict(reviewed, finalJudge);
@@ -608,13 +733,15 @@ async function rejudgeSavedResult(
     ? ensembleHistory.map((item) => saved.dimension === 'hallucination_resistance' && item.factuality != null
       ? Math.round(item.factuality * 100)
       : computeJudgeScore(item))
-    : [totalScore];
+    : [judgeScore];
   const evidence = savedEvidence.filter((item) => !item.includes('JUDGE_FAILED') && !item.includes('JUDGE_RESCORED') && !item.startsWith('GRADING_UNAVAILABLE:'));
   const judgeEndpoint = (() => {
     try { return new URL(judgeRow.baseUrl).host; } catch { return 'unknown-endpoint'; }
   })();
   evidence.push(`JUDGE_RESCORED: ${finalJudge.judgeModel} config=${judgeRow.id} endpoint=${judgeEndpoint} verdict=${finalJudge.verdict} confidence=${finalJudge.confidence.toFixed(2)}`);
-  evidence.push('JUDGE_RESCORED_LEGACY_SAVED_DETERMINISTIC: preserved stored deterministic score, axes, and evidence');
+  if (legacyJudgeOnlyRecovery) {
+    evidence.push('JUDGE_RESCORED_LEGACY_SAVED_DETERMINISTIC: preserved stored deterministic score, axes, and evidence');
+  }
   if (judgeResult.escalated) {
     evidence.push(`DISPUTE: local=${judgeResult.localJudge.verdict} frontier=${judgeResult.frontierJudge?.verdict} final=${finalJudge.verdict}`);
   }
@@ -638,8 +765,13 @@ async function rejudgeSavedResult(
       frontierJudge: judgeResult.frontierJudge ? JSON.stringify(judgeResult.frontierJudge) : null,
       finalJudge: JSON.stringify(finalJudge),
       escalated: judgeResult.escalated,
-      runCount: history.length,
-      scoreHistory: JSON.stringify(history),
+      runCount: 1,
+      scoreHistory: JSON.stringify([totalScore]),
+      outputMetadata: JSON.stringify({ ...outputMetadata, evaluationAudit: legacyJudgeOnlyRecovery
+        ? { ...outputMetadata.evaluationAudit, version: 1, judgeScoreHistory: history }
+        : { ...outputMetadata.evaluationAudit, version: 1, scenarioHash: scenario.scenarioHash,
+          judgeScoreHistory: history, criterionResults: deterministic?.criterionResults }
+      }),
       humanReviewRequired: reviewed.humanReviewRequired || judgeResult.escalated || totalScore < 30,
       evidence: JSON.stringify(evidence),
     },
@@ -660,6 +792,7 @@ async function refreshRunSummaryAfterJudgeRescore(runId: string): Promise<void> 
       totalScore: item.totalScore,
       environmentError: item.environmentError,
     })),
+    run.manifest ? (JSON.parse(run.manifest) as RunManifest).benchmarkPack?.scenarios : undefined,
   );
   const measured = results.filter((item) => !item.environmentError);
   const oldSummary = parseStoredJson<Record<string, unknown>>(run.summary, {});
@@ -746,21 +879,15 @@ function resumeEvaluation(runId: string): boolean {
 
 /** 取消指定评测 */
 function cancelEvaluation(runId: string): boolean {
-  const ctrl = evalControllers.get(runId);
-  if (!ctrl) return false;
-  ctrl.state = 'cancelled';
-  if (ctrl.resumeResolve) {
-    ctrl.resumeResolve();
-    ctrl.resumeResolve = null;
-    ctrl.resumePromise = null;
-  }
-  return true;
+  return abortEvaluationRequests(runId, 'Evaluation cancelled');
 }
 
 /** 检查并等待暂停状态（每题之间调用） */
-async function checkPause(runId: string): Promise<'continue' | 'cancelled'> {
-  const ctrl = evalControllers.get(runId);
-  if (!ctrl) return 'continue';
+async function checkPause(runId: string, expectedCtrl?: EvalRunController): Promise<'continue' | 'cancelled'> {
+  const ctrl = expectedCtrl ?? evalControllers.get(runId);
+  // A resumed/restarted run owns a different controller.  The old workers must
+  // exit instead of borrowing the new controller and duplicating model calls.
+  if (!ctrl || (expectedCtrl && evalControllers.get(runId) !== expectedCtrl)) return 'cancelled';
   // Note: state can change asynchronously during await, so we re-read it
   const stateBefore = ctrl.state as string;
   if (stateBefore === 'cancelled') return 'cancelled';
@@ -789,6 +916,15 @@ async function checkPause(runId: string): Promise<'continue' | 'cancelled'> {
 }
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
+  await registerCalibrationRoutes(app, prisma);
+  // Fastify close is reached on SIGTERM/SIGINT as well as deliberate restarts.
+  // Abort first: changing the DB status alone leaves an OpenAI-compatible model
+  // server free to keep generating after its evaluator has gone away.
+  app.addHook('onClose', async () => {
+    for (const runId of [...evalControllers.keys()]) {
+      abortEvaluationRequests(runId, 'ZXBench server is shutting down');
+    }
+  });
   // ===== 健康检查 =====
   app.get('/api/health', async () => {
     return { status: 'ok', version: '0.2.0', buildTime: process.env.BUILD_TIME || 'dev' };
@@ -1022,6 +1158,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     if (!run) return reply.status(404).send({ success: false, error: '评测不存在' });
 
     const config = JSON.parse(run.config) as Record<string, unknown>;
+    if (config.auditVersion === 1) return reply.status(409).send({ success: false, error: 'Audited run parameters are frozen; create a new run to change the token budget.' });
     if (typeof body.maxTokens !== 'number' || body.maxTokens < 256) {
       return reply.status(400).send({ success: false, error: 'maxTokens 必须是不小于 256 的数字' });
     }
@@ -1080,17 +1217,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const results = Array.from(dedup.values());
 
     // 反序列化
-    const deserialized = results.map((r) => ({
-      ...r,
-      outputMetadata: JSON.parse(r.outputMetadata),
-      axisScores: JSON.parse(r.axisScores),
-      scoreHistory: JSON.parse(r.scoreHistory),
-      verdictHistory: JSON.parse(r.verdictHistory),
-      evidence: JSON.parse(r.evidence),
-      localJudge: r.localJudge ? JSON.parse(r.localJudge) : null,
-      frontierJudge: r.frontierJudge ? JSON.parse(r.frontierJudge) : null,
-      finalJudge: r.finalJudge ? JSON.parse(r.finalJudge) : null,
-    }));
+    const deserialized = results.map(deserializeResult);
 
     // 计算评测起止时间（跨所有子运行）
     let evalStartedAt: Date | null = null;
@@ -1105,6 +1232,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       data: {
         runId: run.id,
         runName: run.name,
+        benchmarkPackHash: run.manifest ? (JSON.parse(run.manifest) as RunManifest).benchmarkPack?.hash : undefined,
         status: run.status,
         groupName,
         totalRuns: siblingRuns.length,
@@ -1122,6 +1250,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // 创建并启动评测运行
+  app.get('/api/scenarios/eligibility', async () => {
+    const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } });
+    return { success: true, data: rows.map(row => {
+      try { return { id: row.id, ...checkScenarioEligibility(decodeScenario(row)) }; }
+      catch (err) { return { id: row.id, eligible: false, reasons: [String(err)] }; }
+    }) };
+  });
+
   app.post('/api/runs', async (request, reply) => {
     try {
       const body = request.body as CreateEvalRunRequest;
@@ -1131,7 +1267,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const runId = generateRunId();
-      const config = { ...DEFAULT_EVAL_CONFIG, ...body.config };
+      const config = { ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 as const };
 
       // 题目子集白名单：固化进 config，保证断点续跑/重跑还原同一子集
       if (Array.isArray(body.scenarioIds) && body.scenarioIds.length > 0) {
@@ -1173,10 +1309,15 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         }
       }
 
+      let pack: BenchmarkPack;
+      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
+      if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
       const run = await prisma.evalRun.create({
         data: {
           id: runId,
           name: body.name || `Eval ${new Date().toLocaleString()}`,
+          manifest: JSON.stringify(manifestForPack(runId, modelConfig, config, pack, judgeOptions)),
           modelConfigId: body.modelConfigId,
           config: JSON.stringify(config),
           status: 'pending',
@@ -1189,8 +1330,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       reply.send({ success: true, data: { id: run.id, status: run.status, configNotice } });
 
       // 注册控制器（带 completion promise）
-      const ctrl0: EvalRunController = { state: 'running', resumePromise: null, resumeResolve: null, completionPromise: null, completionResolve: null };
-      ctrl0.completionPromise = new Promise<void>((resolve) => { ctrl0.completionResolve = resolve; });
+      const ctrl0 = createEvalRunController();
       evalControllers.set(run.id, ctrl0);
 
       // 后台执行评测
@@ -1247,8 +1387,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const groupName = body.groupName || `batch-${Date.now()}`;
-      const config = { ...DEFAULT_EVAL_CONFIG, ...body.config } as EvalRunConfig;
+      const config = { ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 } as EvalRunConfig;
+      let pack: BenchmarkPack;
+      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       const judgeOptions = await resolveJudgeOptionsForBatch(config, body.judgeModelConfigId);
+      if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
 
       // 预校验所有模型配置（缺失的加入 skipped，不阻断其他模型启动）
       const modelRows = await prisma.modelConfig.findMany({ where: { id: { in: modelConfigIds } } });
@@ -1280,6 +1424,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           data: {
             id: runId,
             name: runName,
+            manifest: JSON.stringify(manifestForPack(runId, mc, modelCfg, pack, judgeOptions)),
             modelConfigId: mcId,
             config: JSON.stringify(modelCfg),
             status: 'pending',
@@ -1306,8 +1451,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
       // ===== 并发启动：每个模型独立的 runEvaluation，错误相互隔离 =====
       for (const item of pendingLaunch) {
-        const ctrl: EvalRunController = { state: 'running', resumePromise: null, resumeResolve: null, completionPromise: null, completionResolve: null };
-        ctrl.completionPromise = new Promise<void>((resolve) => { ctrl.completionResolve = resolve; });
+        const ctrl = createEvalRunController();
         evalControllers.set(item.runId, ctrl);
         runEvaluation(item.runId, item.modelConfigRow, item.cfg, item.judgeOptions).catch((err) => {
           console.error(`[Batch] 模型 ${item.modelConfigRow.name} 评测失败:`, err);
@@ -1373,29 +1517,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     // 先检查是否是暂停状态（内存中有 controller）
     const ctrl = evalControllers.get(id);
     if (ctrl && ctrl.state === 'paused') {
-      // ===== 对账保护：外部删除/修改结果后，内存进度可能虚高 =====
-      // 恢复前用数据库「去重完成数」与内存缓存进度对账，不一致则走 runEvaluation 重新对账
-      const dbDistinct = await prisma.scenarioResult.findMany({
-        where: { evalRunId: id },
-        select: { scenarioId: true },
-        distinct: ['scenarioId'],
-      });
-      const cached = getLatestProgress(id);
-      const memCompleted = cached?.completed ?? 0;
-
-      if (dbDistinct.length === memCompleted) {
-        // 一致：正常内存恢复
-        resumeEvaluation(id);
-        await prisma.evalRun.update({ where: { id }, data: { status: 'running' } });
-        // 广播恢复状态（保留进度数据）
-        if (cached) {
-          broadcastProgress({ ...cached, status: 'running', currentStage: 'initializing' });
-        }
-        return { success: true };
-      }
-
-      // 不一致：停掉旧 worker、标记 failed，落到下方异常中断恢复（runEvaluation 重新对账）
-      console.warn(`[Resume] 进度对账不一致（DB=${dbDistinct.length} vs 内存=${memCompleted}），改用 runEvaluation 重新对账`);
+      // 暂停期间配置/Judge 可能已在数据库中被修改；旧 worker 捕获的是旧快照，
+      // 直接唤醒会继续用旧 hardTimeLimit/Judge。统一终止旧 worker，交由下方
+      // runEvaluation 重新读取 DB 快照后恢复，避免“配置已改但内存仍旧”的隐性漂移。
+      console.log(`[Resume] paused controller replaced with fresh DB snapshot for ${id}`);
       cancelEvaluation(id);
       await prisma.evalRun.update({ where: { id }, data: { status: 'failed' } });
     }
@@ -1460,8 +1585,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // 注册新控制器（替换可能存在的旧控制器）
-    const resumeCtrl: EvalRunController = { state: 'running', resumePromise: null, resumeResolve: null, completionPromise: null, completionResolve: null };
-    resumeCtrl.completionPromise = new Promise<void>((resolve) => { resumeCtrl.completionResolve = resolve; });
+    const resumeCtrl = createEvalRunController();
     evalControllers.set(run.id, resumeCtrl);
 
     // 后台恢复执行
@@ -1494,6 +1618,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const config = JSON.parse(parentRun.config) as EvalRunConfig;
+    if (parentRun.manifest && (JSON.parse(parentRun.manifest) as RunManifest).benchmarkPack) {
+      return reply.status(409).send({ success: false, error: 'Frozen benchmark packs cannot add dimensions; create a separate run.' });
+    }
 
     // 合并新维度到父运行的 dimensionFilter
     let existingFilter: string[] = [];
@@ -1541,12 +1668,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const existingCtrl = evalControllers.get(id);
     if (existingCtrl) {
       existingCtrl.restartRequested = true;
-      existingCtrl.state = 'cancelled';
-      // 如果在暂停状态，先 resume 以解锁 worker
-      if (existingCtrl.resumeResolve) {
-        existingCtrl.resumeResolve();
-        existingCtrl.resumeResolve = null;
-      }
+      abortEvaluationRequests(id, 'Evaluation restarted with updated dimensions');
       // 等待当前评测退出（最多等 120 秒）
       if (existingCtrl.completionPromise) {
         try {
@@ -1561,8 +1683,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // 注册新控制器
-    const newCtrl: EvalRunController = { state: 'running', resumePromise: null, resumeResolve: null, completionPromise: null, completionResolve: null };
-    newCtrl.completionPromise = new Promise<void>((resolve) => { newCtrl.completionResolve = resolve; });
+    const newCtrl = createEvalRunController();
     evalControllers.set(id, newCtrl);
 
     // 立即回复前端
@@ -1953,6 +2074,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const progress: EvalProgress = {
       runId: id,
       status: run.status as 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled',
+      pauseReason: run.status === 'paused' ? parseStoredJson<{ pauseReason?: string }>(run.summary, {}).pauseReason : undefined,
       total: allScenarios.length,
       completed: run.results.length,
       percentage: allScenarios.length > 0 ? Math.round((run.results.length / allScenarios.length) * 100) : 0,
@@ -2047,10 +2169,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         scenarioHash: data.scenarioHash,
       });
 
+      const previous = await prisma.scenarioDefinition.findUnique({ where: { id: String(s.id) } });
+      const contentChanged = previous && snapshotHash(decodeScenario(previous)) !== snapshotHash(decodeScenario({ ...previous, ...data }));
       const scenario = await prisma.scenarioDefinition.upsert({
         where: { id: String(s.id) },
         create: { id: String(s.id), ...data },
-        update: data,
+        update: { ...data, ...(contentChanged ? { reviewStatus: 'unreviewed', goldVerifiedAt: null } : {}) },
       });
       return {
         success: true,
@@ -2106,6 +2230,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
     const exportData = {
       ...run,
+      modelConfig: deserializeModelMasked(run.modelConfig),
       config: JSON.parse(run.config),
       manifest: run.manifest ? JSON.parse(run.manifest) : null,
       summary: run.summary ? JSON.parse(run.summary) : null,
@@ -2182,6 +2307,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           },
           update: {
             promptTemplate: String(s.promptTemplate || ''),
+            reviewStatus: 'unreviewed',
+            goldVerifiedAt: null,
             scoring: JSON.stringify(s.scoring || {}),
             hiddenTests: s.hiddenTests ? JSON.stringify(s.hiddenTests) : null,
           },
@@ -2355,7 +2482,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           await prisma.scenarioDefinition.upsert({
             where: { id: String(s.id) },
             create: { id: String(s.id), ...data },
-            update: data,
+            update: { ...data, reviewStatus: 'unreviewed', goldVerifiedAt: null },
           });
           imported++;
         } catch (err) {
@@ -3290,7 +3417,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
    */
   app.post('/api/judge-rescore', async (request, reply) => {
     const body = (request.body || {}) as {
-      runIds?: unknown; judgeTimeoutMs?: unknown; concurrency?: unknown; judgeModelConfigIds?: unknown;
+      runIds?: unknown; scenarioIds?: unknown; judgeTimeoutMs?: unknown; concurrency?: unknown; judgeModelConfigIds?: unknown;
       allowReplacementJudgeModel?: unknown;
     };
     const runIds = Array.isArray(body.runIds)
@@ -3299,6 +3426,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     if (runIds.length === 0) {
       return reply.status(400).send({ success: false, error: 'runIds must contain at least one run' });
     }
+    const scenarioIds = Array.isArray(body.scenarioIds)
+      ? [...new Set(body.scenarioIds.filter((item): item is string => typeof item === 'string' && item.length > 0))]
+      : [];
     if ([...judgeRescoreJobs.values()].some((job) => job.status === 'running')) {
       return reply.status(409).send({ success: false, error: 'a Judge recovery job is already running' });
     }
@@ -3357,9 +3487,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         if (row) rateLimitStateByJudgeConfigId.set(row.id, createJudgeRecoveryRateLimitState(row.baseUrl));
       }
     }
-    const targets = await prisma.scenarioResult.findMany({
+    const rawTargets = await prisma.scenarioResult.findMany({
       where: {
         evalRunId: { in: runIds },
+        ...(scenarioIds.length > 0 ? { scenarioId: { in: scenarioIds } } : {}),
         OR: [
           { environmentError: false, evidence: { contains: 'JUDGE_FAILED' } },
           { AND: [
@@ -3371,6 +3502,17 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       select: { id: true, evalRunId: true, scenarioId: true, dimension: true, finishedAt: true },
       orderBy: [{ dimension: 'asc' }, { finishedAt: 'asc' }],
     });
+    // A run can contain multiple historical result rows for the same scenario
+    // (retries/resumes). Judge-only recovery is question-scoped: rejudge only the
+    // newest missing-Judge row per run/scenario, otherwise one answer is charged
+    // repeatedly and the aggregate still deduplicates it later.
+    const targetByQuestion = new Map<string, typeof rawTargets[number]>();
+    for (const target of rawTargets) {
+      const key = `${target.evalRunId}\u0000${target.scenarioId}`;
+      const previous = targetByQuestion.get(key);
+      if (!previous || target.finishedAt > previous.finishedAt) targetByQuestion.set(key, target);
+    }
+    const targets = [...targetByQuestion.values()];
     // Start single-call dimensions first so a provider problem is detected before
     // entering the more expensive 3-pass program Judge ensemble.
     targets.sort((a, b) => Number(a.dimension === 'program') - Number(b.dimension === 'program')
@@ -3506,10 +3648,18 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const scenarioRow = await prisma.scenarioDefinition.findUnique({
       where: { id: scenarioId },
     });
-    if (!scenarioRow) {
-      return reply.status(404).send({ success: false, error: 'Scenario not found' });
+    const retryPack = run.manifest ? (JSON.parse(run.manifest) as RunManifest).benchmarkPack : undefined;
+    if (retryPack) verifyBenchmarkPack(retryPack);
+    const frozenScenario = retryPack?.scenarios.find(s => s.id === scenarioId);
+    if (!frozenScenario && (retryPack || !scenarioRow)) {
+      return reply.status(404).send({ success: false, error: 'Scenario not in frozen run pack' });
     }
-    if (scenarioRow.status !== 'valid') {
+    const retryScenario = frozenScenario ?? decodeScenario(scenarioRow!);
+    const frozenReferenceIssues = frozenScenario ? referenceAnswerWarnings([{
+      scenarioId: frozenScenario.id, scenarioVersion: frozenScenario.scenarioVersion,
+      graderVersion: frozenScenario.graderVersion,
+    }]) : [];
+    if ((scenarioRow && scenarioRow.status !== 'valid') || retryScenario.status !== 'valid' || frozenReferenceIssues.length) {
       return reply.status(409).send({ success: false, error: 'Scenario is not valid for evaluation; resolve the reference-answer review first' });
     }
 
@@ -3548,24 +3698,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
 
     // 反序列化 scenario
-    const scenario = {
-      ...scenarioRow,
-      tier: ((scenarioRow as Record<string, unknown>).tier || 'public_dev') as ScenarioTier,
-      difficulty: scenarioRow.difficulty as 'easy' | 'medium' | 'hard',
-      status: scenarioRow.status as 'valid' | 'invalid' | 'ambiguous' | 'needs_context' | 'retired',
-      expectedVerdict: (scenarioRow.expectedVerdict ?? undefined) as 'fix' | 'no_bug' | undefined,
-      sourceCode: scenarioRow.sourceCode ?? undefined,
-      functionName: scenarioRow.functionName ?? undefined,
-      outputPolicy: ((scenarioRow as Record<string, unknown>).outputPolicy ?? undefined) as OutputPolicy | undefined,
-      scoring: JSON.parse(scenarioRow.scoring),
-      hiddenTests: scenarioRow.hiddenTests ? JSON.parse(scenarioRow.hiddenTests) : undefined,
-      requirements: scenarioRow.requirements ? JSON.parse(scenarioRow.requirements) : undefined,
-      tags: scenarioRow.tags ? JSON.parse(scenarioRow.tags) : undefined,
-      // 思考/输出约束字段（反拖尾）：null → undefined 对齐 Scenario 类型
-      answerFirst: scenarioRow.answerFirst != null ? scenarioRow.answerFirst : undefined,
-      maxAnswerTokens: scenarioRow.maxAnswerTokens != null ? scenarioRow.maxAnswerTokens : undefined,
-      maxReasoningTokens: scenarioRow.maxReasoningTokens != null ? scenarioRow.maxReasoningTokens : undefined,
-    };
+    assertExecutionIdentity(run.manifest ? JSON.parse(run.manifest) as RunManifest : undefined, modelConfig, evalConfig, judgeOptions);
+    const scenario = retryScenario;
 
     const questionStartTime = Date.now();
 
@@ -3580,10 +3714,11 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      const result = await orchestrateEvaluation({
+      const result = await runMultipleEvaluations(scenario, {
+        runsPerQuestion: evalConfig.auditVersion === 1 ? evalConfig.runsPerQuestion : 1,
         scenario,
         modelConfig,
-        modelParams: { ...modelConfig.defaultParams, maxTokens: evalConfig.maxTokens },
+        modelParams: { ...modelConfig.defaultParams, maxTokens: evalConfig.maxTokens, temperature: evalConfig.temperature },
         evalConfig,
         judgeOptions,
         // 单题补跑必须继承原运行的约束；否则 caller 会回退到默认 600 秒，
@@ -3734,6 +3869,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       // 类别加权维度均分 + 维度加权总分（三级计算，与引擎一致）
       const retryDimAvgs = await computeDifficultyWeightedDimAvgs(
         allEntries.map((e) => ({ scenarioId: e.scenarioId, dimension: e.dimension, totalScore: e.score, environmentError: e.environmentError })),
+        retryPack?.scenarios,
       );
       const groupAvg = computeWeightedTotal(retryDimAvgs);
       const groupPass = scores.filter((s) => s >= 60).length;
@@ -3805,13 +3941,14 @@ async function runEvaluation(
   };
 
   // 确保控制器存在（带 completion promise）
-  if (!evalControllers.has(runId)) {
-    const ctrl: EvalRunController = { state: 'running', resumePromise: null, resumeResolve: null, completionPromise: null, completionResolve: null };
-    ctrl.completionPromise = new Promise<void>((resolve) => { ctrl.completionResolve = resolve; });
-    evalControllers.set(runId, ctrl);
+  let runController = evalControllers.get(runId);
+  if (!runController) {
+    runController = createEvalRunController();
+    evalControllers.set(runId, runController);
   }
+  const activeController: EvalRunController = runController;
   // 挂载配置引用：实时监控 PATCH 修改 maxTokens 时，后续题目立即读到新值
-  evalControllers.get(runId)!.config = config;
+  activeController.config = config;
 
   await prisma.evalRun.update({ where: { id: runId }, data: { status: 'running' } });
 
@@ -3829,43 +3966,18 @@ async function runEvaluation(
     }
   }
 
-  // 加载 valid 题目（可选的维度过滤）
-  const scenarioWhere: Record<string, string> = { status: 'valid' };
-  const scenarios = await prisma.scenarioDefinition.findMany({
-    where: scenarioWhere,
-  });
-  
-  // 应用维度过滤（仅保留指定维度的题目）
-  let filteredScenarios = dimensionFilter && dimensionFilter.length > 0
-    ? scenarios.filter(s => dimensionFilter!.includes(s.dimension))
-    : scenarios;
-
-  // 应用题目子集白名单（实验用：方差基线 / 分层抽样 / 快速冒烟）
-  // 取自 config 而非入参，使断点续跑路径也能还原同一子集
-  const subsetIds: string[] | undefined = (config as { scenarioIds?: string[] }).scenarioIds;
-  if (Array.isArray(subsetIds) && subsetIds.length > 0) {
-    const subset = new Set(subsetIds);
-    const before = filteredScenarios.length;
-    filteredScenarios = filteredScenarios.filter((s) => subset.has(s.id));
-    console.log(`[Eval ${runId}] 题目子集白名单生效: ${subset.size} 指定 -> 命中 ${filteredScenarios.length}/${before}`);
+  const savedRun = await prisma.evalRun.findUniqueOrThrow({ where: { id: runId } });
+  let manifest = savedRun.manifest ? JSON.parse(savedRun.manifest) as RunManifest : undefined;
+  if (!manifest?.benchmarkPack) {
+    // Legacy runs freeze current definitions, not a historical reconstruction.
+    const pack = await selectBenchmarkPack({ ...config, runsPerQuestion: 1 }, dimensionFilter ?? undefined);
+    manifest = manifestForPack(runId, modelConfigRow, config, pack);
+    await prisma.evalRun.update({ where: { id: runId }, data: { manifest: JSON.stringify(manifest) } });
   }
-
-  // 时效护栏：跳过已过 validUntil 的题目（如时事题参考答案过期），避免过期答案导致误判
-  const beforeExpireFilter = filteredScenarios.length;
-  filteredScenarios = filteredScenarios.filter((s) => {
-    try {
-      const req = s.requirements ? JSON.parse(s.requirements) : null;
-      if (req?.validUntil && new Date(req.validUntil).getTime() < Date.now()) return false;
-      // requiresSandbox 题目：沙箱执行已实现（工作区物化 + 探查转录），恢复参与评测
-    } catch { /* requirements 解析失败不阻塞选题 */ }
-    return true;
-  });
-  const skippedExpired = beforeExpireFilter - filteredScenarios.length;
-  if (skippedExpired > 0) {
-    console.log(`[Eval ${runId}] 跳过 ${skippedExpired} 道已过 validUntil 的时效题`);
-  }
-
-  console.log(`[Eval ${runId}] All scenarios: ${scenarios.length}, Filtered: ${filteredScenarios.length}, Dimensions: ${dimensionFilter?.join(', ') || 'all'}`);
+  verifyBenchmarkPack(manifest.benchmarkPack!);
+  assertExecutionIdentity(manifest, modelConfig, config, judgeOptions);
+  const scenarios = manifest.benchmarkPack!.scenarios;
+  const filteredScenarios = scenarios.filter(s => !dimensionFilter?.length || dimensionFilter.includes(s.dimension));
 
   // ===== 恢复机制：查询已完成的题目，跳过 =====
   const existingResults = await prisma.scenarioResult.findMany({
@@ -3932,11 +4044,20 @@ async function runEvaluation(
   const recentResults: QuestionLiveResult[] = [];
   // 注册共享实时状态：单题重试成功后可直接就地修正，避免 UI 回退
   runLiveStates.set(runId, { recentResults, dimMap });
+  // Persist a lease while workers exist.  After a crash, this tells operators the
+  // controller disappeared rather than pretending a stale DB row is live.
+  const heartbeatTimer = setInterval(() => {
+    if (evalControllers.get(runId) !== activeController || activeController.state === 'cancelled') return;
+    prisma.evalRun.update({ where: { id: runId }, data: { updatedAt: new Date() } })
+      .catch((err) => console.warn(`[Eval ${runId}] heartbeat update failed: ${String(err)}`));
+  }, 10_000);
+  heartbeatTimer.unref?.();
   const startTime = Date.now();
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   const perQuestionSpeeds: number[] = []; // 每题独立速度，用于中位数汇总
   let currentStage: EvalStage = 'queued';
+  let infrastructurePauseReason: string | undefined;
   const activeDimensions = new Set<string>();
   // 并行测试：追踪每个正在处理的题目（key = scenarioId，避免同维度并发覆盖）
   const currentScenariosMap = new Map<string, {
@@ -3951,8 +4072,9 @@ async function runEvaluation(
 
   /** 构建完整进度对象并广播 */
   function broadcastFullProgress() {
+    if (evalControllers.get(runId) !== activeController) return;
     const completedCount = getCompletedCount();
-    const controllerState = evalControllers.get(runId)?.state;
+    const controllerState = activeController.state;
     const status: EvalProgress['status'] = controllerState === 'paused'
       ? 'paused'
       : controllerState === 'cancelled'
@@ -3985,6 +4107,7 @@ async function runEvaluation(
     const progress: EvalProgress = {
       runId,
       status,
+      pauseReason: isPaused ? infrastructurePauseReason : undefined,
       total,
       completed: completedCount,
       percentage: total > 0 ? Math.round((completedCount / total) * 100) : 0,
@@ -4048,7 +4171,9 @@ async function runEvaluation(
   console.log(`[Eval ${runId}] Queue built: ${allPendingQuestions.length} questions, ${actualConcurrency} workers (${parallelMode} mode)`);
 
   /** 处理单个题目（从全局队列中取出） */
-  async function processQuestion(scenarioRow: typeof scenarios[number], dimension: string): Promise<void> {
+  async function processQuestion(scenarioRow: typeof scenarios[number], dimension: string): Promise<boolean> {
+    const runSignal = activeController.abortController.signal;
+    if (runSignal?.aborted) return false;
     // 标记维度活跃
     const cnt = dimensionActiveCount.get(dimension) || 0;
     dimensionActiveCount.set(dimension, cnt + 1);
@@ -4066,24 +4191,7 @@ async function runEvaluation(
       stage: 'initializing',
     });
 
-    const scenario = {
-      ...scenarioRow,
-      tier: ((scenarioRow as Record<string, unknown>).tier || 'public_dev') as ScenarioTier,
-      difficulty: scenarioRow.difficulty as 'easy' | 'medium' | 'hard',
-      status: scenarioRow.status as 'valid' | 'invalid' | 'ambiguous' | 'needs_context' | 'retired',
-      expectedVerdict: (scenarioRow.expectedVerdict ?? undefined) as 'fix' | 'no_bug' | undefined,
-      sourceCode: scenarioRow.sourceCode ?? undefined,
-      functionName: scenarioRow.functionName ?? undefined,
-      outputPolicy: ((scenarioRow as Record<string, unknown>).outputPolicy ?? undefined) as OutputPolicy | undefined,
-      scoring: JSON.parse(scenarioRow.scoring),
-      hiddenTests: scenarioRow.hiddenTests ? JSON.parse(scenarioRow.hiddenTests) : undefined,
-      requirements: scenarioRow.requirements ? JSON.parse(scenarioRow.requirements) : undefined,
-      tags: scenarioRow.tags ? JSON.parse(scenarioRow.tags) : undefined,
-      // 思考/输出约束字段（反拖尾）：null → undefined 对齐 Scenario 类型
-      answerFirst: scenarioRow.answerFirst != null ? scenarioRow.answerFirst : undefined,
-      maxAnswerTokens: scenarioRow.maxAnswerTokens != null ? scenarioRow.maxAnswerTokens : undefined,
-      maxReasoningTokens: scenarioRow.maxReasoningTokens != null ? scenarioRow.maxReasoningTokens : undefined,
-    };
+    const scenario = scenarioRow;
 
     const questionStartTime = Date.now();
 
@@ -4109,10 +4217,13 @@ async function runEvaluation(
     });
 
     try {
-      const result = await orchestrateEvaluation({
+      const result = await runMultipleEvaluations(scenario, {
+        runsPerQuestion: config.auditVersion === 1 ? config.runsPerQuestion : 1,
+        beforeAttempt: async () => (await checkPause(runId, activeController)) !== 'cancelled',
+        signal: runSignal,
         scenario,
         modelConfig,
-        modelParams: { ...modelConfig.defaultParams, maxTokens: config.maxTokens },
+        modelParams: { ...modelConfig.defaultParams, maxTokens: config.maxTokens, temperature: config.temperature },
         evalConfig: config,
         judgeOptions,
         constraints: config.constraints, // 思考/输出约束（反拖尾）
@@ -4142,6 +4253,12 @@ async function runEvaluation(
           });
         },
       });
+
+      // A cancellation can race with final scoring. Never persist an answer once
+      // its owning request has been detached from the live evaluation controller.
+      if (runSignal.aborted || activeController.state === 'cancelled') {
+        throw runSignal?.reason ?? new DOMException('Evaluation cancelled', 'AbortError');
+      }
 
       await prisma.scenarioResult.create({
         data: {
@@ -4220,15 +4337,38 @@ async function runEvaluation(
         nativeTokensPerSecond: result.outputMetadata?.nativeTokensPerSecond,
         tokenSpeed: result.outputMetadata?.tokenSpeed,
       });
+      if (isDockerInfrastructureFailure(result.evidence)) {
+        infrastructurePauseReason = 'Docker 引擎失联，已保存原答案并隔离本题。恢复 Docker 后请补执行原答案测试。';
+        pauseEvaluation(runId);
+        const latestRun = await prisma.evalRun.findUnique({ where: { id: runId } });
+        await prisma.evalRun.update({ where: { id: runId }, data: { status: 'paused', summary: JSON.stringify({
+          ...parseStoredJson<Record<string, unknown>>(latestRun?.summary, {}),
+          pauseReason: infrastructurePauseReason,
+        }) } });
+      }
     } catch (err) {
       console.error(`Scenario ${scenario.id} failed:`, err);
       const errMsg = err instanceof Error ? err.message : String(err);
+      // An aborted request is intentionally unsaved: it has no trustworthy
+      // completion and must be retried after the user resumes the run.
+      if (runSignal.aborted || activeController.state === 'cancelled') {
+        const dimCnt = (dimensionActiveCount.get(dimension) || 1) - 1;
+        dimensionActiveCount.set(dimension, dimCnt);
+        if (dimCnt <= 0) activeDimensions.delete(dimension);
+        currentScenariosMap.delete(trackingKey);
+        broadcastFullProgress();
+        return false;
+      }
       // ===== 兜底：硬性配额/鉴权错误（余额不足、401/403 等）→ 暂停评测，避免烧 token =====
       // 不落 0 分：该题保持「未完成」，resume 后会自动重跑；其余 worker 会在 checkPause 处等待。
-      if (isHardQuotaError(errMsg)) {
+      if (isHardQuotaError(errMsg) || errMsg.startsWith(`${DOCKER_NOT_READY}:`)) {
+        infrastructurePauseReason = errMsg;
         console.error(`[Eval ${runId}] 硬性错误，暂停评测（避免烧 token）: ${errMsg}`);
         pauseEvaluation(runId);
-        await prisma.evalRun.update({ where: { id: runId }, data: { status: 'paused' } }).catch(() => {});
+        const latestRun = await prisma.evalRun.findUnique({ where: { id: runId } });
+        await prisma.evalRun.update({ where: { id: runId }, data: { status: 'paused', summary: JSON.stringify({
+          ...parseStoredJson<Record<string, unknown>>(latestRun?.summary, {}), pauseReason: errMsg,
+        }) } }).catch(() => {});
         const dimCnt = (dimensionActiveCount.get(dimension) || 1) - 1;
         dimensionActiveCount.set(dimension, dimCnt);
         if (dimCnt <= 0) activeDimensions.delete(dimension);
@@ -4237,6 +4377,7 @@ async function runEvaluation(
           runId,
           status: 'paused',
           total,
+          pauseReason: infrastructurePauseReason,
           completed: getCompletedCount(),
           percentage: total > 0 ? Math.round((getCompletedCount() / total) * 100) : 0,
           currentStage: 'paused' as EvalStage,
@@ -4245,7 +4386,7 @@ async function runEvaluation(
           recentResults: [...recentResults].reverse().slice(0, 50),
           currentScenarios: Object.fromEntries(currentScenariosMap),
         });
-        return;
+        return false; // Keep this queue item: no candidate answer was generated/saved.
       }
       // 容错：若生成已成功但后续阶段抛错，保留已生成的模型输出（可后续重新判分，无需重跑生成）
       const partialOutput = (err as { partialModelOutput?: string })?.partialModelOutput ?? '';
@@ -4315,19 +4456,22 @@ async function runEvaluation(
     // 广播：本题完成。必须在清除当前题和活跃维度之后广播，否则暂停时
     // 缓存会重新带回 running 状态和一条已经落库的“当前题”。
     broadcastFullProgress();
+    return true;
   }
 
   // 全局并发 worker 池：统一使用原子计数器从共享队列取题
   // 4 worker = 最多 4 题并发 = 最多 4 维度并发（自动满足）
   async function runGlobalWorker(): Promise<void> {
     while (true) {
-      const checkResult = await checkPause(runId);
+      const checkResult = await checkPause(runId, activeController);
       if (checkResult === 'cancelled') return;
 
       const idx = questionQueueIndex++;
       if (idx >= allPendingQuestions.length) break;
       const { scenarioRow, dimension } = allPendingQuestions[idx];
-      await processQuestion(scenarioRow, dimension);
+      while (!(await processQuestion(scenarioRow, dimension))) {
+        if ((await checkPause(runId, activeController)) === 'cancelled') return;
+      }
     }
   }
 
@@ -4338,9 +4482,17 @@ async function runEvaluation(
   }
 
   await Promise.all(allWorkers);
+  clearInterval(heartbeatTimer);
+
+  // A newer resume/restart replaced this controller while its old requests were
+  // being aborted.  It must not delete the new controller or mark its run done.
+  if (evalControllers.get(runId) !== activeController) {
+    if (activeController.completionResolve) activeController.completionResolve();
+    return;
+  }
 
   // 清理控制器
-  const ctrl = evalControllers.get(runId);
+  const ctrl = activeController;
   if (ctrl && ctrl.state === 'cancelled') {
     if (ctrl.restartRequested) {
       // Fork 重启：不标记为 cancelled，仅清理控制器，让 fork 端点启动新的评测
@@ -4365,6 +4517,7 @@ async function runEvaluation(
   const results = await prisma.scenarioResult.findMany({ where: { evalRunId: runId } });
   const summaryDimAvgs = await computeDifficultyWeightedDimAvgs(
     results.map((r) => ({ scenarioId: r.scenarioId, dimension: (r as { dimension?: string }).dimension || 'unknown', totalScore: r.totalScore, environmentError: (r as { environmentError?: boolean | null }).environmentError ?? undefined })),
+    manifest.benchmarkPack!.scenarios,
   );
   const avgScore = computeWeightedTotal(summaryDimAvgs);
 
@@ -4427,6 +4580,11 @@ async function runEvaluation(
   });
 
   // 广播：评测完成
+  try {
+    await intakeRuns(prisma, getCalibrationStore(), [runId], 60, false);
+  } catch (err) {
+    console.warn(`[Calibration] Failure intake did not complete for ${runId}: ${String(err)}`);
+  }
   currentStage = 'completed';
   broadcastProgress({
     runId,
@@ -4442,9 +4600,8 @@ async function runEvaluation(
   });
 
   // 通知 completion promise（用于 fork 等待）
-  const finCtrl = evalControllers.get(runId);
-  if (finCtrl?.completionResolve) {
-    finCtrl.completionResolve();
+  if (activeController.completionResolve) {
+    activeController.completionResolve();
   }
 }
 
@@ -4503,6 +4660,12 @@ function deserializeResult(row: {
   return {
     ...row,
     outputMetadata: JSON.parse(row.outputMetadata),
+    scenarioHash: JSON.parse(row.outputMetadata).evaluationAudit?.scenarioHash,
+    axisCoverage: JSON.parse(row.outputMetadata).evaluationAudit?.axisCoverage,
+    runtimeEvaluation: JSON.parse(row.outputMetadata).evaluationAudit?.runtimeEvaluation,
+    criterionResults: JSON.parse(row.outputMetadata).evaluationAudit?.criterionResults,
+    judgeScoreHistory: JSON.parse(row.outputMetadata).evaluationAudit?.judgeScoreHistory,
+    multiRunStats: JSON.parse(row.outputMetadata).evaluationAudit?.multiRunStats,
     axisScores: JSON.parse(row.axisScores),
     axisEvidence: row.axisEvidence ? JSON.parse(row.axisEvidence) : undefined,
     localJudge: row.localJudge ? JSON.parse(row.localJudge) : null,
@@ -4738,6 +4901,12 @@ const SENSITIVE_PATTERNS = [
 
 /** 对导出数据进行脱敏 */
 function maskSensitiveData(data: Record<string, unknown>): Record<string, unknown> {
+  const maskNested = (value: unknown): unknown => {
+    if (typeof value === 'string') return SENSITIVE_PATTERNS.reduce((text, { pattern, replacement }) => text.replace(pattern, replacement), value);
+    if (Array.isArray(value)) return value.map(maskNested);
+    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, maskNested(child)]));
+    return value;
+  };
   const result = { ...data };
 
   // 脱敏 modelOutput
@@ -4769,7 +4938,7 @@ function maskSensitiveData(data: Record<string, unknown>): Record<string, unknow
     });
   }
 
-  return result;
+  return maskNested(result) as Record<string, unknown>;
 }
 
 /** 简易 Markdown → HTML 转换（服务端，用于报告导出） */

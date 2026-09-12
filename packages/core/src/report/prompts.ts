@@ -248,6 +248,10 @@ export interface ReportUserPromptData {
       emptyOutputCount: number;
       judgeZeroCount: number;
       lengthFinishCount: number;
+      constraintMetrics?: {
+        samples: number; scoredSamples: number; strictPassRate: number | null;
+        constraintAccuracy: number | null; criticalFailures: number; unmeasuredCriteria: number;
+      };
     };
   };
   /** 维度报告 */
@@ -369,6 +373,11 @@ export function buildReportUserPrompt(data: ReportUserPromptData, language: Repo
       : '重要：环境隔离题是基础设施事件，不是模型失败；不得纳入通过率、失败案例、安全红线、格式失败或能力结论。') + '\n';
   }
   if (data.overview.qualityReport) {
+    const metrics = data.overview.qualityReport.constraintMetrics;
+    if (metrics) {
+      prompt += '\nAtomic constraint audit (separate from weighted scores): ' + JSON.stringify(metrics) + '\n';
+      prompt += 'Strict pass = every declared constraint passes in one candidate attempt; micro accuracy uses measured constraints only. Unscored/legacy samples are not passes. Do not present this partial coverage as full-benchmark instruction-following accuracy.\n';
+    }
     prompt += '- ' + s.gd + '：' + data.overview.qualityReport.grade + '\n';
     if (data.overview.qualityReport.emptyOutputCount > 0) {
       prompt += '- ' + s.eo + '：' + data.overview.qualityReport.emptyOutputCount + ' ' + s.q + '（' + s.qw + '）\n';

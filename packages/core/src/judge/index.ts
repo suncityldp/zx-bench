@@ -14,11 +14,14 @@ import type {
 } from '@zxbench/types';
 import { callModel } from '../model/caller.js';
 import { getJudgeSystemPrompt, buildJudgeUserPrompt } from './prompts.js';
+import { judgeProvenance, validateScoreEvidence } from './integrity.js';
 
 export interface JudgeOptions {
   localModel: ModelConfig;
   frontierModel?: ModelConfig;
   escalationThreshold: number;  // 默认 0.85
+  /** Shared evaluation cancellation signal; never persisted with the run config. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -32,6 +35,7 @@ const MAX_COMPACT_RETRY_TOKENS = 32_000;
 interface JudgeCallOptions {
   compactRetry?: boolean;
   maxTokens?: number;
+  signal?: AbortSignal;
 }
 
 /** 判断是否需要升级到顶级模型（GPT5.6 P2-5） */
@@ -152,7 +156,7 @@ async function callJudgeModel(
   options: JudgeCallOptions = {},
 ): Promise<JudgeResult> {
   const userPrompt = buildJudgeUserPrompt(input);
-  const systemPrompt = getJudgeSystemPrompt(input.dimension, { compactRetry: options.compactRetry });
+  const systemPrompt = getJudgeSystemPrompt(input.dimension, { compactRetry: options.compactRetry, evidenceContract: input.judgeEvidenceContract === 'criterion_evidence_v1' });
   const startTime = Date.now();
 
   const response = await callModel({
@@ -169,6 +173,7 @@ async function callJudgeModel(
     },
     systemPrompt,
     userPrompt,
+    signal: options.signal,
   });
 
   const latencyMs = Date.now() - startTime;
@@ -181,10 +186,11 @@ async function callJudgeModel(
   let parsed: Record<string, unknown>;
   try {
     // 尝试从代码块中提取 JSON
-    const jsonMatch = response.content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const jsonMatch = input.judgeEvidenceContract ? null : response.content.match(/```(?:json)?\s*([\s\S]*?)```/);
     const jsonStr = jsonMatch ? jsonMatch[1].trim() : response.content.trim();
     parsed = JSON.parse(jsonStr);
   } catch {
+    if (input.judgeEvidenceContract) throw new Error('JUDGE_INVALID_JSON: shadow evidence contract requires a complete bare JSON object');
     // JSON 解析失败 — 尝试修复截断的 JSON
     const repaired = tryRepairTruncatedJson(response.content);
     if (repaired) {
@@ -216,6 +222,7 @@ async function callJudgeModel(
     }
     parsed.evidence = [...(Array.isArray(parsed.evidence) ? parsed.evidence : []), `RUBRIC_SCORES:${JSON.stringify(parsed.rubric_scores)}; critical=${parsed.critical_error}`];
   }
+  const scoreEvidence = validateScoreEvidence(input, parsed);
   if (input.dimension === 'reasoning_math') {
     // Stable storage mapping: 55% mathematical correctness, 25% reasoning, 20% completeness.
     parsed.bug_detection = parsed.patch_correctness = parsed.math_correctness;
@@ -223,6 +230,9 @@ async function callJudgeModel(
     parsed.patch_completeness = parsed.scope_discipline = parsed.output_completeness = parsed.task_completeness;
   }
   return {
+    provenance: [judgeProvenance(input, systemPrompt, userPrompt, response.content, model.name)],
+    rubricScores: rubric ? { ...(parsed.rubric_scores as Record<string, number>) } : undefined,
+    scoreEvidence,
     judgeModel: model.name,
     verdict: (parsed.verdict as JudgeVerdict) || 'ambiguous',
     bugDetection: toScore(parsed.bug_detection),
@@ -247,13 +257,14 @@ async function callJudgeModel(
  * stricter compact-JSON instruction. Persistent failures are left for the
  * existing human-triggered Judge-only recovery workflow.
  */
-async function callJudgeModelWithCompactRetry(model: ModelConfig, input: JudgeInput): Promise<JudgeResult> {
+async function callJudgeModelWithCompactRetry(model: ModelConfig, input: JudgeInput, signal?: AbortSignal): Promise<JudgeResult> {
   try {
-    return await callJudgeModel(model, input);
+    return await callJudgeModel(model, input, { signal });
   } catch (initialError) {
+    if (signal?.aborted) throw initialError;
     if (!isRetryableJudgeOutputFailure(initialError)) throw initialError;
     try {
-      return await callJudgeModel(model, input, { compactRetry: true });
+      return await callJudgeModel(model, input, { compactRetry: true, signal });
     } catch (retryError) {
       const initialMessage = initialError instanceof Error ? initialError.message : String(initialError);
       const retryMessage = retryError instanceof Error ? retryError.message : String(retryError);
@@ -272,6 +283,9 @@ function mergeDecisions(local: JudgeResult, frontier: JudgeResult, reviewedRubri
   // 决策优先级：编译结果 > 隐藏测试 > 结构化 verdict > AI Judge 解释
   // 顶级模型权重更高
   return {
+    provenance: [...(local.provenance ?? []), ...(frontier.provenance ?? [])],
+    rubricScores: reviewedRubric ? frontier.rubricScores : undefined,
+    scoreEvidence: reviewedRubric ? frontier.scoreEvidence : undefined,
     judgeModel: `${local.judgeModel}+${frontier.judgeModel}`,
     verdict: frontier.verdict,  // 以顶级模型为准
     bugDetection: local.bugDetection * 0.3 + frontier.bugDetection * 0.7,
@@ -306,7 +320,7 @@ export async function runTieredJudge(
   options: JudgeOptions,
 ): Promise<{ localJudge: JudgeResult; frontierJudge?: JudgeResult; finalJudge: JudgeResult; escalated: boolean }> {
   // 第一层：本地模型初判
-  const localJudge = await callJudgeModelWithCompactRetry(options.localModel, input);
+  const localJudge = await callJudgeModelWithCompactRetry(options.localModel, input, options.signal);
 
   // 判断是否需要升级
   const needsEscalation = localJudge.needsEscalation
@@ -314,7 +328,7 @@ export async function runTieredJudge(
 
   if (needsEscalation && options.frontierModel) {
     // 第二层：顶级模型争议复核
-    const frontierJudge = await callJudgeModelWithCompactRetry(options.frontierModel, input);
+    const frontierJudge = await callJudgeModelWithCompactRetry(options.frontierModel, input, options.signal);
     const finalJudge = mergeDecisions(localJudge, frontierJudge, Boolean((input.requirements as unknown as Record<string, unknown> | undefined)?.reviewedRubric));
     return { localJudge, frontierJudge, finalJudge, escalated: true };
   }
@@ -369,6 +383,7 @@ export async function runJudgeEnsemble(
       if (r.frontierJudge) frontierJudge = r.frontierJudge;
       if (r.escalated) escalated = true;
     } catch (err) {
+      if (options.signal?.aborted) throw err;
       // 不能让第 2/3 轮短暂网络故障抹掉已完成的评分；全部失败时仍向上抛，
       // 由 orchestrator 走原有的确定性评分降级路径。
       failures.push(err instanceof Error ? err.message : String(err));
@@ -384,6 +399,10 @@ export async function runJudgeEnsemble(
 
   const averaged: JudgeResult = {
     ...runs[0],
+    provenance: runs.flatMap(j => j.provenance ?? []),
+    // No single invocation's criterion evidence describes an averaged judgment.
+    rubricScores: n === 1 ? runs[0].rubricScores : undefined,
+    scoreEvidence: n === 1 ? runs[0].scoreEvidence : undefined,
     bugDetection: avgNum((j) => j.bugDetection),
     rootCause: avgNum((j) => j.rootCause),
     patchCorrectness: avgNum((j) => j.patchCorrectness),

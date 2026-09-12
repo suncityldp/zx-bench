@@ -8,15 +8,18 @@ import { useLanguage, dimLabel } from '../i18n';
 interface GroupResultsData {
   runId: string;
   runName: string;
+  benchmarkPackHash?: string;
   status: string;
   groupName: string | null;
   totalRuns: number;
   totalResults: number;
   modelConfig: { name: string; provider: string };
   config: Record<string, unknown>;
-  summary: { averageScore: number; dimensionAverages: Record<string, number> } | null;
+  summary: { averageScore: number; dimensionAverages: Record<string, number>; pauseReason?: string } | null;
   results: ScenarioResult[];
-  qualityReport?: { grade: 'good' | 'warning' | 'critical'; issues: string[]; judgeFailedCount: number };
+  qualityReport?: { grade: 'good' | 'warning' | 'critical'; issues: string[]; judgeFailedCount: number;
+    constraintMetrics?: { samples: number; scoredSamples: number; strictPassRate: number | null;
+      constraintAccuracy: number | null; criticalFailures: number; unmeasuredCriteria: number; unscoredSamples: number } };
   referenceAnswerWarnings?: string[];
   evalStartedAt: string | null;
   evalFinishedAt: string | null;
@@ -229,6 +232,9 @@ export default function EvalDetail() {
       <div className="swiss-card" style={{ marginBottom: 16 }}>
         <div className="swiss-card-title">{lang === 'en' ? 'Run Config' : '运行配置'}</div>
         <Descriptions column={3} size="small">
+          <Descriptions.Item label={lang === 'en' ? 'Frozen pack' : '题包快照'} span={3}>
+            {data.benchmarkPackHash || (lang === 'en' ? 'Legacy run: no historical snapshot' : '历史运行：无原始题包快照')}
+          </Descriptions.Item>
           <Descriptions.Item label="Max Tokens">{String(data.config?.maxTokens ?? '-')}</Descriptions.Item>
           <Descriptions.Item label="AI Judge">{data.config?.judgeEnabled ? (lang === 'en' ? 'Enabled' : '启用') : (lang === 'en' ? 'Disabled' : '禁用')}</Descriptions.Item>
           <Descriptions.Item label={lang === 'en' ? 'Safety Red-line' : '安全红线'}>{data.config?.safetyCheckEnabled ? (lang === 'en' ? 'Enabled' : '启用') : (lang === 'en' ? 'Disabled' : '禁用')}</Descriptions.Item>
@@ -238,6 +244,21 @@ export default function EvalDetail() {
         </Descriptions>
       </div>
 
+      {data.status === 'paused' && data.summary?.pauseReason && (
+        <Alert style={{ marginBottom: 16 }} type="warning" showIcon
+          message={lang === 'en' ? 'Evaluation paused' : '评测已暂停'} description={data.summary.pauseReason} />
+      )}
+      {data.qualityReport?.constraintMetrics && (
+        <Alert style={{ marginBottom: 16 }} type="info" showIcon
+          message={lang === 'en' ? 'Atomic constraint audit (independent of weighted scores)' : '逐条约束审计（与加权分独立）'}
+          description={<>
+            <div>Strict AND: {data.qualityReport.constraintMetrics.strictPassRate == null ? 'N/A' : `${(data.qualityReport.constraintMetrics.strictPassRate * 100).toFixed(1)}%`}
+              {' · '}Constraint micro: {data.qualityReport.constraintMetrics.constraintAccuracy == null ? 'N/A' : `${(data.qualityReport.constraintMetrics.constraintAccuracy * 100).toFixed(1)}%`}
+              {' · '}Critical failures: {data.qualityReport.constraintMetrics.criticalFailures}</div>
+            <div>{lang === 'en' ? 'Audited attempts / valid attempts' : '有约束证据的作答 / 有效作答'}: {data.qualityReport.constraintMetrics.scoredSamples}/{data.qualityReport.constraintMetrics.samples}
+              {' · '}{lang === 'en' ? 'Unmeasured criteria' : '未测量约束'}: {data.qualityReport.constraintMetrics.unmeasuredCriteria}</div>
+          </>} />
+      )}
       {!!data.referenceAnswerWarnings?.length && <Alert showIcon type="warning" style={{ marginBottom: 16 }}
         message={lang === 'en' ? 'Reference-answer review: historical scores are not comparable' : '参考答案复核：此历史成绩不可与新版直接比较'}
         description={<>{lang === 'en' ? 'Original records are preserved. These results are excluded from the current leaderboard.' : '原始分数保留供审计，此类旧结果已暂停参与当前榜单。'}
@@ -333,6 +354,23 @@ export default function EvalDetail() {
             {
               title: lang === 'en' ? 'Escalated' : '升级', dataIndex: 'escalated', key: 'escalated', width: 70,
               render: (v: boolean) => v ? <Tag color="purple">{lang === 'en' ? 'Escalated' : '已升级'}</Tag> : <Tag>{lang === 'en' ? 'Not escalated' : '未升级'}</Tag>,
+            },
+            {
+              title: lang === 'en' ? 'Strict AND' : '严格通过', key: 'strict', width: 120,
+              render: (_: unknown, r: ScenarioResult) => {
+                const criteria = r.criterionResults;
+                if (!criteria?.length) return <Tag>N/A</Tag>;
+                return <Tooltip title={criteria.filter(c => c.status !== 'pass').map(c => `${c.id}: ${c.evidence}`).join('\n')}>
+                  <Tag color={criteria.every(c => c.status === 'pass') ? 'green' : 'red'}>{criteria.filter(c => c.status === 'pass').length}/{criteria.length}</Tag>
+                </Tooltip>;
+              },
+            },
+            {
+              title: lang === 'en' ? 'Attempts / Judge' : '作答 / Judge', key: 'attempts', width: 140,
+              render: (_: unknown, r: ScenarioResult) => <Collapse size="small" items={[{ key: 'audit',
+                label: `${r.runCount} / ${r.judgeScoreHistory?.length ?? '-'}`,
+                children: <pre style={{ whiteSpace: 'pre-wrap', maxHeight: 360, overflow: 'auto' }}>{JSON.stringify(r.outputMetadata.evaluationAudit ?? { note: 'Legacy audit unavailable' }, null, 2)}</pre>,
+              }]} />,
             },
             {
               title: lang === 'en' ? 'Evidence' : '证据', key: 'evidence', width: 120,

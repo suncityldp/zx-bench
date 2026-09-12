@@ -1,0 +1,9 @@
+import {describe,it,expect} from 'vitest';
+import {evidenceStateDiagnostics} from './evidenceStateDiagnostics.js';
+describe('four-state evidence diagnostics',()=>{
+  it('catches fabricated conflict without a yes/no commitment',()=>{const d=evidenceStateDiagnostics([{id:'x',expected:'insufficient',observed:'conflict',outputHash:'h'}]);expect(d.counts).toMatchObject({unsupportedSupport:1,unsupportedRefutation:1,unsupportedEither:1,falseConflict:1});});
+  it('distinguishes missing evidence from invented counterevidence',()=>{const a=evidenceStateDiagnostics([{id:'x',expected:'supported',observed:'conflict',outputHash:'h'}]);expect(a.counts.unsupportedRefutation).toBe(1);expect(a.counts.missedSupport).toBe(0);const b=evidenceStateDiagnostics([{id:'x',expected:'supported',observed:'insufficient',outputHash:'h'}]);expect(b.counts.missedSupport).toBe(1);expect(b.counts.unsupportedEither).toBe(0);});
+  it('keeps missing answers in planned denominator and suppresses complete accuracy',()=>{const d=evidenceStateDiagnostics([{id:'x',expected:'supported',observed:null,outputHash:null,reasonUnmeasured:'truncated'}]);expect(d.planned).toBe(1);expect(d.completeAccuracy).toBeNull();expect(d.observedAccuracy).toBeNull();});
+  it('validates all sixteen state combinations',()=>{const states=['supported','refuted','insufficient','conflict'] as const;const rows=states.flatMap(expected=>states.map(observed=>({id:expected+observed,expected,observed,outputHash:'h'})));const d=evidenceStateDiagnostics(rows);expect(d.correct).toBe(4);expect(d.counts.unsupportedSupport).toBe(4);expect(d.counts.unsupportedRefutation).toBe(4);expect(d.counts.unsupportedEither).toBe(7);});
+  it('rejects duplicate IDs or missing lineage',()=>{const r={id:'x',expected:'supported' as const,observed:'supported' as const,outputHash:'h'};expect(()=>evidenceStateDiagnostics([r,r])).toThrow();expect(()=>evidenceStateDiagnostics([{...r,outputHash:null}])).toThrow();});
+});

@@ -1,0 +1,322 @@
+[
+  {
+    "id": "RA-0279c0e16f04ac",
+    "model": "ornith15-q4km",
+    "questionId": "V2-bc78c0d05a437f",
+    "questionHash": "9cb018e1d53ebc08abdfceedd76948b15a7eaa136115922094d6ce7aea66e9f2",
+    "outputHash": "322a0cdd426278918d76901b5536be681a48a809b2d8e0e333578f027f012815",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-0a8d817bcef800",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-f386cf1255bf04",
+    "questionHash": "9e563fc83313da7db29242f8e08191953da2ca1534699a7e4ca3aeec8e3f162e",
+    "outputHash": "ea16448c83462bc556ad9de25a17adb25ab1e19edeecedfeb4abab7ed96f7a58",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-170a5c1c1c1807",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-bc78c0d05a437f",
+    "questionHash": "9cb018e1d53ebc08abdfceedd76948b15a7eaa136115922094d6ce7aea66e9f2",
+    "outputHash": "322a0cdd426278918d76901b5536be681a48a809b2d8e0e333578f027f012815",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-17c083cb13d13f",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-c2b94919200394",
+    "questionHash": "f3211b14f00428e5af5ef329c29b16c87dda1ddf09c484d613ec6b8f7bcc4eff",
+    "outputHash": "d9a828cf05525dcc470cd5ad374e1be326a6a4d07febc19a507c9b120a425976",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-18ce2e13afef2e",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-6d76db97ead039",
+    "questionHash": "411f64c3d87f113f0334f355d9bc02d3eef17b5f121360f33399be5e8d57b4b9",
+    "outputHash": "7fd0617063055248b45713a704603e8dff2108f3e62c7af3abcdb7304722624c",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-2e8806a5c268dc",
+    "model": "ornith15-q4km",
+    "questionId": "V2-53844b74d40ab2",
+    "questionHash": "66e05c8d872982c5357184f806c841fbcaa8db99475c6634aa2ff81ef521e01c",
+    "outputHash": "934256b03df8e903dd7777cdb8b6d6d21d99ca9564fc155308a07aa775c1c393",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-2ec5242162bc6b",
+    "model": "ornith15-q4km",
+    "questionId": "V2-e0b9d8ee873fe0",
+    "questionHash": "e63cd36168b2447c2c04ad848b0b8d57aec47b0150b5e3d9686b2bbf0aa73210",
+    "outputHash": "ffbf2e36a7cd9658b34e69ffd85051ba61dd6051e8025ba028592431fb3e348d",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-337a6cadc34c7c",
+    "model": "ornith15-q4km",
+    "questionId": "V2-324e19b340c436",
+    "questionHash": "cd1b9f7c710e1d772d271d56e2296b2a2f3aab59f77022fdc34a46a2ac8838a7",
+    "outputHash": "50b7d5e42db392bd432c65a2c1a4f308f3d59b760d125b882f3d31d5dfa047d2",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-474ff550509fdc",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-cad3cf076f4bc3",
+    "questionHash": "fe8c68c16de79c1146e5f7c2feb89e3a2dec3b35decf36c5b29d19395ddcc620",
+    "outputHash": "9fd71d4daa961fd73ca8e935e0c0b0ab0ce775d6fc5ea00cd8f7cbb85efe56af",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-4e7b15a79821f0",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-492a6d77889297",
+    "questionHash": "9b7ceb405862f030dc3416a4f1cdb306c92d1c13316e3feac540765e6f083d56",
+    "outputHash": "0e03f1b2c1cff92e2a55bec596f08652496ee9497ce94f56c44701ef87e97bfc",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-5ec65ce118776b",
+    "model": "ornith15-q4km",
+    "questionId": "V2-540241d5acb8b7",
+    "questionHash": "44d377ad4531e848054671ec2d2cf912abcf8ee428bafa1a88ee9b451594439c",
+    "outputHash": "e342e2939461f7524b5a92d9b1d3284007afdc6a57a2d3d6ea316d4b01dd3e94",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-60c8245d84bc76",
+    "model": "ornith15-q4km",
+    "questionId": "V2-6d76db97ead039",
+    "questionHash": "411f64c3d87f113f0334f355d9bc02d3eef17b5f121360f33399be5e8d57b4b9",
+    "outputHash": "5bff260c9bb5dea64a23fd7935e829b9f9875ab282b1fa01d6fcc36383b88fe5",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-706a78d7f3eb65",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-22c71bc3942448",
+    "questionHash": "4188f868665f7f07fffba0f58c5eac8e02d1bb5dcad14d3b46695d5712ce2d95",
+    "outputHash": "77f771bd06461c1ca0877052b855bea952c20e80bcfba499be1edcdf9a5ae84c",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-78cfad73f5e04e",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-21c7c7a3b3c251",
+    "questionHash": "1925c40bda2172c15f212c05c2db216ae010a94d32065c5a85c67975d62640b7",
+    "outputHash": "483ef3a15c1d1f3c98325c85adaee5b783f5e81d439f83e0a00623a6c0387073",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-801ac1ec0b79b1",
+    "model": "ornith15-q4km",
+    "questionId": "V2-4a0fea9a063a45",
+    "questionHash": "613b695395c636a92811955ac0f819b7cb9a74630ec6a10223c01309949721b9",
+    "outputHash": "158e3b2436aecc44ababd282655bf43a320c03293a0eeede78ddf9bb873d0aa5",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-870d632d23a530",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-89aeb39a264c6c",
+    "questionHash": "f15818e5ec5a1ca4794a2f5e987b9559bdbfafafb815f9198ce29e55866b505a",
+    "outputHash": "ac7b7b12e4945b71d7b595bf69f59a94178e521cf43b2f190c92b3544cfabb6f",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-9065e1a40b31f7",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-324e19b340c436",
+    "questionHash": "cd1b9f7c710e1d772d271d56e2296b2a2f3aab59f77022fdc34a46a2ac8838a7",
+    "outputHash": "eb9d4653976c17f19225895f9474db50560e9914416d9b944ecf4f5654a69fba",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-9658903ccf304f",
+    "model": "ornith15-q4km",
+    "questionId": "V2-22c71bc3942448",
+    "questionHash": "4188f868665f7f07fffba0f58c5eac8e02d1bb5dcad14d3b46695d5712ce2d95",
+    "outputHash": "39169369a7bd71b0d092d17e6a7b9d75313418a3022ffd3a6292edffe6845c94",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-97acecf92f1ed9",
+    "model": "ornith15-q4km",
+    "questionId": "V2-48a04770d4e0a8",
+    "questionHash": "39bf1db36c4df88f10774e597404eff32083822e790ad13e159f7a3a224f7502",
+    "outputHash": "35c7ebd72d6aff74b60844f439c2a3bae6d028c0550999b2ab4265dcd302f221",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-9ce3fcd6d49528",
+    "model": "ornith15-q4km",
+    "questionId": "V2-89aeb39a264c6c",
+    "questionHash": "f15818e5ec5a1ca4794a2f5e987b9559bdbfafafb815f9198ce29e55866b505a",
+    "outputHash": "b24345b79e87a8f1192bf6b9da5139cf00b00b6b8a874e3909de20f6e9551877",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-a2c612e4211d2d",
+    "model": "ornith15-q4km",
+    "questionId": "V2-492a6d77889297",
+    "questionHash": "9b7ceb405862f030dc3416a4f1cdb306c92d1c13316e3feac540765e6f083d56",
+    "outputHash": "58cadd03b362dda916ed43a44e081c9389f31caf991dec73b4566e03dafd0420",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-b3a9e72bf64e58",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-540241d5acb8b7",
+    "questionHash": "44d377ad4531e848054671ec2d2cf912abcf8ee428bafa1a88ee9b451594439c",
+    "outputHash": "6ef9ee670946753683b4b3ab8c86b047558127246170ec7bb071193a66466885",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-b771d1784f5e39",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-53844b74d40ab2",
+    "questionHash": "66e05c8d872982c5357184f806c841fbcaa8db99475c6634aa2ff81ef521e01c",
+    "outputHash": "f4f13ac1baebfb1a6409a86d34f009f82356fe743ddc20a081ab3106e253cf00",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-c2d3e7fc6f821d",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-54ce587684fe74",
+    "questionHash": "5669dacc7a5f2d2b50e03f033e21d9b62da84d3c267db6145ee1898d2ffa2b96",
+    "outputHash": "9776f0a80c059ed421d3a094bec58e0aec2bc6d82e01deefacb28ab06e05086d",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-c36b2cde4f7ad9",
+    "model": "ornith15-q4km",
+    "questionId": "V2-54ce587684fe74",
+    "questionHash": "5669dacc7a5f2d2b50e03f033e21d9b62da84d3c267db6145ee1898d2ffa2b96",
+    "outputHash": "4e45d59190ba3194eab0b2de4a9dd0eb469729412d13555340f43716ee7ba6f1",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-c8b5d50c329df7",
+    "model": "ornith15-q4km",
+    "questionId": "V2-21c7c7a3b3c251",
+    "questionHash": "1925c40bda2172c15f212c05c2db216ae010a94d32065c5a85c67975d62640b7",
+    "outputHash": "483ef3a15c1d1f3c98325c85adaee5b783f5e81d439f83e0a00623a6c0387073",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-d10c840703663e",
+    "model": "ornith15-q4km",
+    "questionId": "V2-f386cf1255bf04",
+    "questionHash": "9e563fc83313da7db29242f8e08191953da2ca1534699a7e4ca3aeec8e3f162e",
+    "outputHash": "ea16448c83462bc556ad9de25a17adb25ab1e19edeecedfeb4abab7ed96f7a58",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-df979f4347c8f5",
+    "model": "ornith15-q4km",
+    "questionId": "V2-c2b94919200394",
+    "questionHash": "f3211b14f00428e5af5ef329c29b16c87dda1ddf09c484d613ec6b8f7bcc4eff",
+    "outputHash": "c222179f820403afadcdc78a64d8a9a476e19b0c300dec7092e032024afc38b9",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": false
+  },
+  {
+    "id": "RA-e6efe3355de488",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-4a0fea9a063a45",
+    "questionHash": "613b695395c636a92811955ac0f819b7cb9a74630ec6a10223c01309949721b9",
+    "outputHash": "db883f99ae9a753576b3457368d0806a5d7de0baa9422f380ef97b168e3f9cf6",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-e9e9ff4a03ecb6",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-e0b9d8ee873fe0",
+    "questionHash": "e63cd36168b2447c2c04ad848b0b8d57aec47b0150b5e3d9686b2bbf0aa73210",
+    "outputHash": "20ee049352a757914897f69360c1bf913f70d504c5a28152cd7f043c8420c62c",
+    "submissionPath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/proof-math-gsq-ornith-2026-09-12-v1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-edce13d90f9391",
+    "model": "gsq-rco-iq3s",
+    "questionId": "V2-48a04770d4e0a8",
+    "questionHash": "39bf1db36c4df88f10774e597404eff32083822e790ad13e159f7a3a224f7502",
+    "outputHash": "0e03f1b2c1cff92e2a55bec596f08652496ee9497ce94f56c44701ef87e97bfc",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/gsq-rco-iq3s/grades-008.json",
+    "exactPass": true
+  },
+  {
+    "id": "RA-fe4e1763ded2ad",
+    "model": "ornith15-q4km",
+    "questionId": "V2-cad3cf076f4bc3",
+    "questionHash": "fe8c68c16de79c1146e5f7c2feb89e3a2dec3b35decf36c5b29d19395ddcc620",
+    "outputHash": "d5f405128c00be9175858e1f236659f6949fe6f3f4c97d65bdbd12d449f5e151",
+    "submissionPath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/submission-008.json",
+    "gradePath": "reports/resistance-math-gsq-ornith-evidence-2026-09-12-v2.1-run1/run/ornith15-q4km/grades-008.json",
+    "exactPass": true
+  }
+]

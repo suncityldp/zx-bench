@@ -111,7 +111,7 @@ describe('leaderboard API reference isolation', () => {
       return [{...newRow,dimension:'reasoning_math',totalScore:70,safetyLevel:'safe',formatParseSuccess:true,outputMetadata:'{}',environmentError:false}] as any;
     });
     const handlers=new Map<string,Function>();
-    const app:any={get:(path:string,handler:Function)=>handlers.set(path,handler),post:vi.fn(),patch:vi.fn(),delete:vi.fn(),put:vi.fn()};
+    const app:any={get:(path:string,handler:Function)=>handlers.set(path,handler),post:vi.fn(),patch:vi.fn(),delete:vi.fn(),put:vi.fn(),addHook:vi.fn()};
     await registerRoutes(app);
     const response=await handlers.get('/api/leaderboard')!({query:{scope}});
     expect(response.excludedRuns.map((r:any)=>r.runId)).toEqual(['old']);

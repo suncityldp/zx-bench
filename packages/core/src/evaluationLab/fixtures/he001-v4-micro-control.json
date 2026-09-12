@@ -1,0 +1,59 @@
+{
+  "version": "HE-001-evidence-profile-v0.4",
+  "execution": "not_run",
+  "purpose": "synthetic_judge_only_relation_check_not_HE001_or_benchmark_question",
+  "instructions": "只依据本项材料判断候选断言。只输出严格JSON：label为supported/refuted/unsupported，quote为材料连续逐字原句，relation为supports/contradicts/context，reason最多240字。缺少记录不等于没有发生；不使用其他题目的材料。",
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "label",
+      "quote",
+      "relation",
+      "reason"
+    ],
+    "properties": {
+      "label": {
+        "enum": [
+          "supported",
+          "refuted",
+          "unsupported"
+        ]
+      },
+      "quote": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "relation": {
+        "enum": [
+          "supports",
+          "contradicts",
+          "context"
+        ]
+      },
+      "reason": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 240
+      }
+    }
+  },
+  "items": [
+    {
+      "id": "M4-001",
+      "source": "供应商服务通报明确记载：供应商另做了独立测量，并附完整新增测量记录。",
+      "answer": "供应商另做了独立测量。"
+    },
+    {
+      "id": "M4-002",
+      "source": "供应商服务通报注明技术依据为实验室简报，未附新增测量记录。",
+      "answer": "供应商另做了独立测量。"
+    },
+    {
+      "id": "M4-003",
+      "source": "供应商服务通报明确记载：供应商没有另做独立测量。",
+      "answer": "供应商另做了独立测量。"
+    }
+  ]
+}

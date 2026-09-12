@@ -27,6 +27,8 @@ import { execAsync } from '../execution/execAsync.js';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { checkJavaScriptSyntax } from '../sandbox/index.js';
+import { weightedScoreByCoverage } from './scoreAggregate.js';
 
 /** 可沙箱执行的语言（python 需解释器可用，运行时判定） */
 const EXECUTABLE_LANGS = ['javascript', 'typescript', 'python', 'py'];
@@ -522,7 +524,7 @@ function calculateScopeDiscipline(sourceCode: string | undefined, patch: string)
 
 export const codeRepairEvaluator: Evaluator = {
   name: 'code_repair',
-  version: '3.2.0',
+  version: '3.3.0',
   aliases: ['3.1.0', '3.0.0', 'code_repair_v3'],
 
   async evaluate(
@@ -613,7 +615,7 @@ export const codeRepairEvaluator: Evaluator = {
       axisEvidence.verdict_correct = 'rule';
       axisEvidence.explanation = 'rule';
       axisEvidence.scope_discipline = 'rule';
-      return { axisScores, axisEvidence, totalScore, safetyLevel: 'safe', evidence };
+      return { axisScores, axisEvidence, axisCoverage: 1, totalScore, safetyLevel: 'safe', evidence };
     }
 
     // ===== 修复题分支 =====
@@ -643,6 +645,7 @@ export const codeRepairEvaluator: Evaluator = {
           axisScores: { patch_extraction: 0, patch_quality: 0, scope_discipline: 0 },
           axisEvidence: { patch_extraction: 'rule', patch_quality: 'unmeasured', scope_discipline: 'unmeasured' },
           totalScore: 0,
+          axisCoverage: 0,
           safetyLevel: 'safe',
           evidence: ['No code found in output (neither markdown code blocks nor heuristic extraction succeeded)'],
           codeExtractionFailed: true,
@@ -1041,15 +1044,35 @@ export const codeRepairEvaluator: Evaluator = {
         }
       } else {
         // ===== 沙箱执行路径（JS/TS/Python） =====
-        axisScores.compilation = scenario.sourceCode ? 100 : 50;
-        axisEvidence.compilation = scenario.sourceCode ? 'verified' : 'rule';
+        // Parse the actual candidate independently of the tests. A failing
+        // assertion is not a compile failure; sourceCode presence proves nothing.
+        const syntax = PYTHON_LANGS.includes(lang)
+          ? await compileCheck(patch, lang)
+          : (() => {
+              const check = checkJavaScriptSyntax(patch);
+              return { score: check.passed ? 100 : 0, evidence: check.passed
+                ? 'Candidate syntax check passed (JS/TS syntax only)'
+                : `Candidate syntax check failed: ${check.error}` };
+            })();
+        const compiled = syntax.score === 100;
+        if (syntax.score == null) {
+          axisEvidence.compilation = 'unmeasured';
+          envErrorReason = syntax.evidence;
+        } else {
+          axisScores.compilation = compiled ? 100 : 0;
+          axisEvidence.compilation = 'verified';
+        }
+        evidence.push(syntax.evidence);
 
         if (tests.length > 0) {
           // 沙箱模式：直接用模型输出的完整修复代码替换源码运行测试
           const runner = PYTHON_LANGS.includes(lang) ? runReplacedCodeTestPython : runReplacedCodeTest;
-          const details = await Promise.all(tests.map((tc) => runner(patch, tc)));
+          const details = compiled ? await Promise.all(tests.map((tc) => runner(patch, tc)))
+            : tests.map(tc => ({ testId: tc.id, testType: tc.type, passed: false,
+                stderr: syntax.evidence, exitCode: 1, timedOut: false }));
           const suiteResult = summarizeTestResults(details);
-          runtimeEval = { compilePassed: !!scenario.sourceCode, testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
+          runtimeEval = { compilePassed: compiled, compileError: compiled ? undefined : syntax.evidence,
+            testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };
           axisScores.test_pass = calculateTestScore(suiteResult);
           axisEvidence.test_pass = 'verified';
           evidence.push(suiteResult.totalTests > 0
@@ -1100,6 +1123,7 @@ export const codeRepairEvaluator: Evaluator = {
 
     // 总分：仅按已测量轴加权（未测量轴不计入分母，避免 NaN/中性分虚增）
     let totalScore: number;
+    let axisCoverage: number;
     if (executable) {
       const axesExec: Array<[number | undefined, number]> = [
         [axisScores.patch_extraction, 0.10],
@@ -1108,11 +1132,9 @@ export const codeRepairEvaluator: Evaluator = {
         [axisScores.patch_quality, 0.20],
         [axisScores.scope_discipline, 0.10],
       ];
-      const [sum, wsum] = axesExec.reduce<[number, number]>(
-        ([s, w], [score, weight]) => (score == null ? [s, w] : [s + score * weight, w + weight]),
-        [0, 0],
-      );
-      totalScore = Math.round(wsum > 0 ? sum / wsum : 0);
+      const aggregate = weightedScoreByCoverage(axesExec);
+      totalScore = aggregate.score;
+      axisCoverage = aggregate.coverage;
     } else {
       // 静态模式：compile_check 未测量时自动重归一，避免中性分虚增
       const axesStatic: Array<[number | undefined, number]> = [
@@ -1123,11 +1145,9 @@ export const codeRepairEvaluator: Evaluator = {
         [axisScores.scope_discipline, 0.10],
         [axisScores.output_completeness, 0.10],
       ];
-      const [sum, wsum] = axesStatic.reduce<[number, number]>(
-        ([s, w], [score, weight]) => (score == null ? [s, w] : [s + score * weight, w + weight]),
-        [0, 0],
-      );
-      totalScore = Math.round(wsum > 0 ? sum / wsum : 0);
+      const aggregate = weightedScoreByCoverage(axesStatic);
+      totalScore = aggregate.score;
+      axisCoverage = aggregate.coverage;
     }
 
     const isEnvError = envErrorReason !== null;
@@ -1137,11 +1157,13 @@ export const codeRepairEvaluator: Evaluator = {
       evidence.push(`ENVIRONMENT_ERROR: ${envErrorReason} — harness 故障，非模型错误，已隔离（unmeasured）`);
       axisEvidence.test_pass = 'unmeasured';
       axisEvidence.compilation = 'unmeasured';
+      axisCoverage = 0;
     }
 
     return {
       axisScores,
       axisEvidence,
+      axisCoverage,
       totalScore,
       safetyLevel: 'safe',
       evidence,
@@ -1149,6 +1171,7 @@ export const codeRepairEvaluator: Evaluator = {
       runtimeEvaluation: runtimeEval,
       extractedPatch: patch ?? undefined,
       environmentError: isEnvError,
+      humanReviewRequired: axisEvidence.test_pass === 'unmeasured' || axisEvidence.compile_check === 'unmeasured',
     };
   },
 };

@@ -34,17 +34,25 @@ import { getEvaluator } from './evaluators/index.js';
 import { prepareSandboxEvaluation } from './sandbox/workspace.js';
 import { checkSafetyRedLines } from './safety/index.js';
 import { getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, applyReviewedVerdict } from './scoring.js';
+import { attachEvaluationAudit } from './audit.js';
+import { snapshotHash } from './contracts/pack.js';
+import { isDockerAvailable } from './execution/containerRunner.js';
+import { dockerNotReadyError } from './execution/dockerReadiness.js';
 
 export interface OrchestrateOptions {
   scenario: Scenario;
   modelConfig: ModelConfig;
   modelParams: ModelParams;
   evalConfig: EvalRunConfig;
+  /** Cancels the candidate/Judge HTTP request when its owning evaluation stops. */
+  signal?: AbortSignal;
   judgeOptions?: JudgeOptions;
   systemPrompt?: string;
   onProgress?: (stage: string) => void;
   /** 思考/输出约束策略（反拖尾）：优先级 = 题目级字段 > 运行级 constraints */
   constraints?: EvalConstraints;
+  /** Offline candidate replay: never calls the tested model, even for empty/limited output. */
+  savedCandidate?: { response: ModelResponse; metadata: OutputMetadata };
 }
 
 /** 解析题目级 + 运行级合并后的生效约束 */
@@ -146,6 +154,17 @@ function buildLimitExceededResult(
 
 /** 执行单题评测完整流程 */
 export async function orchestrateEvaluation(options: OrchestrateOptions): Promise<ScenarioResult> {
+  const result = await evaluateCandidate(options);
+  // Early empty-output / token-limit exits must not disappear from strict-IF denominators.
+  if (!result.modelOutput.trim() && !result.criterionResults && options.scenario.grader.startsWith('instruction_checklist')) {
+    const constraints = (options.scenario.requirements as unknown as { constraints?: Array<{ id: string; description: string; critical?: boolean }> })?.constraints;
+    result.criterionResults = constraints?.map(c => ({ id: c.id, description: c.description,
+      status: 'fail', critical: c.critical === true, source: 'rule', evidence: 'No candidate answer' }));
+  }
+  return attachEvaluationAudit(result);
+}
+
+async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioResult> {
   const { scenario, modelConfig, modelParams, evalConfig, judgeOptions, systemPrompt, onProgress, constraints } = options;
   const startedAt = new Date().toISOString();
 
@@ -153,7 +172,11 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   onProgress?.('initializing');
 
   // ===== Stage 2: 调用模型（推理模型可能 reasoning token 溢出） =====
-  onProgress?.('calling_model');
+  if (!options.savedCandidate && (scenario.dimension === 'program' || scenario.grader === 'sandbox')) {
+    onProgress?.('docker_preflight');
+    if (!(await isDockerAvailable())) throw dockerNotReadyError();
+  }
+  onProgress?.(options.savedCandidate ? 'replaying_saved_answer' : 'calling_model');
 
   // 合并题目级 + 运行级约束（反拖尾：防止模型无限思考）
   const effectiveConstraints = resolveConstraints(scenario, constraints);
@@ -201,7 +224,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     console.log(`[orchestrator] Injected ${repoFiles.length} repo files into prompt for ${scenario.id}`);
   }
 
-  if (scenarioRequirements.requiresSandbox === true) {
+  if (scenarioRequirements.requiresSandbox === true && !options.savedCandidate) {
     onProgress?.('sandbox_prepare');
     try {
       const prepared = await prepareSandboxEvaluation(scenario.id, scenarioRequirements);
@@ -217,15 +240,19 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   }
 
   try {
-    modelResponse = await callModelWithRetry({
+    modelResponse = options.savedCandidate ? options.savedCandidate.response : await callModelWithRetry({
       config: modelConfig,
       params: { ...modelParams, maxTokens: effectiveMaxTokens },
       systemPrompt,
       userPrompt,
+      signal: options.signal,
       constraints: effectiveConstraints,
       stream: true, // 流式调用以获取精确 TTFT 和生成速度
     });
   } catch (err) {
+    // A run-level cancellation is not a model timeout or a scoreable candidate.
+    // Let the run controller discard this in-flight attempt without writing a 0.
+    if (options.signal?.aborted) throw err;
     // 思考/时间超限 → 中断并判分（不抛异常，快速推进队列）
     const msg = err instanceof Error ? err.message : String(err);
     const isTimeout = (err as Error)?.name === 'AbortError' || /timed out|timeout/i.test(msg);
@@ -250,7 +277,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
 
   // 约束开启时：finish_reason=length 且内容为空 → 思考/输出超限，直接中断判分
   // （模型把预算全花在思考上、无有效答案——不再升级预算让无底洞思考继续）
-  if (constraintsActive && modelResponse.finishReason === 'length') {
+  if (!options.savedCandidate && constraintsActive && modelResponse.finishReason === 'length') {
     const hasContent = modelResponse.content && modelResponse.content.trim().length > 0;
     if (!hasContent) {
       console.warn(`[orchestrator] Constraints active, empty output with finish_reason=length for ${scenario.id} — marking reasoning limit exceeded`);
@@ -269,7 +296,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     }
   }
 
-  if (!constraintsActive) {
+  if (!options.savedCandidate && !constraintsActive) {
     for (let retryAttempt = 0; retryAttempt < TOKEN_RETRY_BUDGETS.length; retryAttempt++) {
       const hasContent = modelResponse.content && modelResponse.content.trim().length > 0;
       if (hasContent) break;
@@ -286,6 +313,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
         params: { ...modelParams, maxTokens: effectiveMaxTokens },
         systemPrompt,
         userPrompt,
+        signal: options.signal,
         constraints: effectiveConstraints,
         stream: true,
       });
@@ -349,7 +377,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   try {
   // ===== Stage 3-4: 收集原始响应 + 提取输出和元数据 =====
   onProgress?.('building_metadata');
-  const outputMetadata: OutputMetadata = buildOutputMetadata(
+  let outputMetadata: OutputMetadata = buildOutputMetadata(
     modelResponse.content,
     modelResponse.finishReason,
     effectiveMaxTokens ?? modelParams.maxTokens ?? 8192,
@@ -372,6 +400,8 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
   } else if (timings?.predicted_per_second) {
     outputMetadata.nativeTokensPerSecond = Math.round(timings.predicted_per_second);
   }
+
+  if (options.savedCandidate) outputMetadata = structuredClone(options.savedCandidate.metadata);
 
   // ===== Stage 5: 语法/Schema/执行验证 =====
   onProgress?.('parsing_output');
@@ -513,10 +543,12 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
       // 集成次数默认为 1。编程题曾隐式默认 3 次，导致慢速 Judge 被串行调用三遍，
       // 单题耗时可达十余分钟；需要方差实验时才由创建评测者显式设为 >1。
       const ensembleRuns = Math.max(1, evalConfig.judgeEnsembleRuns ?? 1);
+      const cancellableJudgeOptions = { ...judgeOptions, signal: options.signal };
       judgeResult = ensembleRuns > 1
-        ? await runJudgeEnsemble(judgeInput, judgeOptions, ensembleRuns)
-        : await runTieredJudge(judgeInput, judgeOptions);
+        ? await runJudgeEnsemble(judgeInput, cancellableJudgeOptions, ensembleRuns)
+        : await runTieredJudge(judgeInput, cancellableJudgeOptions);
     } catch (judgeErr) {
+      if (options.signal?.aborted) throw judgeErr;
       judgeFailedReason = judgeErr instanceof Error ? judgeErr.message : String(judgeErr);
       console.error(`[orchestrator] Judge 调用失败，降级为确定性评分 (${scenario.id}): ${judgeFailedReason}`);
     }
@@ -641,7 +673,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
 
   const finishedAt = new Date().toISOString();
 
-  return {
+  return attachEvaluationAudit({
     scenarioId: scenario.id,
     scenarioVersion: scenario.scenarioVersion,
     scenarioHash: scenario.scenarioHash,
@@ -651,7 +683,8 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     outputMetadata,
     structuredAnswer,
     formatParseSuccess,
-    runtimeEvaluation: sandboxEvaluation,
+    runtimeEvaluation: result.runtimeEvaluation ?? sandboxEvaluation,
+    axisCoverage: result.axisCoverage,
     axisScores: result.axisScores || {},
     // 透传评分器证据标记 + 兜底（未显式标注的轴默认视为 rule）+ AI Judge 参与时补充 llm 语义轴
     axisEvidence: {
@@ -672,6 +705,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
         : {}),
     },
     totalScore: result.totalScore ?? 0,
+    criterionResults: result.criterionResults,
     deterministicScore: result.deterministicScore,
     judgeScore: result.judgeScore,
     safetyLevel: result.safetyLevel ?? 'safe',
@@ -679,10 +713,11 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     frontierJudge,
     finalJudge,
     escalated,
-    runCount: judgeScoreHistoryArr ? ensembleRunCount : 1,
-    scoreHistory: judgeScoreHistoryArr ?? [result.totalScore ?? 0],
+    runCount: 1,
+    scoreHistory: [result.totalScore ?? 0],
+    judgeScoreHistory: judgeScoreHistoryArr ?? (finalJudge ? [result.judgeScore ?? computeJudgeScore(finalJudge)] : undefined),
     verdictHistory: [(structuredAnswer as Record<string, unknown>)?.verdict as string || 'unknown'],
-    graderVersion: `${scenario.grader}@${scenario.graderVersion}`,
+    graderVersion: evaluator ? `${evaluator.name}@${evaluator.version}` : `${scenario.grader}@${scenario.graderVersion}`,
     evidence: result.evidence || [],
     humanReviewRequired: result.humanReviewRequired === true || escalated || (result.totalScore ?? 0) < 30,
     codeExtractionFailed,
@@ -693,7 +728,7 @@ export async function orchestrateEvaluation(options: OrchestrateOptions): Promis
     environmentError: result.environmentError === true,
     startedAt,
     finishedAt,
-  };
+  });
   } catch (postGenErr) {
     if (postGenErr instanceof Error) {
       (postGenErr as Error & { partialModelOutput?: string; partialReasoningContent?: string }).partialModelOutput = modelResponse.content;
@@ -721,8 +756,8 @@ export function generateManifest(
       scenarioHash,
     },
     scorers: {
-      version: 'scorer-2026-09-08-reviewed',
-      configHash: '',
+      version: 'scorer-2026-09-08-execution-v2-reviewed',
+      configHash: snapshotHash(evalConfig),
     },
     models: [{
       name: modelConfig.name,

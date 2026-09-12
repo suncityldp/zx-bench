@@ -115,7 +115,7 @@ export const exactAnswerLineEvaluator: Evaluator = {
 };
 
 /** Read only the last nonempty line, as required by the versioned prompt contract. */
-function extractAnswerLine(text: string): string | null {
+export function extractAnswerLine(text: string): string | null {
   const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
   const match = lines.at(-1)?.match(/^[ \t]*(?:\*\*)?(?:ANSWER|最终答案|答案)(?:\*\*)?[ \t]*[:：][ \t]*(.*)$/i);
   return match ? match[1].trim().replace(/\*\*/g, '') : null;
@@ -150,7 +150,7 @@ export function validRiverCrossing(output: string): boolean {
  * Canonical form is signed significant digits plus a base-10 exponent. Unit
  * conversion shifts the exponent, so it introduces no floating-point error.
  */
-function canonicalDecimal(text: string, decimalShift = 0): string | null {
+export function canonicalDecimal(text: string, decimalShift = 0): string | null {
   if (text.length > 4096) return null;
   const match = text.match(/^([+-]?)(\d+(?:\.\d*)?|\.\d+)(?:[eE]([+-]?\d+))?$/);
   if (!match || (match[3] && match[3].replace(/^[+-]/, '').length > 6)) return null;

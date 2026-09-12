@@ -203,7 +203,7 @@ const RETRY_COMPACT_JSON_CONTRACT = `
 Your previous judgment was unusable. Re-evaluate the same input, but return only the required JSON object. Do not explain your reasoning. Prefer empty evidence/notes arrays over verbose text. The entire response must fit within 400 tokens.`;
 
 /** 根据维度选择系统提示词 */
-export function getJudgeSystemPrompt(dimension?: string, options: { compactRetry?: boolean } = {}): string {
+export function getJudgeSystemPrompt(dimension?: string, options: { compactRetry?: boolean; evidenceContract?: boolean } = {}): string {
   let prompt: string;
   if (dimension === 'reasoning_math') {
     prompt = JUDGE_SYSTEM_PROMPT_MATH;
@@ -216,7 +216,12 @@ export function getJudgeSystemPrompt(dimension?: string, options: { compactRetry
   } else {
     prompt = JUDGE_SYSTEM_PROMPT_GENERAL;
   }
-  return `${prompt}\n${STRICT_COMPACT_JSON_CONTRACT}${options.compactRetry ? `\n${RETRY_COMPACT_JSON_CONTRACT}` : ''}`;
+  const evidenceContract = options.evidenceContract ? `
+For this versioned shadow evaluation also return score_evidence, an object keyed by criterion id (rubric_scores IDs; otherwise math_correctness/reasoning_validity/task_completeness for math, factuality for factuality).
+For EVERY score below 1 give {"kind":"assertion","quote":"short exact substring copied from candidate","explanation":"brief specific fault"} or {"kind":"omission","explanation":"explicit required item absent"}.
+Never quote an omission. Assertion quotes must occur verbatim in Raw Model Output, not in the task/reference. A critical_error requires at least one failed criterion with assertion evidence. Full scores may have an empty score_evidence object.
+This validates traceability, not just plausible criticism. Keep all explanations and quotes short.` : '';
+  return `${prompt}\n${STRICT_COMPACT_JSON_CONTRACT}${options.compactRetry ? `\n${RETRY_COMPACT_JSON_CONTRACT}` : ''}${evidenceContract}`;
 }
 
 /** 构建 Judge 用户提示词（结构化输入，GPT5.6 P2-3） */

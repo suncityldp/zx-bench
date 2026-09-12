@@ -201,7 +201,11 @@ export interface TokenUsage {
 
 // ----- 输出元数据（GPT5.6 P0-1） -----
 
+export type { CalibrationSplit, ReviewState, ReviewCriterion, CalibrationCandidate, CalibrationReview, CalibrationEvent, CandidateReviewSummary, CalibrationRecord } from './calibration.js';
+
 export interface OutputMetadata {
+  /** Versioned audit envelope persisted with existing JSON rows (no DB migration). */
+  evaluationAudit?: EvaluationAudit;
   reasoningTokens?: number;
   tokenUsageSource?: 'provider' | 'estimated';
   finishReason: FinishReason;
@@ -254,6 +258,28 @@ export interface BugLocation {
 /** 评分轴证据强度：verified=真实执行验证, rule=确定性规则, llm=AI 判分, unmeasured=未测量 */
 export type AxisEvidence = 'verified' | 'rule' | 'llm' | 'unmeasured';
 
+export interface CriterionResult {
+  id: string;
+  description: string;
+  status: 'pass' | 'fail' | 'unmeasured';
+  critical: boolean;
+  evidence: string;
+  source: AxisEvidence;
+}
+
+export interface EvaluationAudit {
+  version: 1;
+  scenarioHash: string;
+  axisCoverage?: number;
+  runtimeEvaluation?: RuntimeEvaluation;
+  graderVersion?: string;
+  criterionResults?: CriterionResult[];
+  judgeScoreHistory?: number[];
+  multiRunStats?: MultiRunStats;
+  /** Full independent candidate attempts; parent output is only a representative. */
+  attempts?: ScenarioResult[];
+}
+
 /** 单题评测结果 */
 export interface ScenarioResult {
   scenarioId: string;
@@ -278,6 +304,7 @@ export interface ScenarioResult {
   /** 已测量轴权重占比（0-1）。<0.5 时 judge 未参与则打折、参与则由 AI Judge 补判 */
   axisCoverage?: number;
   totalScore: number;
+  criterionResults?: CriterionResult[];
   deterministicScore?: number;
   judgeScore?: number;
   safetyLevel: SafetyLevel;
@@ -362,6 +389,8 @@ export interface TestDetail {
 
 /** Judge 输入（结构化） */
 export interface JudgeInput {
+  /** Opt-in shadow policy; legacy runs keep their existing scoring contract. */
+  judgeEvidenceContract?: 'criterion_evidence_v1';
   questionId: string;
   task: string;
   dimension?: string;           // 题目维度，用于选择 prompt 模板
@@ -397,6 +426,10 @@ export interface JudgeInput {
 
 /** Judge 输出（严格 JSON） */
 export interface JudgeResult {
+  /** Invocation lineage, retained across tiered/ensemble judgments. No credentials. */
+  provenance?: Array<{ policyVersion: string; candidateHash: string; inputHash: string; promptHash: string; responseHash: string; judgeModel: string }>;
+  rubricScores?: Record<string, number>;
+  scoreEvidence?: Record<string, { kind: 'assertion' | 'omission'; quote?: string; explanation: string }>;
   judgeModel: string;
   verdict: JudgeVerdict;
   bugDetection: number;
@@ -432,6 +465,9 @@ export interface SafetyViolation {
 // ----- 运行 Manifest（GPT5.6 P0-6） -----
 
 export interface RunManifest {
+  executionIdentityHash?: string;
+  judgeIdentityHash?: string;
+  benchmarkPack?: BenchmarkPack;
   runId: string;
   timestamp: string;
   timezone: string;
@@ -501,6 +537,9 @@ export interface EvalRun {
 }
 
 export interface EvalRunConfig {
+  evaluationMode?: 'development' | 'official';
+  /** New runs honor actual candidate repeats; legacy runs retain single-attempt behavior. */
+  auditVersion?: 1;
   maxTokens: number;
   temperature: number | null;
   runsPerQuestion: number;        // 多轮次数，默认 3
@@ -564,6 +603,8 @@ export interface DimensionScore {
 // ----- 多轮统计（GPT5.6 P1-5） -----
 
 export interface MultiRunStats {
+  validRuns?: number;
+  environmentErrorCount?: number;
   scores: number[];
   mean: number;
   median: number;
@@ -591,6 +632,13 @@ export interface MultiRunStats {
   scoreMin?: number;
   scoreMax?: number;
   confidenceInterval95?: [number, number];
+}
+
+/** Content-addressed, JSON-compatible snapshot. Never includes model credentials. */
+export interface BenchmarkPack {
+  schemaVersion: 1;
+  hash: string;
+  scenarios: Scenario[];
 }
 
 // ----- API 请求/响应 -----
@@ -732,6 +780,7 @@ export type EvalStage =
   | 'failed';
 
 export interface EvalProgress {
+  pauseReason?: string;
   runId: string;
   status: EvalRunStatus;
   total: number;

@@ -25,6 +25,7 @@ const dict: Record<string, { zh: string; en: string }> = {
   'menu.reports': { zh: '评测报告', en: 'Reports' },
   'menu.leaderboard': { zh: '排行榜', en: 'Leaderboard' },
   'menu.scenarios': { zh: '题目管理', en: 'Scenarios' },
+  'menu.calibration': { zh: '校准与审核', en: 'Calibration & Review' },
   'menu.compare': { zh: '模型对比', en: 'Model Compare' },
   'menu.value': { zh: '模型性价比', en: 'Cost-effectiveness' },
   'menu.settings': { zh: '系统设置', en: 'System Settings' },

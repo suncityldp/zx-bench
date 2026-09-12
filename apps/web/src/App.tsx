@@ -25,6 +25,7 @@ import EvalDetail from './pages/EvalDetail';
 import EvalLive from './pages/EvalLive';
 import EvalBatchLive from './pages/EvalBatchLive';
 import Scenarios from './pages/Scenarios';
+import Calibration from './pages/Calibration';
 import ModelConfig from './pages/ModelConfig';
 import ModelCompare from './pages/CompareModels';
 import Report from './pages/Report';
@@ -40,6 +41,7 @@ const menuItems = [
   { key: '/reports', icon: <FileSearchOutlined />, label: 'menu.reports' },
   { key: '/leaderboard', icon: <TrophyOutlined />, label: 'menu.leaderboard' },
   { key: '/scenarios', icon: <FileTextOutlined />, label: 'menu.scenarios' },
+  { key: '/calibration', icon: <FileSearchOutlined />, label: 'menu.calibration' },
   { key: '/compare', icon: <BarChartOutlined />, label: 'menu.compare' },
   { key: '/value', icon: <DollarOutlined />, label: 'menu.value' },
   { key: '/settings', icon: <SettingOutlined />, label: 'menu.settings' },
@@ -53,6 +55,7 @@ const pageTitles: Record<string, string> = {
   '/reports': 'menu.reports',
   '/leaderboard': 'menu.leaderboard',
   '/scenarios': 'menu.scenarios',
+  '/calibration': 'menu.calibration',
   '/compare': 'menu.compare',
   '/value': 'menu.value',
   '/settings': 'menu.settings',
@@ -162,6 +165,7 @@ export default function App() {
             <Route path="/reports" element={<ReportList />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/scenarios" element={<Scenarios />} />
+            <Route path="/calibration" element={<Calibration />} />
             <Route path="/compare" element={<ModelCompare />} />
             <Route path="/value" element={<ModelValue />} />
             <Route path="/settings" element={<ModelConfig />} />

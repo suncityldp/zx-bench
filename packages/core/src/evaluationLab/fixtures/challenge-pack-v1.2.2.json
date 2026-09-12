@@ -1,0 +1,1410 @@
+{
+  "version": "capability-challenge-2026-09-10-v1.2.2",
+  "status": "development_requires_human_review_and_model_pilot",
+  "goldSource": "synthetic_authored_materials_and_executable_math_oracles_not_human_gold",
+  "difficulty": "designed_challenge_not_empirically_calibrated",
+  "productionReplacement": false,
+  "reclassification": [
+    {
+      "from": "HC2-001",
+      "to": "MC2-009",
+      "action": "move_numeric_questions_to_applied_math",
+      "reason": "报销计算与条款应用占主导"
+    },
+    {
+      "from": "HC2-002",
+      "to": "MC2-010",
+      "action": "move_numeric_questions_to_statistics",
+      "reason": "响应率与分母计算占主导；因果子问不混入数学主分"
+    },
+    {
+      "from": "HC2-003",
+      "to": "MC2-011",
+      "action": "move_numeric_questions_to_applied_math",
+      "reason": "合并收入计算占主导"
+    },
+    {
+      "from": "HC2-004",
+      "to": "MC2-012",
+      "action": "move_numeric_questions_to_statistics",
+      "reason": "集合计数和上下界计算占主导"
+    },
+    {
+      "from": "HC2-006",
+      "to": "HC3-006",
+      "action": "replace_with_entity_attribution",
+      "reason": "将产量计算改为成果归属、适用范围与未知事实"
+    },
+    {
+      "from": "HC2-007",
+      "to": "HC3-007",
+      "action": "replace_with_incompatible_snapshot_reports",
+      "reason": "去除测量区间计算；两个可同时满足的上限不应直接当作逻辑冲突"
+    }
+  ],
+  "cases": [
+    {
+      "id": "HC3-001",
+      "dimension": "hallucination_resistance",
+      "family": "citation-chain-result-attribution",
+      "title": "真实引用中的成果错配",
+      "documents": {
+        "D1": "研究 R17 原文节选：Lumen 在离线日志重放中减少了重复告警；本研究运行时关闭了自动修复模块。",
+        "D2": "文献目录：R17 标题为《Lumen 告警去重评估》；R71 标题为《Oriole 自动修复现场试验》。二者是不同研究。",
+        "D3": "通讯文章写道：“Lumen 的自动修复已在现场试验中验证”，引文标为 R17。",
+        "D4": "研究 R71 原文节选：试验对象是 Oriole，评估的是它在现场环境中的自动修复；正文未将试验结果推广到其他系统。",
+        "D5": "附录系统对照表：Lumen 与 Oriole 使用不同实现，不能把一个系统的实测结果当作另一个系统的实测结果。",
+        "D6": "通讯更正记录：将 D3 的引文编号 R17 更正为 R71；正文系统名称仍为 Lumen，其他字句未修改。",
+        "D7": "Lumen 产品路线图把自动修复列为后续计划；材料中没有给出当前实际部署的模块清单。"
+      },
+      "fields": [
+        {
+          "id": "r17_tested_repair",
+          "question": "R17 是否实际测试了 Lumen 的自动修复？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D1"
+            ]
+          },
+          "allowedSources": [
+            "D1"
+          ]
+        },
+        {
+          "id": "tested_system",
+          "question": "更正后所引 R71 的现场试验对象是哪一个系统？填写材料中的系统名称。",
+          "expected": {
+            "value": "Oriole",
+            "status": "determined",
+            "sources": [
+              "D4"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D4",
+            "D6"
+          ]
+        },
+        {
+          "id": "lumen_result_supported",
+          "question": "更正编号后的通讯结论“Lumen 自动修复已经现场验证”，是否得到所引研究的支持？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D3",
+              "D4",
+              "D5",
+              "D6"
+            ]
+          },
+          "allowedSources": [
+            "D3",
+            "D4",
+            "D5",
+            "D6"
+          ]
+        },
+        {
+          "id": "lumen_deployed_repair",
+          "question": "Lumen 当前实际部署是否已启用自动修复？能判断时填布尔值，无法判断时填 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D7"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D7"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC3-002",
+      "dimension": "hallucination_resistance",
+      "family": "mixed-study-causal-attribution",
+      "title": "被合并转述的不同研究结论",
+      "documents": {
+        "D1": "两个部门各自决定采用哪种方案：A 部门选择并启用了新方案，B 部门选择继续使用旧方案。后续评估记录显示，A 部门的处理时间比 B 部门短。",
+        "D2": "嵌套试验登记：仅在 A 部门内随机分配提醒弹窗“开/关”；两组都使用同一个新主方案。",
+        "D3": "嵌套试验结果：启用弹窗的一组漏填表单更少；该试验未以处理时间作为观测指标。",
+        "D4": "部门背景表：A、B 的业务难度、人员经验与工作量不同；记录中没有控制这些差异后的估计。",
+        "D5": "C 部门跟踪记录只收集了用户满意度，未记录处理时间，也未设置对照组。",
+        "D6": "对外总结：“随机试验证实新主方案直接缩短处理时间，且这一时间改善在 C 部门得到复现。”"
+      },
+      "fields": [
+        {
+          "id": "randomized_main_scheme",
+          "question": "材料中的随机分配是否针对“采用新主方案或旧主方案”？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D2"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2"
+          ]
+        },
+        {
+          "id": "reminder_finding",
+          "question": "“随机试验中启用提醒弹窗的一组漏填更少”是否有材料支持？布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D3"
+          ]
+        },
+        {
+          "id": "main_causal_claim",
+          "question": "新主方案本身是否造成了处理时间缩短？能确定时填布尔值，不能确定时填 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D1",
+              "D4"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2",
+            "D3",
+            "D4"
+          ]
+        },
+        {
+          "id": "c_time_replication",
+          "question": "C 部门记录是否直接验证了“处理时间改善”这一指标？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC3-003",
+      "dimension": "hallucination_resistance",
+      "family": "draft-final-and-approval-scope",
+      "title": "草稿、正式决议与实施范围",
+      "documents": {
+        "D1": "6 月正式会议纪要：批准北区试点；全国推广另行审议。",
+        "D2": "项目路线图：拟于 11 月启动全国推广，尚需完成审批及部署准备。",
+        "D3": "8 月流转稿含句子“全国推广已经批准”；文件状态为征求意见稿，尚无签发记录。",
+        "D4": "9 月 8 日正式决议：截至签发时全国推广尚未获批，北区试点维持；收到安全评估后再议。",
+        "D5": "北区公告：“服务已经上线”，文中项目编号对应 D1 的北区试点。",
+        "D6": "转载文章截取 D3 的那句话，未提草稿状态，并用 D5 的公告作为全国上线的佐证。"
+      },
+      "fields": [
+        {
+          "id": "national_approved",
+          "question": "截至 9 月 8 日正式决议签发时，全国推广是否已经获批？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D4"
+            ]
+          },
+          "allowedSources": [
+            "D4"
+          ]
+        },
+        {
+          "id": "pilot_approved",
+          "question": "截至该时点，北区试点是否有正式批准依据？布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D4"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D4"
+          ]
+        },
+        {
+          "id": "announcement_proves_national",
+          "question": "北区公告是否足以证明全国已经上线？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D1",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D5"
+          ]
+        },
+        {
+          "id": "national_actual_date",
+          "question": "全国实际上线的日期是什么？能确定则填日期字符串，无法确定则 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D2",
+              "D4",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D4",
+            "D5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC3-004",
+      "dimension": "hallucination_resistance",
+      "family": "quotation-negation-and-root-cause",
+      "title": "断章取义与尚未确认的故障原因",
+      "documents": {
+        "D1": "访谈原话：“并没有证据说明软件时钟漂移是唯一原因，检修操作和传感器老化也仍在排查。”",
+        "D2": "新闻摘录写为：“软件时钟漂移是唯一原因”，并称此句来自 D1 的受访者。",
+        "D3": "设备台账：本次故障设备是 A91；另一份旧案例涉及 A19，它们不是同一设备。",
+        "D4": "实验日志：在隔离测试台人为设置时钟漂移后出现告警；日志未记载 A91 生产故障被复现，也未确认生产时存在相同设置。",
+        "D5": "维修记录：已更换 A91 的传感器，以排除一个待查因素；未宣布根因结论。",
+        "D6": "A19 旧案例的最终报告确认其传感器损坏；报告对象限于该次 A19 事件。"
+      },
+      "fields": [
+        {
+          "id": "quote_faithful",
+          "question": "D2 是否忠实表达了受访者关于“唯一原因”的原话？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D1",
+              "D2"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2"
+          ]
+        },
+        {
+          "id": "production_reproduced",
+          "question": "D4 是否记录了 A91 的生产故障已被复现？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D4"
+            ]
+          },
+          "allowedSources": [
+            "D3",
+            "D4"
+          ]
+        },
+        {
+          "id": "sensor_replaced",
+          "question": "A91 的传感器是否已经更换？布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D5"
+          ]
+        },
+        {
+          "id": "sensor_root_cause",
+          "question": "本次 A91 故障是否确由传感器损坏造成？能确定时填布尔值，不能确定时填 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D3",
+            "D5",
+            "D6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC3-006",
+      "dimension": "hallucination_resistance",
+      "family": "entity-certification-scope",
+      "title": "相近名称机构的认证归属",
+      "documents": {
+        "D1": "实体表：C104 为青岭设备，C140 为青菱设备；二者都可能使用 QL 简写，法律主体不同。",
+        "D2": "证书 X 原件：持证主体 C140，认证对象为其 K 型设备；原件未包含其他主体或产品。",
+        "D3": "报道标题：“QL 的 K 型设备获得认证”，正文链接的原件是证书 X。",
+        "D4": "C104 的介绍页称正在推进同名 K 型设备的认证，并展示与 C140 的商标使用许可。",
+        "D5": "许可正文：C104 获准使用指定商标；许可不转移证书 X 的持证主体或认证范围。",
+        "D6": "C104 的 K 型设备已完成某实验室的内部原型测试；报告范围是该次测试，不涉及认证签发。",
+        "D7": "当前提供的证书材料只有 X，未提供覆盖所有认证机构的完整查询结果。"
+      },
+      "fields": [
+        {
+          "id": "certificate_holder",
+          "question": "证书 X 的持证主体 ID 是什么？",
+          "expected": {
+            "value": "C140",
+            "status": "determined",
+            "sources": [
+              "D2"
+            ]
+          },
+          "allowedSources": [
+            "D2"
+          ]
+        },
+        {
+          "id": "x_covers_c104",
+          "question": "凭证书 X 及商标许可，能否认定 C104 的 K 型设备也在 X 的认证范围内？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D1",
+              "D2",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2",
+            "D5"
+          ]
+        },
+        {
+          "id": "prototype_tested",
+          "question": "材料是否支持 C104 的 K 型设备已完成上述内部原型测试？布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D6"
+            ]
+          },
+          "allowedSources": [
+            "D6"
+          ]
+        },
+        {
+          "id": "c104_any_certificate",
+          "question": "C104 的 K 型设备是否已持有任何其他有效认证？能判断时填布尔值，无法判断则 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D7"
+            ]
+          },
+          "allowedSources": [
+            "D4",
+            "D6",
+            "D7"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC3-007",
+      "dimension": "hallucination_resistance",
+      "family": "incompatible-snapshots-source-authority",
+      "title": "同一配置的相互矛盾记录",
+      "documents": {
+        "D1": "配置定义：每个环境在同一时点只能有一个运行模式，值为 automatic 或 manual。报告的“观测时间”指配置时点，“下载时间”仅指取回报告的时间。",
+        "D2": "签名报告 E：生产环境 main，观测时间 9 月 10 日 10:00，模式 automatic；下载时间 10:02。",
+        "D3": "签名报告 F：生产环境 main，观测时间同为 9 月 10 日 10:00，模式 manual；下载时间 10:05。",
+        "D4": "签名报告 G：预发布环境 staging，观测时间 9 月 10 日 10:00，模式 automatic。",
+        "D5": "资料说明：E、F 来源具有同级效力，没有更正声明或优先级约定；当前没有其他生产环境记录可核对该时点。",
+        "D6": "生产环境 9 月 8 日的历史记录为 automatic。之后是否发生配置变更，现有历史记录未覆盖。"
+      },
+      "fields": [
+        {
+          "id": "production_mode",
+          "question": "生产环境 main 在 9 月 10 日 10:00 的唯一模式是什么？无法判定时按信息不足或材料冲突填写 null。",
+          "expected": {
+            "value": null,
+            "status": "conflict",
+            "sources": [
+              "D1",
+              "D2",
+              "D3",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2",
+            "D3",
+            "D5"
+          ]
+        },
+        {
+          "id": "staging_mode",
+          "question": "预发布环境 staging 在同一时点的模式是什么？",
+          "expected": {
+            "value": "automatic",
+            "status": "determined",
+            "sources": [
+              "D4"
+            ]
+          },
+          "allowedSources": [
+            "D4"
+          ]
+        },
+        {
+          "id": "f_observed_later",
+          "question": "F 是否比 E 观测了更晚的配置时点？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2",
+            "D3"
+          ]
+        },
+        {
+          "id": "changed_between_dates",
+          "question": "生产环境在 9 月 8 日至上述观测时点之间是否发生过模式变更？能确定时填布尔值，无法确定则 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D2",
+              "D3",
+              "D5",
+              "D6"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D3",
+            "D5",
+            "D6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC2-005",
+      "dimension": "hallucination_resistance",
+      "family": "package-identity-version-branch",
+      "title": "组件身份与维护分支例外",
+      "documents": {
+        "D1": "Orion-core 与 Orion-ui 是不同软件包。公告 X 仅描述 core 中的漏洞 X，不评价其他漏洞。",
+        "D2": "公告 X 原始范围：core 版本 >=2.4.0 且 <2.7.0 受影响。",
+        "D3": "签名修订：在 D2 范围内，维护分支 2.6.x 的 2.6.4 及更高补丁号已修复 X；其他分支仍按 D2。",
+        "D4": "本题版本规则：2.7.0-rc.1 高于所有 2.6.x，但低于 2.7.0；它不属于 2.6.x 维护分支。",
+        "D5": "资产清单：服务 A 展示 ui 2.8.0，实际打包 core 2.6.3；服务 B 使用 core 2.6.4；服务 C 使用 core 2.7.0-rc.1。",
+        "D6": "自动扫描未在 C 报告 X，但扫描覆盖不完整；该结果不替代签名公告的版本适用范围。"
+      },
+      "fields": [
+        {
+          "id": "a_affected",
+          "question": "服务 A 是否受漏洞 X 影响？用布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D2",
+            "D3",
+            "D5"
+          ]
+        },
+        {
+          "id": "b_affected",
+          "question": "服务 B 是否受漏洞 X 影响？用布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D3",
+            "D5"
+          ]
+        },
+        {
+          "id": "c_affected",
+          "question": "服务 C 是否受漏洞 X 影响？用布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3",
+              "D4",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D3",
+            "D4",
+            "D5"
+          ]
+        },
+        {
+          "id": "ui_safe",
+          "question": "Orion-ui 2.8.0 是否不存在任何漏洞？无法判断则 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D1"
+            ]
+          },
+          "allowedSources": [
+            "D1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "HC2-008",
+      "dimension": "hallucination_resistance",
+      "family": "eligibility-conflict-quorum",
+      "title": "资格、回避与评议人数",
+      "documents": {
+        "D1": "虚构资助规则：申请论文须在 8 月 1 日之前正式在线发表；预印本不算正式发表。符合资格不保证获资助。",
+        "D2": "评审日期 2026 年 9 月 10 日。三年内共同署名或过去 24 个月内在申请团队任职者须回避；起止日期含边界。回避后至少 3 名无冲突委员才可评议。",
+        "D3": "委员会成员 P1、P2、P3、P4。P2 与申请 R 在 2024 年 5 月共同署名；P4 在 R 团队任职至 2025 年 7 月。P1、P3 无冲突。",
+        "D4": "当前只记录 P2 已回避，P4 尚未回避；评审期间不能把有冲突但未回避者计入无冲突人数。",
+        "D5": "R 的预印本 7 月 28 日，正式在线发表 8 月 4 日。",
+        "D6": "申请 S 正式在线发表于 7 月 20 日；四位委员与 S 均无冲突；其他资格条件均已满足。",
+        "D7": "本期可资助两项，但没有提供 S 的质量评分或最终排序。"
+      },
+      "fields": [
+        {
+          "id": "r_publication",
+          "question": "R 是否满足发表日期资格？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D1",
+              "D5"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D5"
+          ]
+        },
+        {
+          "id": "r_recusals",
+          "question": "对 R 必须回避的委员 ID 数组，顺序不限。",
+          "expected": {
+            "value": [
+              "P2",
+              "P4"
+            ],
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D3"
+          ]
+        },
+        {
+          "id": "r_quorum",
+          "question": "对 R 是否有足够无冲突委员进行评议？布尔值。",
+          "expected": {
+            "value": false,
+            "status": "determined",
+            "sources": [
+              "D2",
+              "D3"
+            ]
+          },
+          "allowedSources": [
+            "D2",
+            "D3",
+            "D4"
+          ]
+        },
+        {
+          "id": "s_eligible",
+          "question": "S 是否满足申请资格？布尔值。",
+          "expected": {
+            "value": true,
+            "status": "determined",
+            "sources": [
+              "D1",
+              "D6"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D6"
+          ]
+        },
+        {
+          "id": "s_awarded",
+          "question": "S 是否最终获资助？不能判断则 null。",
+          "expected": {
+            "value": null,
+            "status": "insufficient",
+            "sources": [
+              "D7"
+            ]
+          },
+          "allowedSources": [
+            "D1",
+            "D6",
+            "D7"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MC2-001",
+      "dimension": "reasoning_math",
+      "family": "time-window-asymmetric-routing",
+      "title": "有时间窗和先后约束的闭合路线",
+      "task": "从 S 在时刻 0 出发，访问 A—F 各一次后返回 S。travel 行列按 nodes 排列，是有向行驶时间；windows 约束服务开始时刻（含边界），早到可等待，service 是服务时长。precedence 中前者须先访问，forbidden 禁止对应有向路段。目标是最早回到 S。输出 order（只含 A—F）、arrivals（按 order 的服务开始时刻）、finish（回到 S 的时刻）。任一全局最优路线均可。",
+      "data": {
+        "nodes": [
+          "S",
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F"
+        ],
+        "travel": [
+          [
+            0,
+            4,
+            7,
+            3,
+            8,
+            6,
+            9
+          ],
+          [
+            5,
+            0,
+            3,
+            7,
+            4,
+            8,
+            6
+          ],
+          [
+            6,
+            4,
+            0,
+            5,
+            7,
+            3,
+            8
+          ],
+          [
+            4,
+            6,
+            3,
+            0,
+            5,
+            7,
+            4
+          ],
+          [
+            7,
+            5,
+            6,
+            4,
+            0,
+            3,
+            5
+          ],
+          [
+            6,
+            7,
+            4,
+            8,
+            5,
+            0,
+            3
+          ],
+          [
+            8,
+            5,
+            7,
+            3,
+            4,
+            6,
+            0
+          ]
+        ],
+        "windows": [
+          [
+            0,
+            80
+          ],
+          [
+            0,
+            24
+          ],
+          [
+            5,
+            30
+          ],
+          [
+            0,
+            28
+          ],
+          [
+            14,
+            42
+          ],
+          [
+            12,
+            45
+          ],
+          [
+            15,
+            48
+          ]
+        ],
+        "service": [
+          0,
+          2,
+          1,
+          2,
+          1,
+          2,
+          1
+        ],
+        "precedence": [
+          [
+            "A",
+            "D"
+          ],
+          [
+            "B",
+            "E"
+          ]
+        ],
+        "forbidden": [
+          [
+            "C",
+            "D"
+          ]
+        ]
+      },
+      "reference": {
+        "order": [
+          "A",
+          "B",
+          "E",
+          "F",
+          "D",
+          "C"
+        ],
+        "arrivals": [
+          4,
+          9,
+          13,
+          18,
+          23,
+          28
+        ],
+        "finish": 34
+      }
+    },
+    {
+      "id": "MC2-002",
+      "dimension": "reasoning_math",
+      "family": "three-machine-outage-flowshop",
+      "title": "三机器停机与全局最优排程",
+      "task": "每个工件依次在 M1、M2、M3 上加工；p 是三段时长。所有工件时刻 0 可用，每台机器同时只能加工一件，不可抢占。三台机器使用同一工件排列；固定排列后每段尽早开始。M2 在 [10,16) 不可使用，加工区间不能与其相交，恰在 10 结束或 16 开始允许；J2 须排在 J6 之前。求全局最短完工时间。输出 order、completion（按 order 每件在三台机器的完成时刻矩阵）、makespan。任一最优排列均可。",
+      "data": {
+        "jobs": [
+          {
+            "id": "J1",
+            "p": [
+              4,
+              7,
+              3
+            ]
+          },
+          {
+            "id": "J2",
+            "p": [
+              2,
+              5,
+              8
+            ]
+          },
+          {
+            "id": "J3",
+            "p": [
+              6,
+              3,
+              5
+            ]
+          },
+          {
+            "id": "J4",
+            "p": [
+              3,
+              8,
+              2
+            ]
+          },
+          {
+            "id": "J5",
+            "p": [
+              7,
+              2,
+              6
+            ]
+          },
+          {
+            "id": "J6",
+            "p": [
+              5,
+              4,
+              7
+            ]
+          },
+          {
+            "id": "J7",
+            "p": [
+              2,
+              6,
+              4
+            ]
+          }
+        ],
+        "m2Unavailable": [
+          10,
+          16
+        ],
+        "precedence": [
+          "J2",
+          "J6"
+        ]
+      },
+      "reference": {
+        "order": [
+          "J2",
+          "J3",
+          "J1",
+          "J5",
+          "J6",
+          "J7",
+          "J4"
+        ],
+        "completion": [
+          [
+            2,
+            7,
+            15
+          ],
+          [
+            8,
+            19,
+            24
+          ],
+          [
+            12,
+            26,
+            29
+          ],
+          [
+            19,
+            28,
+            35
+          ],
+          [
+            24,
+            32,
+            42
+          ],
+          [
+            26,
+            38,
+            46
+          ],
+          [
+            29,
+            46,
+            48
+          ]
+        ],
+        "makespan": 48
+      }
+    },
+    {
+      "id": "MC2-003",
+      "dimension": "reasoning_math",
+      "family": "precedence-budgeted-set-selection",
+      "title": "前置依赖与资源约束下的项目组合",
+      "task": "每个项目最多选择一次，cost、staff、value 可加；总 cost 不超过 budget，总 staff 不超过 staff；每个 requiredSkills 至少被一个所选项目覆盖。requires=[a,b] 表示选 a 必须选 b，exclusive 中两个项目不能同时选。最大化总 value。输出 selected（ID 数组，顺序不限）、cost、staff、value；任何最优组合均可。",
+      "data": {
+        "budget": 18,
+        "staff": 12,
+        "requiredSkills": [
+          "x",
+          "y",
+          "z"
+        ],
+        "items": [
+          {
+            "id": "A",
+            "cost": 5,
+            "staff": 3,
+            "value": 12,
+            "skills": [
+              "x"
+            ]
+          },
+          {
+            "id": "B",
+            "cost": 4,
+            "staff": 3,
+            "value": 10,
+            "skills": [
+              "y"
+            ]
+          },
+          {
+            "id": "C",
+            "cost": 6,
+            "staff": 4,
+            "value": 15,
+            "skills": [
+              "z"
+            ]
+          },
+          {
+            "id": "D",
+            "cost": 3,
+            "staff": 2,
+            "value": 8,
+            "skills": [
+              "x",
+              "y"
+            ]
+          },
+          {
+            "id": "E",
+            "cost": 5,
+            "staff": 3,
+            "value": 14,
+            "skills": [
+              "z"
+            ]
+          },
+          {
+            "id": "F",
+            "cost": 2,
+            "staff": 2,
+            "value": 6,
+            "skills": [
+              "y"
+            ]
+          },
+          {
+            "id": "G",
+            "cost": 4,
+            "staff": 2,
+            "value": 11,
+            "skills": [
+              "x",
+              "z"
+            ]
+          },
+          {
+            "id": "H",
+            "cost": 3,
+            "staff": 2,
+            "value": 9,
+            "skills": [
+              "y",
+              "z"
+            ]
+          }
+        ],
+        "requires": [
+          [
+            "E",
+            "A"
+          ],
+          [
+            "H",
+            "B"
+          ]
+        ],
+        "exclusive": [
+          [
+            "C",
+            "G"
+          ],
+          [
+            "D",
+            "F"
+          ]
+        ]
+      },
+      "reference": {
+        "selected": [
+          "A",
+          "B",
+          "F",
+          "G",
+          "H"
+        ],
+        "cost": 18,
+        "staff": 12,
+        "value": 48
+      }
+    },
+    {
+      "id": "MC2-004",
+      "dimension": "reasoning_math",
+      "family": "prefix-constrained-modular-counting",
+      "title": "前缀约束与模条件的精确计数",
+      "task": "长度 14 的字符串由 0、1、2 组成，恰有 6 个 0、4 个 1、4 个 2；每个前缀中数字 1 的数量不少于数字 2 的数量；不得出现相邻 22。\n将字符串从左到右依次编号为 1 至 14。把每一位的数字乘以它的位置编号，再把这 14 个乘积相加。所得总和除以 7，余数必须为 3。\n例如，仅演示这种求和方法：短字符串 1021 的总和为 1×1 + 2×0 + 3×2 + 4×1 = 11；11 除以 7 余 4，所以不满足“余数为 3”的条件。这个短例子不属于本题待计数的 14 位字符串。\n求满足上述全部条件的字符串数量。输出 total 与 by_first（首位依次为 0、1、2 的数量数组）；相同字符不可当作有标签的不同对象。",
+      "data": {},
+      "reference": {
+        "total": 1984,
+        "by_first": [
+          749,
+          1235,
+          0
+        ]
+      }
+    },
+    {
+      "id": "MC2-005",
+      "dimension": "reasoning_math",
+      "family": "conditional-mixture-without-replacement",
+      "title": "隐含来源下的不放回条件概率",
+      "task": "先以 2/5 的概率选箱 A、3/5 选箱 B。A 有红 5、蓝 3、绿 2 球，B 有红 2、蓝 5、绿 3 球。同箱内各球等概率，每次不放回。观察前 3 次恰有 1 个绿球且至少 1 个红球，记事件 E。仍从所选箱抽第 4 球。输出 event_a=P(E|A)、event_b=P(E|B)、posterior_a=P(A|E)、next_red=P(第4球红|E)。必须用精确分数或精确等价小数，不得用近似小数。",
+      "data": {},
+      "reference": {
+        "event_a": "5/12",
+        "event_b": "11/40",
+        "posterior_a": "100/199",
+        "next_red": "450/1393"
+      }
+    },
+    {
+      "id": "MC2-006",
+      "dimension": "reasoning_math",
+      "family": "absorbing-chain-exact-linear-certificate",
+      "title": "吸收过程的精确概率与等待时间",
+      "task": "状态 0 和 5 为吸收态。每一步在当前状态的邻接列表中等概率选一个下一状态；不同步的随机选择独立。输出 p（从 1、2、3、4 出发先到 0 而非 5 的概率）与 e（从 1、2、3、4 出发到任一吸收态所需步数期望）。数组顺序固定，使用精确分数或精确等价小数；这两个完整向量须同时满足各状态递推关系。",
+      "data": {
+        "1": [
+          0,
+          2,
+          3
+        ],
+        "2": [
+          1,
+          3,
+          4
+        ],
+        "3": [
+          0,
+          2,
+          4,
+          5
+        ],
+        "4": [
+          1,
+          3,
+          5
+        ]
+      },
+      "reference": {
+        "p": [
+          "21/32",
+          "1/2",
+          "15/32",
+          "3/8"
+        ],
+        "e": [
+          "13/4",
+          "4",
+          "11/4",
+          "3"
+        ]
+      }
+    },
+    {
+      "id": "MC2-007",
+      "dimension": "reasoning_math",
+      "family": "composite-modular-root-completeness",
+      "title": "复合模数下的全部整数解",
+      "task": "求 0≤x<6048 中全部满足 x²≡1 (mod 32)、x²≡4 (mod 27)、x≡5 (mod 7) 的整数。输出 roots32（0..31 的第一式全部根）、roots27（0..26 的第二式全部根）、solutions（全部 x）。三个数组顺序不限，但不得重复或漏解。",
+      "data": {},
+      "reference": {
+        "roots32": [
+          1,
+          15,
+          17,
+          31
+        ],
+        "roots27": [
+          2,
+          25
+        ],
+        "solutions": [
+          943,
+          1055,
+          2833,
+          2945,
+          3967,
+          4079,
+          5857,
+          5969
+        ]
+      }
+    },
+    {
+      "id": "MC2-008",
+      "dimension": "reasoning_math",
+      "family": "protected-vertex-bipartization",
+      "title": "保护顶点约束下的最小删除构造",
+      "task": "给定简单无向图，删除尽量少的顶点使剩余诱导图为二分图；protected 顶点不得删除。输出 deleted（删除顶点）、minimum（最少删除数）、part_a、part_b（剩余顶点的完整不重叠划分）。任一最优删除方案及有效划分均可，所有数组顺序不限。",
+      "data": {
+        "vertices": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "protected": [
+          1,
+          4
+        ],
+        "edges": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            5,
+            6
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            10,
+            11
+          ],
+          [
+            11,
+            12
+          ],
+          [
+            12,
+            10
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            8,
+            11
+          ],
+          [
+            9,
+            12
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            4,
+            11
+          ]
+        ]
+      },
+      "reference": {
+        "deleted": [
+          2,
+          5,
+          7,
+          10
+        ],
+        "minimum": 4,
+        "part_a": [
+          1,
+          9,
+          11,
+          6
+        ],
+        "part_b": [
+          3,
+          8,
+          12,
+          4
+        ]
+      }
+    },
+    {
+      "id": "MC2-009",
+      "dimension": "reasoning_math",
+      "family": "applied-policy-arithmetic",
+      "title": "跨版本条款下的报销计算",
+      "task": "只根据以下虚构材料计算所问数值。\nD1：差旅制度 V2，8 月 1 日生效：境内 E1/E2 员工租车费用上限为每日 400 元。\nD2：境外差旅附件：境外租车上限为每日 70 美元；不适用于境内行程。\nD3：制度 V3，9 月 1 日生效：仅对当日及以后签约的员工，将境内租车上限改为每日 520 元；此前签约员工仍执行 V2。\nD4：P17 项目特批：签约日不影响适用；9 月 1 日至 9 月 20 日发生的境内租车每日上限为 460 元，覆盖一般制度的金额上限，其他条件不变，须原始发票。\nD5：该申请人职级为 E2，8 月 25 日签约，参加 P17 项目，9 月 12 日境内租车一天；实付 490 元，客户已补偿 50 元，原始发票已验真。\nD6：报销算法：先从实付金额扣除客户已补偿部分，再与适用上限取较小值；项目特批不改变该算法。\nD7：发票复印件替代规则从 9 月 15 日起适用，不追溯；仅改变凭证要求，不改变金额和项目特批期限。\n\n请分别输出下列字段的数值（每项直接填数值，不需要 sources 或 status）：\ncap：针对 D5 中这位职级为 E2 的申请人，这次租车适用的每日报销上限是多少元？\nnet：D5 中这位申请人的本次租车费用，扣除客户补偿后的金额是多少元？\npayment：D5 中这位申请人的本次租车费用，实际应报销多少元？\nlater_payment：仍针对 D5 中同一位申请人，若只把本次租车发生日改为 9 月 22 日，其他事实不变，实际应报销多少元？",
+      "data": {},
+      "reference": {
+        "cap": 460,
+        "net": 440,
+        "payment": 440,
+        "later_payment": 400
+      }
+    },
+    {
+      "id": "MC2-010",
+      "dimension": "reasoning_math",
+      "family": "denominator-statistics",
+      "title": "不同分析分母下的响应率",
+      "task": "只根据以下虚构材料计算所问数值。\nD1：观测性项目：A 站点全部接受新方案，B 站点全部接受旧方案；未随机分组。\nD2：入组：新方案 60 人，旧方案 60 人；评价终点为第 30 天是否达到预设响应。\nD3：新方案第 30 天实际测量 48 人，其中响应 36 人；旧方案实际测量 50 人，其中响应 30 人。\nD4：预先冻结的全入组分析规则：所有入组者进入各组分母，未测量者按未响应计；完整病例分析只使用实际测量者。\nD5：新闻稿标题称“新方案让响应率提升”；正文未说明因果识别方法。\nD6：两个站点在入组风险、年龄和服务资源上不同，未提供个体协变量或调整结果。\n\n请分别输出下列字段的数值（每项直接填数值，不需要 sources 或 status）：\nnew_itt：新方案全入组响应率，用百分数数值（如 12.5，而非带 % 字符串）。\nold_itt：旧方案全入组响应率，用百分数数值。\nitt_gap：全入组响应率新减旧，单位百分点。\ncomplete_gap：完整病例响应率新减旧，单位百分点。",
+      "data": {},
+      "reference": {
+        "new_itt": "60",
+        "old_itt": "50",
+        "itt_gap": "10",
+        "complete_gap": "15"
+      }
+    },
+    {
+      "id": "MC2-011",
+      "dimension": "reasoning_math",
+      "family": "consolidation-arithmetic",
+      "title": "合并范围与内部交易抵销计算",
+      "task": "只根据以下虚构材料计算所问数值。\nD1：甲公司第三季度收入初稿 150 百万元；本表不含乙公司。\nD2：乙公司第三季度账面收入 124 百万元，尚未扣除一笔已确认退货。\nD3：同季甲向乙销售 30 百万元，乙向甲销售 12 百万元；两笔均已包含在各自账面收入。合并收入须全额抵销这两笔内部销售。\nD4：乙的一笔对外销售在 9 月 28 日确认退货 8 百万元，按制度冲减当季收入；该退货与内部销售无关。\nD5：丙公司自 10 月 1 日起才纳入合并；收购价 50 百万元，丙第三季度自身收入 70 百万元。\nD6：库存中未实现内部毛利 5 百万元的抵销只影响利润，不额外冲减本题收入。\nD7：10 月 4 日签发的甲第三季度最终更正：收入为 156 百万元，替代 D1；D3 内部销售金额不变。\nD8：材料未提供甲、乙完整成本费用和所得税。\n\n请分别输出下列字段的数值（每项直接填数值，不需要 sources 或 status）：\nexternal_a：甲第三季度对外收入，单位百万元。\nexternal_b：乙第三季度扣除退货后的对外收入，单位百万元。\nconsolidated：甲乙集团第三季度合并收入，单位百万元。",
+      "data": {},
+      "reference": {
+        "external_a": 126,
+        "external_b": 104,
+        "consolidated": 230
+      }
+    },
+    {
+      "id": "MC2-012",
+      "dimension": "reasoning_math",
+      "family": "overlap-partial-identification",
+      "title": "交集不确定时的集合数量界限",
+      "task": "只根据以下虚构材料计算所问数值。\nD1：本报告总体是北厂 200 台不同设备，每台只有一个唯一资产编号。\nD2：同一检查期，集合 A 有 42 台（漏油），集合 B 有 35 台（过热）；各集合内部已去重。\nD3：原始关联记录部分丢失，唯一能确认的是 A 与 B 交集至少 12 台、至多 18 台；区间内所有整数都与现存记录相容。\nD4：集合 C 有 8 台，全部同时属于 A 和 B；C 不额外限制 D3 的区间。\nD5：南厂同名报告的漏油设备为 26 台；南厂资产不属于 D1 总体。\nD6：本题“无上述故障”仅指既不在 A 也不在 B；不讨论其他故障。\n\n请分别输出下列字段的数值（每项直接填数值，不需要 sources 或 status）：\nany_min：北厂至少一种上述故障的最少设备数。\nany_max：北厂至少一种上述故障的最多设备数。\nclean_min：无上述故障的最少设备数。\nclean_max：无上述故障的最多设备数。",
+      "data": {},
+      "reference": {
+        "any_min": 59,
+        "any_max": 65,
+        "clean_min": 135,
+        "clean_max": 141
+      }
+    }
+  ],
+  "hash": "97b1ac7c83edc0365c65795d0f6284c6365f717b3e1f5b0141f5319a125f85b0"
+}

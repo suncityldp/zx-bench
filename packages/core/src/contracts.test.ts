@@ -114,6 +114,7 @@ describe('checkScenarioEligibility', () => {
       goldSource: 'hand-authored',
       goldVerifiedAt: '2026-08-21T00:00:00Z',
     });
+    s.scenarioHash = hashScenarioShort(s);
     const r = checkScenarioEligibility(s);
     expect(r.eligible).toBe(true);
   });

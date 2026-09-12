@@ -115,8 +115,10 @@ function appendExecutionEvidence(
   description: string,
   result: ScriptRunResult,
 ) {
+  // Dependency chatter must not hide the terminal compiler/test diagnostic.
   const clip = (value: string) => ({
-    value: value.slice(0, EVIDENCE_STREAM_LIMIT),
+    value: value.length <= EVIDENCE_STREAM_LIMIT ? value
+      : value.slice(0, EVIDENCE_STREAM_LIMIT / 2) + '\n...[middle omitted]...\n' + value.slice(-EVIDENCE_STREAM_LIMIT / 2),
     truncated: value.length > EVIDENCE_STREAM_LIMIT,
   });
   const stdout = clip(result.stdout);
@@ -182,7 +184,7 @@ async function runScript(
 
 export const projectRepairEvaluator: Evaluator = {
   name: 'project_repair',
-  version: '1.2.0',
+  version: '1.3.0',
 
   async evaluate(
     scenario: Scenario,
@@ -227,6 +229,7 @@ export const projectRepairEvaluator: Evaluator = {
         axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
         axisEvidence: { test_pass: 'unmeasured', output_completeness: 'rule' },
         totalScore: 0,
+        axisCoverage: 0,
         safetyLevel: 'safe',
         evidence,
         environmentError: true,
@@ -243,6 +246,7 @@ export const projectRepairEvaluator: Evaluator = {
           axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
           axisEvidence: { test_pass: 'unmeasured', output_completeness: 'rule' },
           totalScore: 0,
+          axisCoverage: 0,
           safetyLevel: 'safe',
           evidence,
           environmentError: true,
@@ -263,6 +267,7 @@ export const projectRepairEvaluator: Evaluator = {
           axisScores: { test_pass: 0, output_completeness: axisScores.output_completeness ?? 0 },
           axisEvidence: { test_pass: 'unmeasured', output_completeness: 'rule' },
           totalScore: 0,
+          axisCoverage: 0,
           safetyLevel: 'safe',
           evidence,
           environmentError: true,
@@ -286,10 +291,19 @@ export const projectRepairEvaluator: Evaluator = {
       // `HOME=/root unwritable` 模式，把已判的 test_pass 整块隔离掉。
       const stderr = stripMavenEntrypointNoise(r.stderr);
       appendExecutionEvidence(evidence, 'hidden_test', ht.description, { ...r, stderr });
+      // A compiler failure is already decisive for this workspace. Do not let a
+      // later cold dependency fetch hide it by reclassifying the whole answer as
+      // environment_error. Assertion/test failures still run the remaining cases.
+      if (!r.passed && !r.timedOut && /(?:error: could not compile [\s\S]*due to|\berror CS\d{4}:)/.test(stderr)) {
+        evidence.push('COMPILATION_FAILED: verified compiler failure; remaining tests skipped');
+        break;
+      }
+      // A recovered network warning must not override a successful test or a
+      // terminal compiler diagnostic after dependency fetching has completed.
       const envInfo = detectEnvironmentError(`${r.stdout}\n${stderr}`);
-      if (envInfo.isEnv) {
+      if (!r.passed && envInfo.isEnv) {
         envErrorReason = envInfo.reason ?? 'test environment unavailable';
-        break; // 根因确定后不再浪费后续冷容器测试，也不制造更多污染证据。
+        break;
       }
       if (r.timedOut && executionPolicy?.coldStartTimeoutIsEnvironmentError === true) {
         envErrorReason = 'network-required cold container test timed out';
@@ -305,18 +319,19 @@ export const projectRepairEvaluator: Evaluator = {
     } else {
       // 4. test_pass 得分（通过率）
       const passed = results.filter((r) => r.passed).length;
-      axisScores.test_pass = results.length > 0 ? Math.round((passed / results.length) * 100) : 0;
-      axisEvidence.test_pass = 'rule';
+      if (results.length > 0) axisScores.test_pass = Math.round((passed / results.length) * 100);
+      axisEvidence.test_pass = results.length > 0 ? 'verified' : 'unmeasured';
     }
 
     // 5. api_stability：入口函数签名是否保留（启发式：替换文件中仍含 functionName）
     const fnName = req.functionName;
     if (fnName) {
       const initialEntry = initialFiles.map((f) => f.content).join('\n');
-      const replacedEntry = Object.values(replacements).join('\n');
+      const hiddenPaths = new Set(hiddenFiles.map(f => normalizePath(f.path)));
+      const finalEntry = workspaceFiles.filter(f => !hiddenPaths.has(normalizePath(f.path))).map(f => f.content).join('\n');
       const initialHasFn = initialEntry.includes(fnName);
       // 入口函数保留 = 初始文件里有，且（未被替换的文件里仍有 或 替换文件里仍有）
-      const fnStillPresent = (initialEntry + '\n' + replacedEntry).includes(fnName);
+      const fnStillPresent = finalEntry.includes(fnName);
       axisScores.api_stability = initialHasFn && fnStillPresent ? 100 : (fnStillPresent ? 50 : 0);
       axisEvidence.api_stability = 'rule';
       evidence.push('api_stability: 入口函数 ' + fnName + ' 保留=' + fnStillPresent);
@@ -347,9 +362,14 @@ export const projectRepairEvaluator: Evaluator = {
     const w = Object.keys(defaultWeights).length > 0 && Object.keys(weights).length > 0 ? weights : defaultWeights;
     let sum = 0;
     let wsum = 0;
+    let declaredWeight = 0;
     for (const [axis, weight] of Object.entries(w)) {
+      declaredWeight += weight;
       const score = axisScores[axis];
-      if (score === undefined) continue;
+      if (score === undefined || axisEvidence[axis] === 'unmeasured') {
+        axisEvidence[axis] = 'unmeasured';
+        continue;
+      }
       sum += score * weight;
       wsum += weight;
     }
@@ -358,10 +378,12 @@ export const projectRepairEvaluator: Evaluator = {
     return {
       axisScores,
       axisEvidence,
+      axisCoverage: envErrorReason !== null ? 0 : declaredWeight > 0 ? wsum / declaredWeight : 0,
       totalScore,
       safetyLevel: 'safe',
       evidence,
       environmentError: envErrorReason !== null,
+      humanReviewRequired: results.length === 0,
     } as Partial<ScenarioResult>;
   },
 };
