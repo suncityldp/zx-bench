@@ -1,10 +1,8 @@
 // ============================================================
-// Code Repair 评分器 v3.2
+// Code Repair 评分器 v3.4
 // 多语言感知：
-//   - javascript/typescript → 子进程沙箱执行隐藏测试（确定性评分）
-//   - python → 子进程沙箱执行 assert 测试（解释器可用时；否则回退静态模式）
-//   - 其他语言 → 静态模式（代码块提取 + verdict 判断 + 关键模式检查），
-//     test_pass 交 AI Judge 复核（judge_required 标记）
+// JS/TS/Python 默认使用容器；其余语言按 fixture 运行编译/行为测试。
+// 只有显式 trusted-host 开发模式才执行宿主进程。缺测试不声称已验证。
 // 支持修复题（fix）与正确代码陷阱题（no_bug verdict）
 // GPT5.6 P1-3: patch_quality 改为 diff-based 而非长度比
 // GPT5.6 P1-4: scope_discipline 改为 diff 分析而非关键词
@@ -22,6 +20,8 @@ import { runPhpTestsInContainer, type PhpFixture } from '../execution/phpRunner.
 import { runCsharpTestsInContainer, type CsharpFixture } from '../execution/csharpRunner.js';
 import { runSqlInContainer, type SqlFixture } from '../execution/sqlRunner.js';
 import { runBashTestsInContainer, type BashFixture } from '../execution/bashRunner.js';
+import { runInContainer, CONTAINER_IMAGES } from '../execution/containerRunner.js';
+import { runTestCaseInContainer, runReplacedCodeTestPythonInContainer } from '../sandbox/index.js';
 import { envErrorOf } from './harnessErrors.js';
 import { execAsync } from '../execution/execAsync.js';
 import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
@@ -59,6 +59,23 @@ async function compileCheck(code: string, language: string): Promise<{ score: nu
   const spec = map[lang];
   if (!spec || !COMPILE_CHECK_LANGS.has(lang)) {
     return { score: null, evidence: `Compile check not supported for ${lang}` };
+  }
+
+  if (process.env.ZXBENCH_EXECUTION_BACKEND !== 'trusted-host') {
+    const file = `check.${spec.ext}`;
+    const config = lang === 'python' || lang === 'py'
+      ? { image: CONTAINER_IMAGES.python, command: ['python', '-c', `import ast; ast.parse(open('${file}').read())`] }
+      : lang === 'java' ? { image: 'maven:3.9-eclipse-temurin-17-alpine', command: ['javac', '-d', '/tmp', file] }
+      : ['go', 'golang'].includes(lang) ? { image: 'zxbench/go:1.21-gcc', command: ['go', 'build', '-o', '/tmp/check', file] }
+      : ['rust', 'rs'].includes(lang) ? { image: 'rust:1.75-alpine', command: ['rustc', '--crate-type', 'lib', '--emit=metadata', '-o', '/tmp/check.rmeta', file] }
+      : { image: 'zxbench/cpp:gcc13-valgrind', command: [lang === 'c' ? 'gcc' : 'g++', '-fsyntax-only', file] };
+    const res = await runInContainer({ ...config, files: [{ path: file, content: code }],
+      memoryMb: 512, pidsLimit: 128, timeoutMs: 15000,
+      env: { HOME: '/tmp', MAVEN_CONFIG: '/tmp/.m2', GOCACHE: '/tmp/go-build', GOPATH: '/tmp/gopath', GOMAXPROCS: '1' } });
+    const env = envErrorOf(res);
+    return { score: env.isEnv ? null : res.success ? 100 : 0,
+      evidence: res.success ? `Container compile check passed (${lang}; no behavior tests)`
+        : `Container compile check failed: ${res.stderr.slice(0, 300)}` };
   }
 
   const dir = mkdtempSync(join(tmpdir(), 'bl-compile-'));
@@ -524,8 +541,7 @@ function calculateScopeDiscipline(sourceCode: string | undefined, patch: string)
 
 export const codeRepairEvaluator: Evaluator = {
   name: 'code_repair',
-  version: '3.3.0',
-  compatibleVersions: ['3.2.0', '3.1.0', '3.0.0', 'code_repair_v3'],
+  version: '3.4.0',
   aliases: ['3.1.0', '3.0.0', 'code_repair_v3'],
 
   async evaluate(
@@ -537,7 +553,9 @@ export const codeRepairEvaluator: Evaluator = {
     const axisScores: Record<string, number> = {};
     const axisEvidence: Record<string, AxisEvidence> = {};
     const evidence: string[] = [];
-    const lang = (scenario.language || 'javascript').toLowerCase();
+    const rawLang = (scenario.language || 'javascript').toLowerCase();
+    const lang = ({ js: 'javascript', ts: 'typescript', py: 'python', golang: 'go', rs: 'rust', 'c#': 'csharp', sh: 'bash' } as Record<string, string>)[rawLang] ?? rawLang;
+    const trustedHost = process.env.ZXBENCH_EXECUTION_BACKEND === 'trusted-host';
     let runtimeEval: RuntimeEvaluation | undefined;
     // 环境/测试基础设施故障（容器 HOME 权限、dotnet workload、docker daemon 等）。
     // 命中 → compilation/test_pass 不判分（unmeasured 隔离），聚合层不计入维度均值。
@@ -555,7 +573,7 @@ export const codeRepairEvaluator: Evaluator = {
     const bashFixture = (lang === 'bash' && reqObj.fixture) ? (reqObj.fixture as BashFixture) : undefined;
     // Python 沙箱需解释器可用，否则降级静态模式（不制造误判）
     const executable = PYTHON_LANGS.includes(lang)
-      ? (await getPythonBin()) != null
+      ? !trustedHost || (await getPythonBin()) != null
       : (EXECUTABLE_LANGS.includes(lang) || goFixture != null || javaFixture != null || cFixture != null || rustFixture != null || phpFixture != null || csharpFixture != null || sqlFixture != null || bashFixture != null || reqObj.tsan === true || reqObj.miri === true);
 
     // ===== 陷阱题（no_bug verdict）分支 =====
@@ -710,7 +728,7 @@ export const codeRepairEvaluator: Evaluator = {
         const bashEnv = envErrorOf(bashRes);
         if (bashEnv.isEnv) { envErrorReason = bashEnv.reason ?? null; }
         else {
-        const bashCompiled = !/syntax error|command not found/.test(bashRes.stderr);
+        const bashCompiled = bashRes.compiled;
         axisScores.compilation = bashCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(bashCompiled
@@ -766,7 +784,7 @@ export const codeRepairEvaluator: Evaluator = {
         const phpEnv = envErrorOf(phpRes);
         if (phpEnv.isEnv) { envErrorReason = phpEnv.reason ?? null; }
         else {
-        const phpCompiled = !/Parse error|Fatal error:/.test(phpRes.stderr);
+        const phpCompiled = phpRes.compiled;
         axisScores.compilation = phpCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(phpCompiled
@@ -802,7 +820,7 @@ export const codeRepairEvaluator: Evaluator = {
         const csEnv = envErrorOf(csRes);
         if (csEnv.isEnv) { envErrorReason = csEnv.reason ?? null; }
         else {
-        const csCompiled = !/error CS\d+/.test(csRes.stderr);
+        const csCompiled = csRes.compiled;
         axisScores.compilation = csCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(csCompiled
@@ -862,7 +880,7 @@ export const codeRepairEvaluator: Evaluator = {
         const rustEnv = envErrorOf(rustRes);
         if (rustEnv.isEnv) { envErrorReason = rustEnv.reason ?? null; }
         else {
-        const rustCompiled = !/error\[?/.test(rustRes.stderr) && !/^error:/.test(rustRes.stderr);
+        const rustCompiled = rustRes.compiled;
         axisScores.compilation = rustCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(rustCompiled
@@ -923,7 +941,7 @@ export const codeRepairEvaluator: Evaluator = {
         const cEnv = envErrorOf(cRes);
         if (cEnv.isEnv) { envErrorReason = cEnv.reason ?? null; }
         else {
-        const cCompiled = !/error:/.test(cRes.stderr);
+        const cCompiled = cRes.compiled;
         axisScores.compilation = cCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(cCompiled
@@ -959,7 +977,7 @@ export const codeRepairEvaluator: Evaluator = {
         const javaEnv = envErrorOf(javaRes);
         if (javaEnv.isEnv) { envErrorReason = javaEnv.reason ?? null; }
         else {
-        const javaCompiled = javaRes.tests.length > 0 && !/error:/.test(javaRes.stderr);
+        const javaCompiled = javaRes.compiled;
         axisScores.compilation = javaCompiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(javaCompiled
@@ -1012,7 +1030,7 @@ export const codeRepairEvaluator: Evaluator = {
         if (goEnv.isEnv) { envErrorReason = goEnv.reason ?? null; }
         else {
         // 只要有 PASS/FAIL 输出即说明编译通过（编译失败不会产生测试结果行）
-        const compiled = goRes.tests.length > 0;
+        const compiled = goRes.compiled;
         axisScores.compilation = compiled ? 100 : 0;
         axisEvidence.compilation = 'verified';
         evidence.push(compiled
@@ -1048,7 +1066,15 @@ export const codeRepairEvaluator: Evaluator = {
         // Parse the actual candidate independently of the tests. A failing
         // assertion is not a compile failure; sourceCode presence proves nothing.
         const syntax = PYTHON_LANGS.includes(lang)
-          ? await compileCheck(patch, lang)
+          ? await (async () => {
+              if (trustedHost) return compileCheck(patch, lang);
+              const r = await runInContainer({ image: CONTAINER_IMAGES.python,
+                command: ['python', '-c', 'import ast; ast.parse(open("candidate.py").read())'],
+                files: [{ path: 'candidate.py', content: patch }] });
+              const env = envErrorOf(r);
+              return { score: env.isEnv ? null : r.success ? 100 : 0,
+                evidence: r.success ? 'Python container syntax check passed' : r.stderr || 'Python syntax check failed' };
+            })()
           : (() => {
               const check = checkJavaScriptSyntax(patch);
               return { score: check.passed ? 100 : 0, evidence: check.passed
@@ -1067,10 +1093,20 @@ export const codeRepairEvaluator: Evaluator = {
 
         if (tests.length > 0) {
           // 沙箱模式：直接用模型输出的完整修复代码替换源码运行测试
-          const runner = PYTHON_LANGS.includes(lang) ? runReplacedCodeTestPython : runReplacedCodeTest;
-          const details = compiled ? await Promise.all(tests.map((tc) => runner(patch, tc)))
-            : tests.map(tc => ({ testId: tc.id, testType: tc.type, passed: false,
-                stderr: syntax.evidence, exitCode: 1, timedOut: false }));
+          const runner = trustedHost
+            ? PYTHON_LANGS.includes(lang) ? runReplacedCodeTestPython : runReplacedCodeTest
+            : PYTHON_LANGS.includes(lang) ? runReplacedCodeTestPythonInContainer
+              : (code: string, tc: typeof tests[number]) => runTestCaseInContainer(code, null, tc);
+          const details = [];
+          if (compiled) {
+            // Bounded execution: do not launch a container for every hidden test at once.
+            for (const tc of tests) details.push(await runner(patch, tc));
+          } else details.push(...tests.map(tc => ({ testId: tc.id, testType: tc.type, passed: false,
+            stderr: syntax.evidence, exitCode: 1, timedOut: false })));
+          for (const detail of details) {
+            const env = envErrorOf({ stdout: 'stdout' in detail ? detail.stdout ?? '' : '', stderr: detail.stderr ?? '' });
+            if (env.isEnv) envErrorReason = env.reason ?? 'Container unavailable';
+          }
           const suiteResult = summarizeTestResults(details);
           runtimeEval = { compilePassed: compiled, compileError: compiled ? undefined : syntax.evidence,
             testsPassed: suiteResult.passedTests, testsFailed: suiteResult.failedTests, testsTotal: suiteResult.totalTests, hiddenTestsPassed: suiteResult.passedTests, hiddenTestsFailed: suiteResult.failedTests, hiddenTestsTotal: suiteResult.totalTests, details };

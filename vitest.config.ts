@@ -9,5 +9,7 @@ export default defineConfig({
   test: {
     include: ['packages/**/*.test.ts', 'apps/server/src/**/*.test.ts'],
     environment: 'node',
+    // Unit-test fixtures are trusted repository code. Real container tests opt in separately.
+    env: { ZXBENCH_EXECUTION_BACKEND: 'trusted-host' },
   },
 });

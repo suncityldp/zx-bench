@@ -70,11 +70,17 @@ export async function runSqlInContainer(query: string, fixture: SqlFixture, time
   let plan = '';
   let passed = false;
   if (res.exitCode === 0 && !res.timedOut) {
-    const rm = res.stdout.match(/RESULT:([^\n]*)/);
-    const pm = res.stdout.match(/PLAN:"(.*)"/);
-    try { actual = rm ? JSON.parse(rm[1]) : []; } catch { actual = []; }
-    plan = pm ? pm[1] : '';
-    const resultOk = JSON.stringify(normalize(actual)) === JSON.stringify(normalize(fixture.expectedResult));
+    const results = [...res.stdout.matchAll(/^RESULT:([^\r\n]*)/gm)];
+    const plans = [...res.stdout.matchAll(/^PLAN:([^\r\n]*)/gm)];
+    let valid = false;
+    try {
+      const parsed: unknown = results.length === 1 ? JSON.parse(results[0][1]) : null;
+      const parsedPlan: unknown = plans.length === 1 ? JSON.parse(plans[0][1]) : null;
+      valid = Array.isArray(parsed) && typeof parsedPlan === 'string';
+      if (Array.isArray(parsed)) actual = parsed;
+      if (typeof parsedPlan === 'string') plan = parsedPlan;
+    } catch { /* Missing/malformed output is not an empty query result. */ }
+    const resultOk = valid && JSON.stringify(normalize(actual)) === JSON.stringify(normalize(fixture.expectedResult));
     const planOk = !fixture.forbidPlanPattern || !new RegExp(fixture.forbidPlanPattern).test(plan);
     passed = resultOk && planOk;
   }

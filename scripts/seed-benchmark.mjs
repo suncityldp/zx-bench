@@ -23,6 +23,10 @@ const seen = new Set();
 const scenarios = [];
 for (const f of files) {
   const arr = JSON.parse(fs.readFileSync(path.join(SCENARIOS_DIR, f), 'utf8'));
+  if (!Array.isArray(arr)) {
+    console.log('  跳过 ' + f + '：元数据文件（非题目数组）');
+    continue;
+  }
   let added = 0;
   for (const s of arr) {
     if (seen.has(s.id)) continue;

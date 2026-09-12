@@ -6,6 +6,7 @@
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { completionToken, completed } from './completion.js';
 
 export interface CsharpFixture {
   wrapInClass?: boolean;
@@ -14,6 +15,7 @@ export interface CsharpFixture {
 }
 
 export interface CsharpRunResult {
+  compiled: boolean;
   success: boolean;
   stdout: string;
   stderr: string;
@@ -23,8 +25,7 @@ export interface CsharpRunResult {
   tests: { name: string; passed: boolean }[];
 }
 
-// MCR(dotnet SDK) 在当前环境不可达，用 Docker Hub 的 mono:6.12 编译运行 C#。
-// 这些题的 C# 特性（泛型/lambda/decimal/MidpointRounding）mono 均支持。
+// Use the .NET 8 SDK, not a Mono approximation of the language/runtime.
 const CS_IMAGE = 'mcr.microsoft.com/dotnet/sdk:8.0-alpine';
 
 const ASSERT_CLASS = [
@@ -100,13 +101,15 @@ export async function runCsharpTestsInContainer(
   let allStderr = '';
   let exitCode = 0;
   let timedOut = false;
+  let compiled = testCases.length > 0;
   const startedAt = Date.now();
 
   for (let i = 0; i < testCases.length; i++) {
-    const harness = buildCsharpHarness(sourceCode, [testCases[i]], fixture);
+    const token = completionToken();
+    const harness = buildCsharpHarness(sourceCode, [{ ...testCases[i], testCode: testCases[i].testCode + `\nConsole.WriteLine("\\n${token}");` }], fixture);
     const res = await runInContainer({
       image: CS_IMAGE,
-      command: ['sh', '-c', 'dotnet run --project app.csproj'],
+      command: ['sh', '-c', `dotnet build app.csproj -o /tmp/build && printf '\\n${token}_COMPILED\\n' && dotnet /tmp/build/app.dll`],
       files: [
         { path: 'Program.cs', content: harness['Program.cs'] },
         { path: 'app.csproj', content: harness['app.csproj'] },
@@ -122,7 +125,10 @@ export async function runCsharpTestsInContainer(
         HOME: '/tmp',
       },
     });
-    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut });
+    const didComplete = completed(res.stdout, token);
+    compiled = compiled && completed(res.stdout, token + '_COMPILED');
+    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut && didComplete });
+    if (!didComplete && res.exitCode === 0) allStderr += '\nTEST_EXECUTION_INCOMPLETE: no completion evidence\n';
     allStdout += res.stdout;
     allStderr += res.stderr;
     if (res.exitCode !== 0) exitCode = res.exitCode;
@@ -130,7 +136,8 @@ export async function runCsharpTestsInContainer(
   }
 
   return {
-    success: tests.every((t) => t.passed),
+    compiled,
+    success: tests.length > 0 && tests.every((t) => t.passed),
     stdout: allStdout,
     stderr: allStderr,
     exitCode,

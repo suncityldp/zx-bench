@@ -2,22 +2,22 @@
 
 [English](README.en.md) · 中文
 
-> 在一台机器上，对任意大模型（本地 GGUF / Ollama / OpenAI 兼容 API）跑完 10 大维度、**574 道**基准题（题库累计 652 道，其中 78 道已退役旧题归档于 `data/scenarios/archive/`，不参与评测），产出可复现的综合分、维度雷达、排行榜、AI 深度报告与性价比分析。其中编程题在 **Docker 容器里真实编译并执行隐藏测试**，分数反映的是真实代码行为，而非「看起来像」的文本相似度。
+> 在一台机器上，对任意大模型（本地 GGUF / Ollama / OpenAI 兼容 API）跑完 10 大维度、**595 道**基准题（题库累计 673 道，其中 78 道已退役旧题归档于 `data/scenarios/archive/`，不参与评测），产出可复现的综合分、维度雷达、排行榜、AI 深度报告与性价比分析。其中编程题在 **Docker 容器里真实编译并执行隐藏测试**，分数反映的是真实代码行为，而非「看起来像」的文本相似度。
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
 ## 核心特性
 
 - **10 大能力维度**：编程、推理数学、安全权限、深度 CLI、数据抽取、智能体工作流、指令遵循、工具/CLI、幻觉抵抗、结构化输出。
-- **574 道可评测基准题**（题库累计 652 道，退役旧题归档保留版本史）：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
-- **编程题真实执行**：JS/TS/Python 子进程沙箱；Go/Java/C/C++/Rust/PHP/C#/Bash/SQL 在 Docker 容器里**真实编译 + 运行隐藏测试**（ASan 检内存错误、JUnit 跑 Java、race detector 检并发、SQLite 跑查询），`test_pass` 轴 = 真实测试通过率——不再用关键词「猜」代码对不对。
+- **595 道可评测基准题**（题库累计 673 道，退役旧题归档保留版本史）：难度分级（easy/medium/hard/adversarial）、带版本控制（每题 scenarioHash，题库 `benchmark-meta.json` 版本化）。
+- **编程题真实执行**：JS/TS/Python 默认容器执行；Go/Java/C/C++/Rust/PHP/C#/Bash/SQL 按 fixture 在 Docker 中编译/运行隐藏测试。缺少测试的题明确保留未测状态，不把静态检查当作行为通过。内存检查、race detector 等按题配置启用。
 - **no_bug 陷阱题**：部分代码本身正确，模型须识别「无 bug」而非强行修改，误修会扣分。
 - **确定性评分 + AI Judge 双通道**：规则评分器先判，AI Judge 按维度权重补判语义项，覆盖率感知地「让渡」权重。
 - **综合分（难度加权 + 维度加权）**：高难题权重更大、按维度重要度加权求和，避免「均分」被题量带偏。
 - **反拖尾**：推理模型思考链硬上限、单题硬时限（默认 300s）、超限即判，不再无限升级 token 预算。
 - **实时监控 + 断点续跑**：WebSocket 实时进度、暂停/恢复/取消、单题重试、fork 分叉维度。
 - **报告与排行榜**：自动聚合维度图表、AI 深度报告、模型排行榜、模型性价比散点图。
-- **回归测试 + CI**：评分/聚合/契约核心 37 个单元测试，GitHub Actions 自动构建+测试。
+- **回归测试 + CI**：评分、聚合、金标与契约均有自动回归，GitHub Actions 自动构建并测试。
 
 ---
 
@@ -27,15 +27,15 @@ ZxBench 的编程题不是「模型输出一段代码、用关键词判断像不
 
 | 语言 | 执行后端 | 验证方式 |
 |------|----------|----------|
-| JavaScript / TypeScript | 子进程沙箱（类型注解自动剥离） | 隐藏测试断言 |
-| Python | 子进程沙箱 | assert 断言 |
-| Go | golang:1.21 容器 | go test（并发题开 -race） |
-| Java | eclipse-temurin:17-jdk-alpine 容器 | javac + JUnit |
-| C / C++ | gcc:13 容器 | 编译 + 运行隐藏测试（受限容器禁 ASan，内存安全由 Valgrind / 断言覆盖） |
-| Rust | rust:1.75 容器 | rustc + assert（borrow 错误 = 编译失败） |
-| PHP | php:8.2-cli 容器 | assert（内置 mbstring） |
-| C# | mono:6.12 容器 | 编译 + 自定义 Assert |
-| Bash | bash:5 容器 | 断言以退出码判定 |
+| JavaScript / TypeScript | node:20-alpine 容器（运行测试时转译 TS） | 隐藏断言与完成证据；类型专项另有 strict 检查 |
+| Python | python:3.12-alpine 容器 | assert、语法检查与完成证据 |
+| Go | zxbench/go:1.21-gcc 容器 | 编译测试二进制后执行；完整固定分母，并发题可开 -race |
+| Java | maven:3.9-eclipse-temurin-17-alpine 容器 | javac + JUnit；校验完整报告与退出状态 |
+| C / C++ | zxbench/cpp:gcc13-valgrind 容器 | 编译 + 断言；fixture 可启用 Valgrind，并非所有题默认检查内存 |
+| Rust | rust:1.75-alpine 容器 | rustc + assert；编译与运行失败分开 |
+| PHP | php:8.2-cli-alpine 容器 | 显式开启 zend.assertions/assert.exception |
+| C# | .NET SDK 8.0-alpine 容器 | dotnet build + 自定义 Assert |
+| Bash | bash:5 容器 | -e / pipefail、语法检查与完成证据 |
 | SQL | node:22-alpine 容器 | node:sqlite 建表+插数+查询+结果集比对（性能题用 EXPLAIN 计划检查） |
 
 除常规「修复 bug」题外，编程维度还包含：
@@ -44,7 +44,11 @@ ZxBench 的编程题不是「模型输出一段代码、用关键词判断像不
 - **plan 题**：方案评审 / 故障诊断（数据库零停机迁移、p99 延迟排查等），按步骤 checklist 评分，已归入指令遵循维度。
 - **实现题**：给定签名与类型约束补全实现（如 safeParseInt、Top-N 查询）。
 
-所有可执行题都附带 referenceSolution（正确解）与 fixture（编译单元 / 依赖桩 / 数据库 schema+seed），并通过「bug 版本必挂 + 正确解必过」的双向验证门后才入库。
+2026-09-12 新增跨 12 种语言的真实容器正反例回归（`pnpm test:containers`）。这验证执行器，不代表现有每一道编程题都已通过独立金标双向复核；历史题的 referenceSolution/fixture 覆盖仍不完整。默认容器无网络、非 root、工作区只读；部分构建题允许工作区写入。容器根目录并非全部只读，完成标记也不是防恶意篡改的安全边界。
+
+### 2026-09-12 执行与评审可靠性升级
+
+`code_repair@3.4.0`、`instruction_checklist_v5`、`llm_judge@2.0.0` 已冻结 171 条当前题目契约；修复了指令题的跨段引用、嵌套结构、逐项对应与局部计数漏判。PR 评审要求严格 JSON、文件绑定和 diff 原文证据；新发现未匹配、Judge 失败均显式留待复核。历史分数不自动覆盖，新旧版本不能直接混比。详见[交付范围、验证与剩余限制](docs/execution-instruction-pr-v2.md)。
 
 ---
 
@@ -118,7 +122,11 @@ pnpm --filter server start
 
 ### 2026-09-08 推理题参考答案修订（issue #7）
 
-34 道数学题已升级为 3.2.0 / exact_answer_v4；78 道新版幻觉题已逐题审查并升级为 5.0.0 / hallucination_v5。数学题检查严格数值和必要构造；幻觉题的简单事实采用完整答案离线校验，其余自然语言必须由 Judge 按逐题 rubric 评分。Judge 不可用的语义题标记为未能评分并排除汇总，不把关键词命中当正确。历史结果保留，旧版本与当前题集不可比。详见[逐题修复与验证](docs/reviewed-question-bank-v5.md)。运行 `node scripts/sync-reviewed-question-contracts.mjs <数据库路径>` 预览；加 `--apply` 自动备份后事务同步112道定义，不改写历史结果。
+34 道数学题已升级为 3.2.0 / exact_answer_v4；78 道新版幻觉题已逐题审查并升级为 5.0.0 / hallucination_v5。数学题检查严格数值和必要构造；幻觉题的简单事实采用完整答案离线校验，其余自然语言必须由 Judge 按逐题 rubric 评分。Judge 不可用的语义题标记为未能评分并排除汇总，不把关键词命中当正确。历史结果保留，旧版本与当前题集不可比。详见[逐题修复与验证](docs/reviewed-question-bank-v5.md)。运行 `node scripts/sync-reviewed-question-contracts.mjs <数据库路径>` 预览；加 `--apply` 自动备份后事务同步 168 道已复核定义，不改写历史结果。
+
+### 2026-09-12 数据抽取题集 v3
+
+数据抽取维度从 35 题扩充到 56 题。原 35 题已逐题对齐题面与金标，新增 21 题覆盖来源优先级、去重、时区、null/false/0、表连接、文档版本、邮件引用、脚注、OCR、多语言、嵌入式指令攻击等场景。`json_atomic_v3` 冻结完整 `expected`、所有路径的 JSON 类型、必需叶路径和禁止额外字段策略；纯规则评分，不调用 Judge。Markdown 围栏、类型强转、缺失 null、额外键和数组长度漂移都会被确定性扣分。所有 56 题均为 3.0.0、`reviewStatus=verified`，并由 canonical `scenarioHash` 锁定。详见[数据抽取 v3 复核与冻结记录](docs/data-extraction-v3-review.md)。
 
 ### 导入基准题集
 
@@ -142,12 +150,12 @@ node scripts/export-scenarios.mjs # 导出
 | safety_authority | 安全与权限 | 50 | 0.10 |
 | agent_workflow | 智能体工作流 | 45 | 0.08 |
 | tool_cli_workflow | 工具/CLI/工作流 | 56 | 0.07 |
-| data_extraction | 数据抽取 | 35 | 0.07 |
+| data_extraction | 数据抽取 | 56 | 0.07 |
 | cli_deep_tasks | 深度命令行任务 | 56 | 0.07 |
 | structured_output | 结构化输出 | 28 | 0.05 |
-| **合计** | | **574** | |
+| **合计** | | **595** | |
 
-> 题量 = `benchmark-meta.json` 中 status=valid 的当前可评测题；另有 78 道已退役旧题（v3 幻觉题集 HAL-*）归档于 `data/scenarios/archive/benchmark-retired.json`，保留版本史但不参与跑测。题库累计 652 道。
+> 题量 = `benchmark-meta.json` 中 status=valid 的当前可评测题；另有 78 道已退役旧题（v3 幻觉题集 HAL-*）归档于 `data/scenarios/archive/benchmark-retired.json`，保留版本史但不参与跑测。题库累计 673 道。
 
 ### 三步评分链
 
@@ -307,7 +315,7 @@ apps/server/     # Fastify 后端 + API + Prisma
 packages/core/   # 评测引擎核心（orchestrator / judge / evaluators / scoring / execution / contracts）
 packages/types/  # 共享类型
 packages/utils/  # 工具函数
-data/scenarios/  # 574 道可评测基准题（benchmark.json + 元数据 + CR2 备选题集；archive/ 为退役旧题归档）
+data/scenarios/  # 595 道可评测基准题（benchmark.json + 元数据 + CR2 备选题集；archive/ 为退役旧题归档）
 data/java-libs/  # Java 题 JUnit 依赖 jar
 scripts/         # 题库导入/导出脚本
 docs/            # 规范文档（fixture-spec 等）

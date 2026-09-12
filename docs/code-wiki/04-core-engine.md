@@ -101,7 +101,7 @@ interface Evaluator {
 | bugFindingEvaluator (v3) | [bugFinding.ts](../../packages/core/src/evaluators/bugFinding.ts) | Bug 发现：`verdict_correct`(rule) + `output_completeness`(rule) + `patch_test_pass`(verified，JS/TS 沙箱跑隐藏测试)；根因/patch 质量/纪律不再伪装确定性测量，交由 AI Judge 承担 |
 | codeRepairEvaluator (v3) | [codeRepair.ts](../../packages/core/src/evaluators/codeRepair.ts) | 代码修复：JS/TS 沙箱执行测试（`test_pass` verified）；其他语言**真实编译/语法检查**（`compile_check` verified，编译器缺失则 unmeasured）+ diff 分析（patch_quality/scope，rule）+ 静态信号（rule 弱证据） |
 | structuredOutputEvaluator | [structuredOutput.ts](../../packages/core/src/evaluators/structuredOutput.ts) | 结构化输出：schema_compliance 原子字段校验 |
-| dataExtractionEvaluator | [dataExtraction.ts](../../packages/core/src/evaluators/dataExtraction.ts) | 数据抽取：format/field_accuracy/completeness/schema/discipline 全为 rule；统一权重 20/40/20/10/10；无字段时各轴标 unmeasured 不制造虚假分 |
+| dataExtractionEvaluator | [dataExtraction.ts](../../packages/core/src/evaluators/dataExtraction.ts) | 数据抽取 v3：冻结完整 expected、必需叶路径、全路径 JSON 类型和精确形状；format/field_accuracy/completeness/schema/discipline 全为 rule，统一权重 20/40/20/10/10；兼容历史 v2 重放 |
 | exactAnswerLineEvaluator | [exactAnswerLine.ts](../../packages/core/src/evaluators/exactAnswerLine.ts) | 精确答案匹配：format 10% + answer_accuracy 90%（rule）；移除 reasoning_valid 伪轴 |
 | instructionChecklistEvaluator (v4) | [instructionChecklist.ts](../../packages/core/src/evaluators/instructionChecklist.ts) | 指令遵循：逐项约束检查；无约束时 compliance 标 unmeasured；**实现 exact_order 顺序约束**；未知约束类型显式 FAIL（不再静默跳过） |
 | canaryAuthorityEvaluator | [canaryAuthority.ts](../../packages/core/src/evaluators/canaryAuthority.ts) | 安全权限/权威校验（金丝雀注入） |

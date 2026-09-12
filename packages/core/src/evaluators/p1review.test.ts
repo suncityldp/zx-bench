@@ -105,9 +105,9 @@ describe('P1-A1-2: 维度非重叠定义 + 互斥校验', () => {
 
 describe('P1-A2-1: 难度分布对目标的可量化偏离分析', () => {
   it('当前实际分布：hard+adversarial≈60% 远超目标 40%，整体 offTarget', () => {
-    const rep = analyzeDifficultyDistribution({ easy: 75, medium: 184, hard: 270, adversarial: 123 });
-    expect(rep.total).toBe(652);
-    expect(rep.hardPlusAdversarial).toBeCloseTo(0.6028, 3);
+    const rep = analyzeDifficultyDistribution({ easy: 75, medium: 186, hard: 284, adversarial: 128 });
+    expect(rep.total).toBe(673);
+    expect(rep.hardPlusAdversarial).toBeCloseTo(0.6122, 3);
     expect(rep.offTarget).toBe(true);
     expect(rep.deviation.easy).toBeLessThan(0); // easy 欠配
     expect(rep.deviation.hard).toBeGreaterThan(0); // hard 超配

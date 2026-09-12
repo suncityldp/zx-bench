@@ -9,6 +9,7 @@
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { completionToken, completed } from './completion.js';
 
 export interface GoFixture {
   /** 额外 import 包名 */
@@ -26,6 +27,7 @@ export interface GoFixture {
 }
 
 export interface GoRunResult {
+  compiled: boolean;
   success: boolean;
   stdout: string;
   stderr: string;
@@ -80,13 +82,14 @@ export async function runGoTestsInContainer(
   timeoutMs = 30000,
 ): Promise<GoRunResult> {
   const harness = buildGoTestHarness(sourceCode, testCases, fixture);
-  const cmd = ['go', 'test', '-p', '1'];
+  const compileToken = completionToken();
+  const cmd = ['go', 'test', '-p', '1', '-c', '-o', '/tmp/hidden-tests'];
   if (fixture.race) cmd.push('-race');
-  cmd.push('-run', 'TestHidden', '-count=1', '-v', './...');
+  cmd.push('./...');
 
   const res = await runInContainer({
     image: GO_IMAGE,
-    command: cmd,
+    command: ['sh', '-c', `${cmd.join(' ')} && printf '\\n${compileToken}\\n' && /tmp/hidden-tests -test.run '^TestHidden_[0-9]+$' -test.count=1 -test.v`],
     files: [
       { path: 'main_test.go', content: harness['main_test.go'] },
       { path: 'go.mod', content: harness['go.mod'] },
@@ -97,14 +100,21 @@ export async function runGoTestsInContainer(
     env: { GOCACHE: '/tmp/go-build', GOPATH: '/tmp/gopath', HOME: '/tmp', GOMAXPROCS: '1', CGO_ENABLED: '1' },
   });
 
-  const tests: { name: string; passed: boolean }[] = [];
-  for (const ln of (res.stdout + '\n' + res.stderr).split('\n')) {
-    const m = ln.match(/--- (PASS|FAIL): (TestHidden_\d+)/);
-    if (m) tests.push({ name: m[2], passed: m[1] === 'PASS' });
+  const out = res.stdout + '\n' + res.stderr;
+  const outcomes = new Map<string, boolean[]>();
+  for (const ln of out.split(/\r?\n/)) {
+    const m = ln.match(/^--- (PASS|FAIL): (TestHidden_\d+) \(/);
+    if (m) outcomes.set(m[2], [...(outcomes.get(m[2]) ?? []), m[1] === 'PASS']);
   }
+  const complete = !res.timedOut && (res.exitCode === 0 ? /^PASS\s*$/m.test(out) : res.exitCode === 1 && /^FAIL\s*$/m.test(out))
+    && testCases.every((_, i) => outcomes.get('TestHidden_' + i)?.length === 1);
+  // Never shrink the denominator to the tests that happened to emit a result.
+  const tests = testCases.map((_, i) => ({ name: 'TestHidden_' + i,
+    passed: complete && outcomes.get('TestHidden_' + i)?.[0] === true }));
 
   return {
-    success: res.success,
+    compiled: completed(res.stdout, compileToken),
+    success: res.success && tests.length > 0 && tests.every(t => t.passed),
     stdout: res.stdout,
     stderr: res.stderr,
     exitCode: res.exitCode,

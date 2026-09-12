@@ -1,19 +1,21 @@
 // ============================================================
 // C/C++ 隐藏测试容器执行（Phase 2 垂直切片）。
-// 生成 main.c / main.cpp + assert 测试，gcc / g++ -fsanitize=address 编译运行。
-// ASan 让 buffer overflow / use-after-free 等内存错误变成确定性运行时错误。
+// gcc / g++ + assertions; fixture.memoryCheck='valgrind' adds memory-error checks.
 // ============================================================
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { completionToken, completed } from './completion.js';
 
 export interface CFixture {
+  memoryCheck?: 'valgrind';
   /** 额外 #include（如 <stdint.h> / <cstddef>） */
   includes?: string[];
   helpers?: string;
 }
 
 export interface CRunResult {
+  compiled: boolean;
   success: boolean;
   stdout: string;
   stderr: string;
@@ -64,20 +66,25 @@ export async function runCTestsInContainer(
   let allStderr = '';
   let exitCode = 0;
   let timedOut = false;
+  let compiled = testCases.length > 0;
   const startedAt = Date.now();
 
   for (let i = 0; i < testCases.length; i++) {
-    const harness = buildCHarness(sourceCode, [testCases[i]], fixture, cpp);
+    const token = completionToken();
+    const harness = buildCHarness(sourceCode, [{ ...testCases[i], testCode: testCases[i].testCode + `\nprintf("\\n${token}\\n");` }], fixture, cpp);
     const res = await runInContainer({
       image: C_IMAGE,
-      command: ['sh', '-c', `${compiler} -g ${file} -o /tmp/a.out && /tmp/a.out`],
+      command: ['sh', '-c', `${compiler} -g ${file} -o /tmp/a.out && printf '\\n${token}_COMPILED\\n' && ${fixture.memoryCheck === 'valgrind' ? 'valgrind --error-exitcode=99 --leak-check=full --errors-for-leak-kinds=definite ' : ''}/tmp/a.out`],
       files: [{ path: file, content: harness[file] }],
       timeoutMs,
       memoryMb: 256,
       pidsLimit: 64,
       env: { ASAN_OPTIONS: 'detect_stack_use_after_return=0:halt_on_error=1:detect_leaks=0' },
     });
-    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut });
+    const didComplete = completed(res.stdout, token);
+    compiled = compiled && completed(res.stdout, token + '_COMPILED');
+    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut && didComplete });
+    if (!didComplete && res.exitCode === 0) allStderr += '\nTEST_EXECUTION_INCOMPLETE: no completion evidence\n';
     allStdout += res.stdout;
     allStderr += res.stderr;
     if (res.exitCode !== 0) exitCode = res.exitCode;
@@ -85,7 +92,8 @@ export async function runCTestsInContainer(
   }
 
   return {
-    success: tests.every((t) => t.passed),
+    compiled,
+    success: tests.length > 0 && tests.every((t) => t.passed),
     stdout: allStdout,
     stderr: allStderr,
     exitCode,
@@ -186,7 +194,7 @@ export async function runCppTsanInContainer(sourceCode: string, timeoutMs = 1200
   const stdout = res.stdout || '';
   return {
     raceDetected: /WARNING: ThreadSanitizer: data race/.test(stderr),
-    passed: /ALL_TESTS_PASSED/.test(stdout) && !/WARNING: ThreadSanitizer/.test(stderr),
+    passed: res.exitCode === 0 && !res.timedOut && /ALL_TESTS_PASSED/.test(stdout) && !/WARNING: ThreadSanitizer/.test(stderr),
     compileError: /error:/.test(stderr) && !/ThreadSanitizer/.test(stderr),
     stdout,
     stderr,

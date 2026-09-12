@@ -6,6 +6,7 @@
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { completionToken, completed } from './completion.js';
 
 export interface RustFixture {
   /** 额外 extern crate / use（如 'use std::collections::HashSet;'） */
@@ -14,6 +15,7 @@ export interface RustFixture {
 }
 
 export interface RustRunResult {
+  compiled: boolean;
   success: boolean;
   stdout: string;
   stderr: string;
@@ -51,19 +53,24 @@ export async function runRustTestsInContainer(
   let allStderr = '';
   let exitCode = 0;
   let timedOut = false;
+  let compiled = testCases.length > 0;
   const startedAt = Date.now();
 
   for (let i = 0; i < testCases.length; i++) {
-    const harness = buildRustHarness(sourceCode, [testCases[i]], fixture);
+    const token = completionToken();
+    const harness = buildRustHarness(sourceCode, [{ ...testCases[i], testCode: testCases[i].testCode + `\nprintln!("\\n${token}");` }], fixture);
     const res = await runInContainer({
       image: RUST_IMAGE,
-      command: ['sh', '-c', 'rustc main.rs -o /tmp/a.out && /tmp/a.out'],
+      command: ['sh', '-c', `rustc main.rs -o /tmp/a.out && printf '\\n${token}_COMPILED\\n' && /tmp/a.out`],
       files: [{ path: 'main.rs', content: harness['main.rs'] }],
       timeoutMs,
       memoryMb: 512,
       pidsLimit: 64,
     });
-    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut });
+    const didComplete = completed(res.stdout, token);
+    compiled = compiled && completed(res.stdout, token + '_COMPILED');
+    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut && didComplete });
+    if (!didComplete && res.exitCode === 0) allStderr += '\nTEST_EXECUTION_INCOMPLETE: no completion evidence\n';
     allStdout += res.stdout;
     allStderr += res.stderr;
     if (res.exitCode !== 0) exitCode = res.exitCode;
@@ -71,7 +78,8 @@ export async function runRustTestsInContainer(
   }
 
   return {
-    success: tests.every((t) => t.passed),
+    compiled,
+    success: tests.length > 0 && tests.every((t) => t.passed),
     stdout: allStdout,
     stderr: allStderr,
     exitCode,

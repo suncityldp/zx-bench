@@ -60,10 +60,11 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 数据抽取：requirements 的每个字段都是「字段名 → 期望值」 ----
   json_atomic_fields: {
     grader: 'json_atomic_fields',
-    version: 'json_atomic_v2',
+    version: 'json_atomic_v3',
+    compatibleVersions: ['json_atomic_v2'],
     dimension: 'data_extraction',
-    consumedFields: [],
-    declaredFields: [],
+    consumedFields: ['expected', 'requiredFields', 'fieldTypes', 'outputPolicy', 'allowAdditionalFields'],
+    declaredFields: ['expected', 'requiredFields', 'fieldTypes', 'outputPolicy', 'allowAdditionalFields'],
     dynamicFieldPatterns: [/.*/],
     requiredFields: [],
     capabilities: {},
@@ -72,7 +73,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 指令遵循 ----
   instruction_checklist: {
     grader: 'instruction_checklist',
-    version: 'instruction_checklist_v4',
+    version: 'instruction_checklist_v5',
     dimension: 'instruction_following',
     consumedFields: ['constraints'],
     declaredFields: ['constraints'],
@@ -181,15 +182,14 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 编程修复：code_repair（requirements 实际是对象，但 evaluator 当 string[] keywords 读 —— 已知缺陷） ----
   code_repair: {
     grader: 'code_repair',
-    version: '3.3.0',
-    compatibleVersions: ['3.2.0', '3.1.0', '3.0.0', 'code_repair_v3'],
+    version: '3.4.0',
     dimension: 'program',
-    consumedFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap'],
+    consumedFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture'],
     declaredFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'referenceSolution'],
     requiredFields: [],
     capabilities: {
       supportedLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash', 'markdown'],
-      executableLanguages: ['javascript', 'typescript', 'python'],
+      executableLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash'],
     },
     aliases: ['code_repair_v3'],
   },
@@ -204,8 +204,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     declaredFields: ['files', 'hiddenTestFiles', 'hiddenTests', 'publicTests', 'functionName', 'explanationKeywords', 'image'],
     requiredFields: ['files'],
     capabilities: {
-      supportedLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash'],
-      executableLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash'],
+      supportedLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash', 'shell'],
+      executableLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash', 'shell'],
     },
   },
 
@@ -237,7 +237,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- PR 评审质量：llm_judge（PR-ELITE-012/013） ----
   llm_judge: {
     grader: 'llm_judge',
-    version: '1.0.0',
+    version: '2.0.0',
     dimension: 'program',
     consumedFields: ['diff', 'prompt', 'judge_config', 'judge_ground_truth', 'scoring'],
     declaredFields: ['diff', 'prompt', 'judge_config', 'judge_ground_truth', 'scoring'],

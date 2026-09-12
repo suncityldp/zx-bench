@@ -2,7 +2,7 @@
 // 容器执行后端（Phase 2）：用 Docker 隔离执行不可信代码。
 // 替代 host fork + new AsyncFunction（安全缺陷：候选代码可提前
 // process.exit 伪造通过、可访问 host Node globals）。
-// 安全基线：non-root、read-only root、tmpfs 工作区、无网络、
+// 默认安全基线：non-root、只读工作区挂载、临时容器可写根目录、无网络、
 // drop capabilities、no-new-privileges、CPU/内存/PID 限制。
 // ============================================================
 
@@ -10,7 +10,7 @@ import { execAsync } from './execAsync.js';
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync, chmodSync, existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { rm as rmAsync } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve, relative, isAbsolute, win32 } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createDockerReadiness } from './dockerReadiness.js';
 import { containerProxyEnv } from './containerProxy.js';
@@ -78,6 +78,20 @@ export interface ContainerFile {
   /** 相对工作区的路径，如 main.js */
   path: string;
   content: string;
+}
+
+/** Validate on both Windows and POSIX before writing any supplied file. */
+export function containerFilePath(root: string, path: string): string {
+  const normalized = path.replaceAll('\\', '/');
+  if (!normalized || normalized.includes('\0') || normalized.includes(':') || isAbsolute(normalized)
+      || win32.isAbsolute(path) || normalized.split('/').some(part => part === '..'
+        || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(part) || (part !== '.' && /[. ]$/.test(part)))) {
+    throw new Error('Invalid container workspace path');
+  }
+  const target = resolve(root, normalized);
+  const rel = relative(root, target);
+  if (!rel || rel.startsWith('..') || isAbsolute(rel)) throw new Error('Container file escapes workspace');
+  return target;
 }
 
 export interface ContainerRunOptions {
@@ -333,8 +347,12 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
   chmodSync(hostDir, 0o777);
   if (T) console.log('[CT] 临时目录=' + hostDir);
   try {
-    for (const f of files) {
-      const full = join(hostDir, f.path);
+    const targets = files.map(f => ({ ...f, full: containerFilePath(hostDir, f.path) }));
+    if (new Set(targets.map(f => process.platform === 'win32' ? f.full.toLowerCase() : f.full)).size !== targets.length) {
+      throw new Error('Duplicate container workspace file paths');
+    }
+    for (const f of targets) {
+      const full = f.full;
       mkdirSync(dirname(full), { recursive: true });
       writeFileSync(full, f.content, 'utf8');
       if (f.content.startsWith('#!')) {

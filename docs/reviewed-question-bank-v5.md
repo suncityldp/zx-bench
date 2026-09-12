@@ -141,8 +141,8 @@ GitHub main 32fcd39 已含新版78题；旧导出仅存在于本地未提交文�
 - pnpm test：491个测试通过，包含全部78题契约、独立ISBN校验、单位/数量级反例、中文/科学计数等价、逻辑与最优化证书、合法过河路径、评分编排、退役HAL历史隔离与Judge异常恢复条件。pnpm build验证服务端和Web构建。
 - 自动测试中的Judge使用受控返回值，证明字段验证和合分路径；没有运行真实模型的全题盲评，不能据此声称语义Judge达到零误判。
 - 使用真实数据库的完整副本执行迁移，15,988条ScenarioResult和66条EvalRun逐行散列前后相同：96c1586d7e719b51d5e7fa6a7fce07210a9d426f785791013bafc5cf7be64cf3。
-- 迁移命令：node scripts/sync-reviewed-question-contracts.mjs <database-path>（只检查）；增加 --apply 才写入。应用前自动创建SQLite一致性备份，仅更新112道题定义、退役HAL旧题，保留历史结果与运行数据。备份包含私有数据库内容，不得提交仓库。
-- 新幻觉seed直接读取benchmark.json，避免seed和导出题库成为两个不同真源；全库仍为574道有效题，题量不变不代表内容未变化，部署必须核验ID、版本与散列。
+- 迁移命令：node scripts/sync-reviewed-question-contracts.mjs <database-path>（只检查）；增加 --apply 才写入。应用前自动创建SQLite一致性备份。当前脚本同步数学34题、幻觉78题和数据抽取56题，共168道已复核定义，并退役HAL旧题；历史结果与运行数据保持不变。备份包含私有数据库内容，不得提交仓库。
+- 新幻觉 seed 直接读取 benchmark.json，避免 seed 和导出题库成为两个不同真源；该版本发布时全库为574道有效题。数据抽取 v3 扩充后当前题库为595道，部署仍必须核验 ID、版本与散列。
 
 ## 主要外部依据
 

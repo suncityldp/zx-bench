@@ -6,6 +6,7 @@
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { completionToken, completed } from './completion.js';
 import { fileURLToPath } from 'node:url';
 
 export interface JavaFixture {
@@ -15,6 +16,7 @@ export interface JavaFixture {
 }
 
 export interface JavaRunResult {
+  compiled: boolean;
   success: boolean;
   stdout: string;
   stderr: string;
@@ -100,7 +102,8 @@ export async function runJavaTestsInContainer(
   const harness = buildJavaHarness(sourceCode, testCases, fixture);
   const libs = javaLibsDir();
   const cp = '/libs/' + JUNIT_JAR + ':/libs/' + HAMCREST_JAR;
-  const shell = 'mkdir -p /tmp/classes && javac -d /tmp/classes -cp ' + cp + ' HiddenTest.java && java -Duser.home=/tmp -Djava.io.tmpdir=/tmp -cp /tmp/classes:' + cp + ' org.junit.runner.JUnitCore HiddenTest';
+  const compileToken = completionToken();
+  const shell = 'mkdir -p /tmp/classes && javac -d /tmp/classes -cp ' + cp + ' HiddenTest.java && printf "\\n' + compileToken + '\\n" && java -Duser.home=/tmp -Djava.io.tmpdir=/tmp -cp /tmp/classes:' + cp + ' org.junit.runner.JUnitCore HiddenTest';
   const res = await runInContainer({
     image: JAVA_IMAGE,
     command: ['sh', '-c', shell],
@@ -118,23 +121,27 @@ export async function runJavaTestsInContainer(
   // 否则该噪音会让 envErrorOf 误判、把 Java 题的编译/测试分整块丢掉。
   const stderr = stripMavenEntrypointNoise(res.stderr);
 
-  const tests: { name: string; passed: boolean }[] = testCases.map((_, i) => ({ name: 't' + i, passed: true }));
+  const tests: { name: string; passed: boolean }[] = testCases.map((_, i) => ({ name: 't' + i, passed: false }));
   const out = res.stdout + '\n' + stderr;
-  const okMatch = /OK \((\d+) tests?\)/.test(out);
+  const okMatches = [...out.matchAll(/^OK \((\d+) tests?\)\s*$/gm)];
+  const failSummaries = [...out.matchAll(/^Tests run: (\d+),\s+Failures: (\d+)\s*$/gm)];
   const failNames = new Set<string>();
   for (const ln of out.split('\n')) {
     const m = ln.match(/^\d+\)\s+(t\d+)\(/);
     if (m) failNames.add(m[1]);
   }
-  if (!okMatch) {
-    for (const t of tests) if (failNames.has(t.name)) t.passed = false;
-    if (!/Tests run:/.test(out)) {
-      for (const t of tests) t.passed = false;
-    }
+  if (!res.timedOut && res.exitCode === 0 && okMatches.length === 1
+      && Number(okMatches[0][1]) === tests.length && failNames.size === 0 && failSummaries.length === 0) {
+    for (const t of tests) t.passed = true;
+  } else if (!res.timedOut && res.exitCode === 1 && okMatches.length === 0 && failSummaries.length === 1
+      && Number(failSummaries[0][1]) === tests.length && Number(failSummaries[0][2]) === failNames.size
+      && failNames.size > 0 && [...failNames].every(name => tests.some(t => t.name === name))) {
+    for (const t of tests) t.passed = !failNames.has(t.name);
   }
 
   return {
-    success: res.success,
+    compiled: completed(res.stdout, compileToken),
+    success: res.success && tests.length > 0 && tests.every(t => t.passed),
     stdout: res.stdout,
     stderr,
     exitCode: res.exitCode,

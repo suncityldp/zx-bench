@@ -65,7 +65,7 @@ async function run(requirements: unknown, output: string): Promise<Map<string, V
   const evidence = (res.evidence as string[]) ?? [];
   const verdicts = new Map<string, Verdict>();
   for (const line of evidence) {
-    const m = /^\[(PASS|FAIL)\]\s+([^:]+):\s*([\s\S]*)$/.exec(line);
+    const m = /^\[(PASS|FAIL|UNMEASURED)\]\s+([^:]+):\s*([\s\S]*)$/.exec(line);
     if (m) verdicts.set(m[2].trim(), { passed: m[1] === 'PASS', detail: m[3].trim() });
   }
   return verdicts;
@@ -144,9 +144,8 @@ describe('checkSentenceCount: 句子以句末标点为准', () => {
     expect(v.passed).toBe(true);
   });
 
-  it('末尾无标点的残句也计入（与「以标点结尾算一句」不冲突）', async () => {
-    // 「你好。」+「世界」→ 划成 2 段，第 2 段无标点但非空
-    expect((await checkOne('sentence_count', { count: 2 }, '你好。世界')).passed).toBe(true);
+  it('末尾无标点的残句不满足「以标点结尾算一句」', async () => {
+    expect((await checkOne('sentence_count', { count: 2 }, '你好。世界')).passed).toBe(false);
   });
 });
 

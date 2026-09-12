@@ -29,7 +29,7 @@ interface ConstraintResult {
 
 export const instructionChecklistEvaluator: Evaluator = {
   name: 'instruction_checklist',
-  version: 'instruction_checklist_v4',
+  version: 'instruction_checklist_v5',
   aliases: ['instruction_checklist_v3'],
 
   async evaluate(
@@ -44,6 +44,16 @@ export const instructionChecklistEvaluator: Evaluator = {
     const requirements = (scenario.requirements as unknown as Record<string, unknown>) || {};
     const constraints: Constraint[] = Array.isArray(requirements.constraints)
       ? requirements.constraints as Constraint[] : [];
+    const invalid = constraints.length === 0 || constraints.some(c => !c || !c.id || !c.type
+      || !c.check || typeof c.check !== 'object' || Array.isArray(c.check))
+      || new Set(constraints.map(c => c?.id)).size !== constraints.length;
+    if (invalid) {
+      const failure = configurationFailure('Missing/malformed constraints or duplicate IDs');
+      failure.criterionResults = (constraints.length ? constraints : [null]).map((c, i) => ({
+        id: c?.id || `invalid-${i}`, description: c?.description || 'Invalid constraint', critical: c?.critical === true,
+        status: 'unmeasured', source: 'unmeasured', evidence: 'CONFIG_ERROR: missing/malformed configuration or duplicate ID' }));
+      return failure;
+    }
 
     // ===== 1. 格式化基础检查 =====
     if (!modelOutput || modelOutput.trim().length === 0) {
@@ -80,6 +90,15 @@ export const instructionChecklistEvaluator: Evaluator = {
     for (const constraint of constraints) {
       const result = checkConstraint(modelOutput, constraint);
       results.push(result);
+    }
+
+    const configurationErrors = results.filter(r => /UNKNOWN_CONSTRAINT_TYPE:|INVALID_REGEX:|NO_\w+_SPECIFIED|specified — skipped|配置不完整|CONFIG_ERROR:|needs at least two steps/.test(r.detail));
+    if (configurationErrors.length) {
+      const failure = configurationFailure(configurationErrors.map(r => r.id + ': ' + r.detail).join('; '));
+      failure.criterionResults = results.map((r, i) => ({ id: r.id, description: r.description, critical: constraints[i].critical === true,
+        status: 'unmeasured', source: 'unmeasured', evidence: r.detail }));
+      failure.evidence!.push(...results.map(r => `[UNMEASURED] ${r.id}: ${r.description} — ${r.detail}`));
+      return failure;
     }
 
     const passedCount = results.filter((r) => r.passed).length;
@@ -146,6 +165,11 @@ export const instructionChecklistEvaluator: Evaluator = {
 function checkConstraint(text: string, constraint: Constraint): ConstraintResult {
   const { id, type, description, check } = constraint;
 
+  if (['count', 'min', 'max', 'minLength', 'maxLength', 'minRows', 'maxRows', 'exactRows', 'consecutive'].some(k =>
+    check[k] !== undefined && (typeof check[k] !== 'number' || !Number.isFinite(check[k])))) {
+    return { id, type, description, passed: false, detail: 'CONFIG_ERROR: numeric limits must be finite numbers' };
+  }
+
   switch (type) {
     case 'exact_count':
       return checkExactCount(text, id, type, description, check);
@@ -179,6 +203,10 @@ function checkConstraint(text: string, constraint: Constraint): ConstraintResult
       return checkLineStructure(text, id, type, description, check);
     case 'json_valid':
       return checkJsonValid(text, id, type, description, check);
+    case 'paragraph_structure':
+    case 'sentence_structure':
+    case 'section_reference':
+      return checkRelationalStructure(text, id, type, description, check);
     default:
       // 未实现的约束类型：显式 FAIL（不再静默 PASS，防止约束形同虚设）
       return {
@@ -346,8 +374,9 @@ function checkSentenceCount(
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
   const actualCount = sentences.length;
+  const terminated = check.newlineAsSeparator === true || /[。！？!?][”’」』"']*\s*$/.test(text);
 
-  const passed = actualCount === expectedCount;
+  const passed = terminated && actualCount === expectedCount;
   return {
     id, type, description, passed,
     detail: passed
@@ -371,7 +400,7 @@ function checkInclusion(
   const missingPatterns: string[] = [];
 
   for (const pattern of patterns) {
-    if (!containsPositivePattern(text, pattern)) {
+    if (!(check.matchMode === 'literal' ? text.includes(pattern) : containsPositivePattern(text, pattern))) {
       missingPatterns.push(pattern);
     }
   }
@@ -394,6 +423,57 @@ function checkInclusion(
       ? `Found at least one of ${patterns.length} patterns`
       : `None of the ${patterns.length} required patterns found`,
   };
+}
+
+function configurationFailure(detail: string): Partial<ScenarioResult> {
+  return { totalScore: 0, axisCoverage: 0,
+    axisEvidence: { format_valid: 'unmeasured', instruction_compliance: 'unmeasured' },
+    environmentError: true, humanReviewRequired: true, humanReviewNotes: '题集约束配置错误，不作为模型能力失败',
+    safetyLevel: 'safe', evidence: ['CONFIG_ERROR: ' + detail] };
+}
+
+/** Structural relations are checked against the response itself, never rubric-word mentions. */
+function checkRelationalStructure(text: string, id: string, type: string, description: string, check: Record<string, unknown>): ConstraintResult {
+  const fail = (detail: string): ConstraintResult => ({ id, type, description, passed: false, detail });
+  const pass = (): ConstraintResult => ({ id, type, description, passed: true, detail: 'Structural relations satisfied' });
+  const splitSentences = (s: string) => s.match(/[^。！？!?]+[。！？!?]/gu)?.map(v => v.trim()) ?? [];
+  if (type === 'paragraph_structure') {
+    if (!Array.isArray(check.starts) || !check.starts.length || !Number.isInteger(check.sentencesPerParagraph)
+        || !Number.isInteger(check.maxSentenceChars)) return fail('CONFIG_ERROR: starts/sentencesPerParagraph/maxSentenceChars required');
+    const paragraphs = text.trim().replace(/\r\n?/g, '\n').split(/\n[ \t]*\n+/);
+    if (paragraphs.length !== check.starts.length) return fail('Incorrect paragraph count');
+    for (const [i, p] of paragraphs.entries()) {
+      if (!p.trim().startsWith(String(check.starts[i]))) return fail(`Paragraph ${i + 1}: incorrect first word`);
+      const sentences = splitSentences(p);
+      if (sentences.length !== check.sentencesPerParagraph || !/[。！？!?]\s*$/.test(p)) return fail(`Paragraph ${i + 1}: incorrect sentence structure`);
+      if (sentences.some(s => [...s.replace(/[\p{P}\s]/gu, '')].length > Number(check.maxSentenceChars))) return fail(`Paragraph ${i + 1}: sentence too long`);
+      if (/[^\p{Script=Han}\p{P}\s]/u.test(p)) return fail(`Paragraph ${i + 1}: disallowed character`);
+    }
+    return pass();
+  }
+  if (type === 'sentence_structure') {
+    if (!Number.isInteger(check.count) || !Number.isInteger(check.hanChars)) return fail('CONFIG_ERROR: count/hanChars required');
+    const sentences = text.trim().split('。');
+    if (sentences.pop()?.trim() !== '' || sentences.length !== check.count) return fail('Expected period-terminated sentences');
+    const content = sentences.map(s => s.replace(/[\p{P}\s]/gu, ''));
+    if (content.some(s => !/^\p{Script=Han}+$/u.test(s) || [...s].length !== check.hanChars)) return fail('Incorrect Han character count or non-Han content');
+    if (check.lastSuffix && !content.at(-1)?.endsWith(String(check.lastSuffix))) return fail('Incorrect final sentence suffix');
+    if (check.secondContainsFourthFirst === true && !content[1]?.includes([...content[3] ?? ''][0] ?? '\0')) return fail('Sentence 2 does not contain sentence 4 first character');
+    return pass();
+  }
+  // Contract: A：title / B：title / C：title headings, two prose sentences each;
+  // exactly one two-line fenced code block in B, excluded from sentence counting.
+  const headings = [...text.matchAll(/^([ABC])[：:]([^\r\n]+)\r?$/gm)];
+  if (headings.map(h => h[1]).join('') !== 'ABC' || text.slice(0, headings[0]?.index).trim()) return fail('Expected ordered A/B/C headings without preface');
+  const bodies = headings.map((h, i) => text.slice(h.index! + h[0].length, headings[i + 1]?.index ?? text.length).trim());
+  const blocks = [...text.matchAll(/```[^\r\n]*\r?\n([\s\S]*?)\r?\n```/g)];
+  if (blocks.length !== 1 || !bodies[1].includes(blocks[0][0]) || blocks[0][1].split(/\r?\n/).length !== 2) return fail('B must contain exactly one two-line code block');
+  const prose = bodies.map(b => b.replace(/```[^\r\n]*\r?\n[\s\S]*?\r?\n```/g, '').trim());
+  const sentences = prose.map(splitSentences);
+  if (prose.some((p, i) => sentences[i].length !== 2 || !/[。！？!?]\s*$/.test(p) || p.includes('```'))) return fail('Each section requires two completed prose sentences');
+  if (!prose[0].includes(headings[2][2].trim())) return fail('A does not reference the actual C title');
+  if (!sentences[2].includes(sentences[0][0])) return fail('C does not repeat the actual first sentence of A');
+  return pass();
 }
 
 /**
@@ -1033,6 +1113,9 @@ function checkNumericSequence(
   if (minRows > 0 && lines.length < minRows) violations.push(`expected at least ${minRows} non-empty lines, got ${lines.length}`);
   if (maxRows < Infinity && lines.length > maxRows) violations.push(`expected at most ${maxRows} non-empty lines, got ${lines.length}`);
   if (values.length !== lines.length) violations.push('some lines have no parseable numeric value');
+  if (!values.length) violations.push('No numeric lines');
+  if (check.firstLessThan !== undefined && !(values[0] < Number(check.firstLessThan))) violations.push('First value violates exclusive upper bound');
+  if (check.lastGreaterThan !== undefined && !(values.at(-1)! > Number(check.lastGreaterThan))) violations.push('Last value violates exclusive lower bound');
 
   const order = String(check.order ?? '').toLowerCase();
   if (order !== 'asc' && order !== 'desc' && check.consecutive === undefined) {

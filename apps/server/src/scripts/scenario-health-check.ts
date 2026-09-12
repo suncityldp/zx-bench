@@ -54,19 +54,19 @@ const jsonOnly = process.argv.includes('--json-only');
  *  注意：与 server/index.ts registerEvaluator() 列表一致 */
 const REGISTERED_EVALUATORS: Array<{ name: string; version: string; aliases?: string[]; compatibleVersions?: string[] }> = [
   { name: 'bug_finding', version: '3.0.0' },
-  { name: 'code_repair', version: '3.3.0', aliases: ['3.1.0', '3.0.0', 'code_repair_v3'], compatibleVersions: ['3.2.0', '3.1.0', '3.0.0', 'code_repair_v3'] },
+  { name: 'code_repair', version: '3.4.0', aliases: ['3.1.0', '3.0.0', 'code_repair_v3'] },
   { name: 'project_repair', version: '1.3.0', compatibleVersions: ['1.2.0'] },
   { name: 'schema_compliance', version: 'schema_compliance_v3', aliases: ['structured_output_v2'], compatibleVersions: ['schema_compliance_v2'] },
-  { name: 'json_atomic_fields', version: 'json_atomic_v2' },
+  { name: 'json_atomic_fields', version: 'json_atomic_v3', compatibleVersions: ['json_atomic_v2'] },
   { name: 'exact_answer_line', version: 'exact_answer_v4', aliases: ['exact_answer_v3'], compatibleVersions: ['exact_answer_v2', 'exact_answer_v3'] },
-  { name: 'instruction_checklist', version: 'instruction_checklist_v4', aliases: ['instruction_checklist_v3'] },
+  { name: 'instruction_checklist', version: 'instruction_checklist_v5', aliases: ['instruction_checklist_v3'] },
   { name: 'canary_authority', version: 'canary_authority_v4' },
   { name: 'tool_call_trace', version: 'tool_trace_v4', aliases: ['tool_trace_v3'] },
   { name: 'agent_trace', version: 'agent_trace_v5' },
   { name: 'cli_command', version: 'cli_command_v4', aliases: ['cli_command_v1', 'cli_command_v2'], compatibleVersions: ['cli_command_v1', 'cli_command_v2'] },
   { name: 'hallucination_resistance', version: 'hallucination_v5', aliases: ['hallucination_v4', 'hallucination_v3', 'hallucination_v2', 'hallucination_v1'], compatibleVersions: ['hallucination_v4', 'hallucination_v3', 'hallucination_v2', 'hallucination_v1'] },
   { name: 'sandbox', version: '1.0.0' },
-  { name: 'llm_judge', version: '1.0.0' },
+  { name: 'llm_judge', version: '2.0.0' },
 ];
 
 /** instructionChecklist.ts 已实现的 constraint 类型 */
@@ -75,6 +75,7 @@ const IMPLEMENTED_CONSTRAINT_TYPES = new Set([
   'exclusion', 'english_free', 'length', 'format', 'exact_order',
   'exact_word', 'conflict_resolution', 'numeric_column', 'numeric_sequence',
   'line_structure', 'json_valid', 'ordered_inclusion',
+  'paragraph_structure', 'sentence_structure', 'section_reference',
 ]);
 
 /** codeRepair.ts 可沙箱执行的语言（python 需解释器可用） */
@@ -261,7 +262,9 @@ async function main() {
       const lang = (r.language || '').toLowerCase();
       let testCount = 0;
       try { testCount = JSON.parse(r.hiddenTests || '[]').length; } catch { /* ignore */ }
-      const executable = EXECUTABLE_LANGS.has(lang);
+      const containerLang = ['go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash'].includes(lang);
+      const executable = EXECUTABLE_LANGS.has(lang) || (containerLang && !!reqObj?.fixture)
+        || reqObj?.tsan === true || reqObj?.miri === true || r.grader === 'project_repair';
       const compilable = COMPILE_CHECK_LANGS.has(lang);
       if (!executable && testCount > 0) {
         // 环境限制项：可编译语言有 compileCheck + AI Judge 升级兜底（设计内降级）；纯静态语言仅弱证据。

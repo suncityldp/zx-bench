@@ -26,6 +26,30 @@ function readRequirements(scenario: Scenario): Record<string, unknown> {
   return {};
 }
 
+function jsonType(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value === 'number' && Number.isFinite(value) ? 'number' : typeof value;
+}
+
+function frozenTypes(value: unknown, path = '$', out: Record<string, string> = {}): Record<string, string> {
+  out[path] = jsonType(value);
+  if (Array.isArray(value)) value.forEach((item, index) => frozenTypes(item, path === '$' ? String(index) : `${path}.${index}`, out));
+  else if (value !== null && typeof value === 'object') {
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) frozenTypes(item, path === '$' ? key : `${path}.${key}`, out);
+  }
+  return out;
+}
+
+function frozenLeaves(value: unknown, path = '$'): string[] {
+  if (Array.isArray(value)) return value.length ? value.flatMap((item, index) => frozenLeaves(item, path === '$' ? String(index) : `${path}.${index}`)) : [path];
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>);
+    return entries.length ? entries.flatMap(([key, item]) => frozenLeaves(item, path === '$' ? key : `${path}.${key}`)) : [path];
+  }
+  return [path];
+}
+
 export function validateScenario(
   scenario: Scenario,
   options: ValidateScenarioOptions = {},
@@ -75,6 +99,31 @@ export function validateScenario(
   for (const field of contract.requiredFields) {
     if (!reqKeys.includes(field)) {
       push('error', 'MISSING_REQUIRED', `缺少必需字段 "${field}"`, `requirements.${field}`);
+    }
+  }
+
+  // 4b. 数据抽取 v3 的金标与类型契约必须完整、自洽并显式冻结。
+  if (scenario.grader === 'json_atomic_fields' && scenario.graderVersion === 'json_atomic_v3') {
+    if (!Object.hasOwn(requirements, 'expected')) push('error', 'DE_EXPECTED_MISSING', 'data extraction v3 缺少冻结 expected', 'requirements.expected');
+    const required = requirements.requiredFields;
+    const types = requirements.fieldTypes;
+    if (!Array.isArray(required) || required.length === 0 || required.some((path) => typeof path !== 'string')) {
+      push('error', 'DE_REQUIRED_FIELDS_INVALID', 'requiredFields 必须是非空字符串路径数组', 'requirements.requiredFields');
+    }
+    if (!types || typeof types !== 'object' || Array.isArray(types)) {
+      push('error', 'DE_FIELD_TYPES_INVALID', 'fieldTypes 必须是路径到 JSON 类型的对象', 'requirements.fieldTypes');
+    } else if (Object.hasOwn(requirements, 'expected')) {
+      const derivedTypes = frozenTypes(requirements.expected);
+      const suppliedTypes = types as Record<string, unknown>;
+      if (JSON.stringify(suppliedTypes) !== JSON.stringify(derivedTypes)) {
+        push('error', 'DE_FIELD_TYPES_DRIFT', 'fieldTypes 与冻结 expected 的实际类型不一致', 'requirements.fieldTypes');
+      }
+      if (Array.isArray(required) && JSON.stringify(required) !== JSON.stringify(frozenLeaves(requirements.expected))) {
+        push('error', 'DE_REQUIRED_FIELDS_DRIFT', 'requiredFields 与冻结 expected 的叶路径不一致', 'requirements.requiredFields');
+      }
+    }
+    if (requirements.outputPolicy !== 'json_only' || requirements.allowAdditionalFields !== false || scenario.outputPolicy !== 'raw_only') {
+      push('error', 'DE_OUTPUT_POLICY_INVALID', 'v3 必须使用 json_only、禁止额外字段且场景 outputPolicy=raw_only', 'requirements.outputPolicy');
     }
   }
 

@@ -103,7 +103,7 @@ describe('restored math independent oracles', () => {
     }
     const metadata=JSON.parse(readFileSync(new URL('../../../../data/scenarios/benchmark-meta.json',import.meta.url),'utf8'));
     expect(metadata.count).toBe(bank.filter(s=>s.status==='valid').length);
-    expect(metadata).toMatchObject({count:574,ambiguousCount:0,reviewCount:0,dimensions:{reasoning_math:34}});
+    expect(metadata).toMatchObject({count:595,ambiguousCount:0,reviewCount:0,dimensions:{reasoning_math:34,data_extraction:56}});
   });
 
   it('targeted sync previews only the requested four and rejects invalid subsets', () => {

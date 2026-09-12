@@ -2,22 +2,22 @@
 
 [中文文档](README.md) · English
 
-> Run any large language model (local GGUF / Ollama / OpenAI-compatible API) through **574 benchmark questions** across 10 dimensions (652 total bank size; 78 retired questions archived under data/scenarios/archive/) on a single machine — producing reproducible composite scores, dimension radar, leaderboards, AI deep-dive reports and cost-effectiveness analysis. Programming questions are **actually compiled and executed with hidden tests inside Docker containers**, so scores reflect real code behavior, not text similarity.
+> Run any large language model (local GGUF / Ollama / OpenAI-compatible API) through **595 benchmark questions** across 10 dimensions (673 total bank size; 78 retired questions archived under data/scenarios/archive/) on a single machine — producing reproducible composite scores, dimension radar, leaderboards, AI deep-dive reports and cost-effectiveness analysis. Programming questions are **actually compiled and executed with hidden tests inside Docker containers**, so scores reflect real code behavior, not text similarity.
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
 ## Highlights
 
 - **10 capability dimensions**: programming, reasoning & math, safety & authority, deep CLI tasks, data extraction, agent workflow, instruction following, tool/CLI workflow, hallucination resistance, structured output.
-- **574 evaluable benchmark questions** (652 lifetime bank, 78 retired archived): difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
-- **Real code execution**: JS/TS/Python run in a subprocess sandbox; Go/Java/C/C++/Rust/PHP/C#/Bash/SQL run in Docker containers with real compile + hidden-test execution (ASan for memory errors, JUnit for Java, race detector for concurrency, SQLite for queries). The test_pass axis is the actual test pass rate — no keyword guessing.
+- **595 evaluable benchmark questions** (673 lifetime bank, 78 retired archived): difficulty-graded (easy/medium/hard/adversarial), version-controlled (per-question scenarioHash, versioned benchmark-meta.json).
+- **Real code execution**: JS/TS/Python use containers by default; other supported languages execute according to their fixtures. Missing behavioral tests remain unmeasured. Memory/race checks are opt-in per fixture, not universally enabled.
 - **no_bug traps**: some code is already correct; the model must recognize no-bug instead of forcing a fix (false fixes score 0).
 - **Deterministic scoring + AI Judge dual channel**: rule-based evaluators score first; an AI Judge re-scores semantic items with coverage-aware weight handoff.
 - **Composite score (difficulty-weighted + dimension-weighted)**: harder questions weigh more, dimensions weighted by importance.
 - **Anti-tailspin**: hard caps on reasoning-token budget, a per-question hard time limit (300s default), fail-fast on limit.
 - **Live monitoring + resume**: WebSocket progress, pause/resume/cancel, per-question retry, fork dimensions.
 - **Reports & leaderboards**: dimension charts, AI deep-dive reports, model leaderboard, cost-effectiveness scatter.
-- **Regression tests + CI**: 37 unit tests on scoring/aggregation/contract cores, GitHub Actions build+test.
+- **Regression tests + CI**: automated regression coverage for scoring, aggregation, gold answers and contracts, with GitHub Actions build+test.
 
 ---
 
@@ -27,15 +27,15 @@ ZxBench programming questions do not judge code by keyword similarity — the mo
 
 | Language | Execution backend | Verification |
 |----------|-------------------|--------------|
-| JavaScript / TypeScript | subprocess sandbox (type annotations stripped) | hidden-test assertions |
-| Python | subprocess sandbox | assert |
-| Go | golang:1.21 container | go test (race detector for concurrency) |
-| Java | eclipse-temurin:17-jdk-alpine container | javac + JUnit |
-| C / C++ | gcc:13 container | -fsanitize=address for overflow/dangling |
-| Rust | rust:1.75 container | rustc + assert (borrow error = compile failure) |
-| PHP | php:8.2-cli container | assert (mbstring built-in) |
-| C# | mono:6.12 container | compile + custom Assert |
-| Bash | bash:5 container | assertion via exit code |
+| JavaScript / TypeScript | node:20-alpine container | assertions + completion evidence; separate strict type tests |
+| Python | python:3.12-alpine container | syntax check, assert + completion evidence |
+| Go | zxbench/go:1.21-gcc | compile test binary, run fixed test inventory; optional race detector |
+| Java | maven:3.9-eclipse-temurin-17-alpine | javac + JUnit; complete report/exit validation |
+| C / C++ | zxbench/cpp:gcc13-valgrind | assertions; optional fixture.memoryCheck=valgrind |
+| Rust | rust:1.75-alpine | rustc + assert; distinct compile/runtime failures |
+| PHP | php:8.2-cli-alpine | explicitly enabled assertions |
+| C# | .NET SDK 8.0-alpine | dotnet build + custom Assert |
+| Bash | bash:5 | -e/pipefail, syntax check + completion evidence |
 | SQL | node:22-alpine container | node:sqlite schema+seed+query+result-set diff (EXPLAIN plan check for perf) |
 
 Beyond regular fix-the-bug questions, the programming dimension also includes:
@@ -44,7 +44,11 @@ Beyond regular fix-the-bug questions, the programming dimension also includes:
 - **plan questions**: migration review / incident triage (zero-downtime column rename, p99 latency diagnosis), scored by step checklist, in the instruction-following dimension.
 - **implementation questions**: complete a given signature (e.g. safeParseInt, Top-N query).
 
-Every executable question ships a referenceSolution plus fixture (compile unit / dependency stubs / DB schema+seed), and passes a two-way gate: the bug version must fail, the reference solution must pass.
+Run `pnpm test:containers` for real positive/negative controls across 12 languages. This verifies runners, not every historical question's gold answer: reference-solution/fixture coverage remains incomplete. Containers default to non-root, no network and a read-only workspace; some builds require writable workspaces. The root filesystem is not universally read-only, and completion markers do not provide an anti-tampering boundary.
+
+### 2026-09-12 execution and review update
+
+Frozen 171 current contracts with `code_repair@3.4.0`, `instruction_checklist_v5` and `llm_judge@2.0.0`. Structural relations replace keyword proxies in targeted instruction questions. PR review requires strict JSON, file binding and original diff evidence; unmatched findings or Judge failures require review. Historical scores are not overwritten or silently migrated. See [verification and limitations](docs/execution-instruction-pr-v2.md).
 
 ---
 
@@ -86,6 +90,10 @@ node scripts/seed-benchmark.mjs    # import into DB
 node scripts/export-scenarios.mjs # export benchmark.json + meta
 ```
 
+### Reviewed data-extraction v3 bank
+
+The data-extraction dimension now contains 56 reviewed questions: the original 35 were aligned with their scored fields and 21 medium/hard/adversarial cases were added. `json_atomic_v3` freezes the complete expected JSON, required leaf paths, every container/field type, JSON-only output, and a no-extra-fields policy. It is fully deterministic and does not call a Judge. See [the v3 review record](docs/data-extraction-v3-review.md).
+
 ---
 
 ## How the Composite Score Works
@@ -101,10 +109,10 @@ node scripts/export-scenarios.mjs # export benchmark.json + meta
 | safety_authority | 50 | 0.10 |
 | agent_workflow | 45 | 0.08 |
 | tool_cli_workflow | 56 | 0.07 |
-| data_extraction | 35 | 0.07 |
+| data_extraction | 56 | 0.07 |
 | cli_deep_tasks | 56 | 0.07 |
 | structured_output | 28 | 0.05 |
-| **Total** | **574** | |
+| **Total** | **595** | |
 
 ### Three-step scoring chain
 
@@ -199,7 +207,7 @@ apps/server/     # Fastify backend + API + Prisma
 packages/core/   # evaluation engine
 packages/types/  # shared types
 packages/utils/  # utilities
-data/scenarios/  # 574 evaluable benchmark questions (+ archive/ retired set)
+data/scenarios/  # 595 evaluable benchmark questions (+ archive/ retired set)
 data/java-libs/  # JUnit jars
 scripts/         # import/export scripts
 docs/            # specs (fixture-spec) & screenshots

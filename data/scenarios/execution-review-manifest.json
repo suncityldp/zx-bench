@@ -1,0 +1,1050 @@
+{
+  "version": "execution-review-2026-09-12",
+  "reviewType": "automated-contract-and-regression-audit",
+  "independentHumanReview": false,
+  "sourceHashNormalization": "UTF-8, CRLF to LF",
+  "sourceHashes": {
+    "packages/core/src/evaluators/codeRepair.ts": "58c734e41733501f71be9dbc572946d421512caa91ba41e33c77a3cd6fdaead2",
+    "packages/core/src/evaluators/instructionChecklist.ts": "eecfbd9d113d3382742e6e7568e4d630020d2c25f17747604f4f3c3a089f045c",
+    "packages/core/src/evaluators/llmJudge.ts": "d14a09509322560e5fb0b0deac882f6dbf8d01912ccb70bca493e4124b2294fc",
+    "packages/core/src/sandbox/index.ts": "7169364d3b3c0c8456c5ba44ef25c315ab983531632a416d147b1dd558d9a885",
+    "packages/core/src/execution/completion.ts": "bcf8833bd2eb9ecfced4f326ef0cc67294ab6311067e6cd610cdd326944edcb5",
+    "packages/core/src/execution/containerRunner.ts": "d84f3403d28ebcee1aa6e4f4a6b24a62870638ded4427ae131366dda6ec7a619",
+    "packages/core/src/execution/phpRunner.ts": "5b1202ccb3345679dd874ec96b502ed19ac545e80caf23c28e0a45ffc4ace1b1",
+    "packages/core/src/execution/bashRunner.ts": "fdffce118f87ff1d63c12ece13aeafbc25eee7e104becee4d5cf9d3b51344399",
+    "packages/core/src/execution/cRunner.ts": "7b5202cec6faa0de3fb6ef78e76dacd593e0d7a29a1239c56e76387320a06548",
+    "packages/core/src/execution/csharpRunner.ts": "98c918ec1725c6dcda6cbe5e7f52e6b1a7471e9b782f4224d2f8be269b01a40e",
+    "packages/core/src/execution/goRunner.ts": "bcbb4cfb705ec6a57dbd3f0191b0890b7f565be14a47b2659be180a2392def00",
+    "packages/core/src/execution/javaRunner.ts": "d75cdffc2d69c22b0a1c227768cf764712737132ddf9d9978e1e964581b04bc6",
+    "packages/core/src/execution/rustRunner.ts": "5156636ca58affa48a6466af676e1ecd96d50c7ab59105948fef62a59dc01aa9",
+    "packages/core/src/execution/sqlRunner.ts": "2725d37e58f43e3b5b5a78d35d17bce0ea6540a8f57b021ecfe51fcd69ad5371"
+  },
+  "scenarios": [
+    {
+      "id": "CP-L3-AW-PLAN-001",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "9f9671f68e403432"
+    },
+    {
+      "id": "CP-L3-AW-PLAN-002",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "f431a9f66dc1bf90"
+    },
+    {
+      "id": "IF-CN-001",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "62b925b38078ca14"
+    },
+    {
+      "id": "IF-CN-002",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "7b7fe809ef3a4f52"
+    },
+    {
+      "id": "IF-CN-003",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "e95fe01f38be0b51"
+    },
+    {
+      "id": "IF-CN-004",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "912ecac69bf19b32"
+    },
+    {
+      "id": "IF-CN-005",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "aa950d0f36f93d73"
+    },
+    {
+      "id": "IF-CN-006",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "cf046307c504a03e"
+    },
+    {
+      "id": "IF-CN-007",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "f1ffc0ae0501f3e8"
+    },
+    {
+      "id": "IF-CN-008",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "e8424a88ce950c13"
+    },
+    {
+      "id": "IF-CN-009",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "22ce12c34d9282b5"
+    },
+    {
+      "id": "IF-CN-010",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "59eab078f551264a"
+    },
+    {
+      "id": "IF-CN-011",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "8a38251b76d25706"
+    },
+    {
+      "id": "IF-CN-012",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "c0b18792ed75b970"
+    },
+    {
+      "id": "IF-CN-013",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "aac930b0045509ff"
+    },
+    {
+      "id": "IF-CN-014",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "f50bad6b561bc8a7"
+    },
+    {
+      "id": "IF-CN-015",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "855091262ab0a8dc"
+    },
+    {
+      "id": "IF-CN-016",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "120a7338b8695cb2"
+    },
+    {
+      "id": "IF-CN-017",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "6e80f9e58a774c43"
+    },
+    {
+      "id": "IF-CN-018",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "a98dfdeea13e5029"
+    },
+    {
+      "id": "IF-CN-019",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "fc34da26c8b46862"
+    },
+    {
+      "id": "IF-CN-020",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "04e794fb9bb4caac"
+    },
+    {
+      "id": "IF-CN-021",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "ea4a84b0189029e5"
+    },
+    {
+      "id": "IF-CN-022",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "df8b65d04ec07a75"
+    },
+    {
+      "id": "IF-CN-023",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "cf70fbc95e668d00"
+    },
+    {
+      "id": "IF-CN-024",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "177230aac0ae82f8"
+    },
+    {
+      "id": "IF-CN-025",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "8611f51bfd8efcb9"
+    },
+    {
+      "id": "IF-CN-026",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "b83a606d208c0a8f"
+    },
+    {
+      "id": "IF-CN-027",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "842b7918bbbb1db5"
+    },
+    {
+      "id": "IF-CN-028",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "d3a57c1194728b89"
+    },
+    {
+      "id": "IF-CN-029",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "2fdbc51ca4f37282"
+    },
+    {
+      "id": "IF-CN-030",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "7e6ba33c80c0929c"
+    },
+    {
+      "id": "IF-CN-031",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "1e84e3bd41eb8b3b"
+    },
+    {
+      "id": "IF-CN-032",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "a1deb887b705d749"
+    },
+    {
+      "id": "IF-CN-033",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "22c91fb42574c3ff"
+    },
+    {
+      "id": "IF-CN-034",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "b231cf6fdbde65e5"
+    },
+    {
+      "id": "IF-CN-035",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "497a74f8df20473a"
+    },
+    {
+      "id": "IF-CN-036",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "160842f298a42d7f"
+    },
+    {
+      "id": "IF-CN-037",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "5fc5d7cb38bfc512"
+    },
+    {
+      "id": "IF-CN-038",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "b8cc22f338a209ad"
+    },
+    {
+      "id": "IF-CN-039",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "c7e706bfd4ba6061"
+    },
+    {
+      "id": "IF-CN-040",
+      "grader": "instruction_checklist",
+      "graderVersion": "instruction_checklist_v5",
+      "scenarioHash": "09b204c0f5b268b5"
+    },
+    {
+      "id": "CP-L1-GO-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "1ceb94f3887ca854"
+    },
+    {
+      "id": "CP-L1-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "802d27e767a300aa"
+    },
+    {
+      "id": "CP-L1-JS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "408b5bd7fea0fcaa"
+    },
+    {
+      "id": "CP-L1-JS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "d1753b3a5e9510f5"
+    },
+    {
+      "id": "CP-L1-JS-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c105b2d107fc1f76"
+    },
+    {
+      "id": "CP-L1-JS-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "a03fbdf3e19d7d51"
+    },
+    {
+      "id": "CP-L1-JS-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "3d31bb7383eaf202"
+    },
+    {
+      "id": "CP-L1-JV-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "11dde0adca130210"
+    },
+    {
+      "id": "CP-L1-PY-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "57fba4279bd08ad2"
+    },
+    {
+      "id": "CP-L1-PY-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "36d2de11161188cb"
+    },
+    {
+      "id": "CP-L1-PY-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "bb6522695c63267b"
+    },
+    {
+      "id": "CP-L1-PY-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "4e37ed034c909e5f"
+    },
+    {
+      "id": "CP-L1-PY-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "35e71b69196d25c5"
+    },
+    {
+      "id": "CP-L1-PY-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "d0c657c53b6bc7b7"
+    },
+    {
+      "id": "CP-L1-PY-007",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e40c36fc27892534"
+    },
+    {
+      "id": "CP-L1-PY-008",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "b110e54d53167658"
+    },
+    {
+      "id": "CP-L1-TS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "ee8ffafa3b901e55"
+    },
+    {
+      "id": "CP-L2-CC-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "deaaadb5ed47fdb2"
+    },
+    {
+      "id": "CP-L2-CS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "321ee0fec42adeed"
+    },
+    {
+      "id": "CP-L2-GO-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c429ecb7ea04ad3d"
+    },
+    {
+      "id": "CP-L2-GO-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e8bcf68f089c7b67"
+    },
+    {
+      "id": "CP-L2-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "15c22c98be939120"
+    },
+    {
+      "id": "CP-L2-JS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "182cf9ccdadfaaaf"
+    },
+    {
+      "id": "CP-L2-JS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "50f3bee5c8e9139d"
+    },
+    {
+      "id": "CP-L2-JS-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "089182b7071ece41"
+    },
+    {
+      "id": "CP-L2-JV-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "d3fa2c50ab53d6d2"
+    },
+    {
+      "id": "CP-L2-JV-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "f3b06c422365f805"
+    },
+    {
+      "id": "CP-L2-PHP-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "42089e5c696533c7"
+    },
+    {
+      "id": "CP-L2-PY-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "d5fafebed74a0350"
+    },
+    {
+      "id": "CP-L2-PY-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "217dbdb0a3ac5dbb"
+    },
+    {
+      "id": "CP-L2-PY-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "6f5499255ea3f9dc"
+    },
+    {
+      "id": "CP-L2-PY-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8444c7e667165079"
+    },
+    {
+      "id": "CP-L2-RS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "73bf15a030199dfb"
+    },
+    {
+      "id": "CP-L2-SQL-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "9e42e97a32edf2cf"
+    },
+    {
+      "id": "CP-L2-TD-GO-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c944dbda014f8a84"
+    },
+    {
+      "id": "CP-L2-TD-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8784f9074519a280"
+    },
+    {
+      "id": "CP-L2-TD-JS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "079e3f42a203911f"
+    },
+    {
+      "id": "CP-L2-TD-JS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "b0f1d122c046a827"
+    },
+    {
+      "id": "CP-L2-TD-JS-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "6abbfbba22d5325f"
+    },
+    {
+      "id": "CP-L2-TD-JS-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "be4f2afd610639c6"
+    },
+    {
+      "id": "CP-L2-TD-PY-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "382524c863b416e6"
+    },
+    {
+      "id": "CP-L2-TD-PY-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c722967b1af95a28"
+    },
+    {
+      "id": "CP-L2-TD-PY-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "7801649bd3e20aa0"
+    },
+    {
+      "id": "CP-L2-TD-PY-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "61ccdcbaeaf6ae42"
+    },
+    {
+      "id": "CP-L2-TS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "4fdf789eea70910b"
+    },
+    {
+      "id": "CP-L3-AW-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "7dbeb8aa01190e78"
+    },
+    {
+      "id": "CP-L3-AW-JS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "210637d8b9d530a5"
+    },
+    {
+      "id": "CP-L3-AW-JS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "21f426c3b9539f3f"
+    },
+    {
+      "id": "CP-L3-AW-JS-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "0c2dc69c1e43fe64"
+    },
+    {
+      "id": "CP-L3-AW-JS-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "5b8fdaac3bda5311"
+    },
+    {
+      "id": "CP-L3-AW-JS-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "bf696889512421d7"
+    },
+    {
+      "id": "CP-L3-AW-PY-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "4714196da0b79fe6"
+    },
+    {
+      "id": "CP-L3-AW-PY-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "fbb0df5646fa32a2"
+    },
+    {
+      "id": "CP-L3-CC-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "3f5244917785b082"
+    },
+    {
+      "id": "CP-L3-CC-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c6b983f9748427f7"
+    },
+    {
+      "id": "CP-L3-CC-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8a0eda0c5afa4d93"
+    },
+    {
+      "id": "CP-L3-CONC-GO-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "f71058800eccbe8a"
+    },
+    {
+      "id": "CP-L3-CONC-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "6994d4ad8f172d33"
+    },
+    {
+      "id": "CP-L3-CONC-JV-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "3c7ffab7b8d234aa"
+    },
+    {
+      "id": "CP-L3-CS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e589e18d0d6ba861"
+    },
+    {
+      "id": "CP-L3-CS-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "4e4f793a04c0de1a"
+    },
+    {
+      "id": "CP-L3-GO-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "908b29253c619636"
+    },
+    {
+      "id": "CP-L3-GO-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "815c80e8cf646371"
+    },
+    {
+      "id": "CP-L3-JS-010",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e2f0873229b4ffdf"
+    },
+    {
+      "id": "CP-L3-JV-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "ddc289e9b4f1f50b"
+    },
+    {
+      "id": "CP-L3-JV-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c14026b55edf3ad0"
+    },
+    {
+      "id": "CP-L3-JV-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "4e10599ccfc3abb5"
+    },
+    {
+      "id": "CP-L3-PERF-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "5e024ef9b9c1ad20"
+    },
+    {
+      "id": "CP-L3-PERF-PY-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "70ba5f72f3fc8a85"
+    },
+    {
+      "id": "CP-L3-PERF-SQL-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "862ee7f632dc9c13"
+    },
+    {
+      "id": "CP-L3-PHP-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "dd8447e6e30eb301"
+    },
+    {
+      "id": "CP-L3-PHP-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "98361b5f0706a46e"
+    },
+    {
+      "id": "CP-L3-PY-009",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "102023642df080ee"
+    },
+    {
+      "id": "CP-L3-PY-010",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "eb4960b2065e2c83"
+    },
+    {
+      "id": "CP-L3-PY-011",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "255bdf1a7432301d"
+    },
+    {
+      "id": "CP-L3-PY-012",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "3271c332c52751d1"
+    },
+    {
+      "id": "CP-L3-PY-013",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8f19abae8c3c7f04"
+    },
+    {
+      "id": "CP-L3-RS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "56f8adf90ca059a7"
+    },
+    {
+      "id": "CP-L3-RS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c93a6fca5d4687b6"
+    },
+    {
+      "id": "CP-L3-RS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "00a21824904f4f4b"
+    },
+    {
+      "id": "CP-L3-SEC-GO-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "ca4264689d7c53a0"
+    },
+    {
+      "id": "CP-L3-SEC-JS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "35d5736e47a55d2d"
+    },
+    {
+      "id": "CP-L3-SEC-JS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8cf1ef62b25c9542"
+    },
+    {
+      "id": "CP-L3-SEC-PY-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "282bb00240cb03ba"
+    },
+    {
+      "id": "CP-L3-SEC-PY-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8468e89ce470bc1c"
+    },
+    {
+      "id": "CP-L3-SEM-CS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "6e943bed2fabe60e"
+    },
+    {
+      "id": "CP-L3-SEM-CS-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "efa8ac316419827a"
+    },
+    {
+      "id": "CP-L3-SEM-CS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "749768cfb9a9f3a9"
+    },
+    {
+      "id": "CP-L3-SEM-JV-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "582f71565855403e"
+    },
+    {
+      "id": "CP-L3-SEM-JV-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "5cc50f5a8e3886b3"
+    },
+    {
+      "id": "CP-L3-SEM-JV-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8716bdd0f6e1cbfc"
+    },
+    {
+      "id": "CP-L3-SEM-PHP-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "776d08eefa44296e"
+    },
+    {
+      "id": "CP-L3-SEM-PHP-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "b8290ce39de7d8d6"
+    },
+    {
+      "id": "CP-L3-SEM-PHP-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "994eecc699b2e3ed"
+    },
+    {
+      "id": "CP-L3-SH-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "fd318de27caef17d"
+    },
+    {
+      "id": "CP-L3-SH-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c2aeda379375d888"
+    },
+    {
+      "id": "CP-L3-SH-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "6917ddbde2b2a482"
+    },
+    {
+      "id": "CP-L3-SH-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "28cca2904a6189cd"
+    },
+    {
+      "id": "CP-L3-SH-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "86ed1540192e3294"
+    },
+    {
+      "id": "CP-L3-SQL-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "0048a05ebc84fb7f"
+    },
+    {
+      "id": "CP-L3-SQL-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "baf468b49fba1674"
+    },
+    {
+      "id": "CP-L3-SQL-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "ba75c463aca0deab"
+    },
+    {
+      "id": "CP-L3-SQL-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "bb0ce1b571e63ced"
+    },
+    {
+      "id": "CP-L3-TS-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "c5c1dbdfa0d10d34"
+    },
+    {
+      "id": "CP-L3-TS-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "41d1e6bda5f04064"
+    },
+    {
+      "id": "CP-L3-TS-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "dea0f0a84febe201"
+    },
+    {
+      "id": "CP-L3-TS-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "2fb4cc4667991f53"
+    },
+    {
+      "id": "CP-L3-TS-007",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "1cc76bf784358fbe"
+    },
+    {
+      "id": "CR2-CC-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "5954e9ad3b03cb18"
+    },
+    {
+      "id": "CR2-CC-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e779562745ca37a2"
+    },
+    {
+      "id": "CR2-CC-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "823beb76dc2a78d0"
+    },
+    {
+      "id": "CR2-CC-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "eab24cf862142f73"
+    },
+    {
+      "id": "CR2-SH-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "d3fd7b4ce21e225b"
+    },
+    {
+      "id": "CS-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8fd6d504ab2aaf7f"
+    },
+    {
+      "id": "PH-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8d4820ee754845a0"
+    },
+    {
+      "id": "PR-ELITE-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e15f947d5aabe489"
+    },
+    {
+      "id": "PR-ELITE-002",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8d5fe2dae8a69d2b"
+    },
+    {
+      "id": "PR-ELITE-003",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8395229a6d714bd7"
+    },
+    {
+      "id": "PR-ELITE-004",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "e48e5bb7eed81c45"
+    },
+    {
+      "id": "PR-ELITE-005",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "8d6837c66a4ece2b"
+    },
+    {
+      "id": "PR-ELITE-006",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "19807d3b321ed635"
+    },
+    {
+      "id": "PR-ELITE-007",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "47f779c52c0a0bb5"
+    },
+    {
+      "id": "PR-ELITE-008",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "a8c34ed4ca81dcb8"
+    },
+    {
+      "id": "PR-ELITE-009",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "7cbb1f9c5e287c84"
+    },
+    {
+      "id": "PR-ELITE-010",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "2f4b1afb0ae8585b"
+    },
+    {
+      "id": "PR-ELITE-011",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "bd95a0fb3b7ec937"
+    },
+    {
+      "id": "PR-ELITE-012",
+      "grader": "llm_judge",
+      "graderVersion": "2.0.0",
+      "scenarioHash": "f9ef7f0e94b73066"
+    },
+    {
+      "id": "PR-ELITE-013",
+      "grader": "llm_judge",
+      "graderVersion": "2.0.0",
+      "scenarioHash": "f46df24e542f4496"
+    },
+    {
+      "id": "SH-001",
+      "grader": "code_repair",
+      "graderVersion": "3.4.0",
+      "scenarioHash": "afa1cc4b7bfef63f"
+    }
+  ]
+}

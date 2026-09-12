@@ -63,7 +63,7 @@ async function run(
   const evidence = (res.evidence as string[]) ?? [];
   const verdicts = new Map<string, Verdict>();
   for (const line of evidence) {
-    const m = /^\[(PASS|FAIL)\]\s+([^:]+):\s*([\s\S]*)$/.exec(line);
+    const m = /^\[(PASS|FAIL|UNMEASURED)\]\s+([^:]+):\s*([\s\S]*)$/.exec(line);
     if (m) verdicts.set(m[2].trim(), { passed: m[1] === 'PASS', detail: m[3].trim() });
   }
   return verdicts;

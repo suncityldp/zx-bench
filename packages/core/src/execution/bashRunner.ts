@@ -6,6 +6,7 @@
 
 import type { HiddenTestCase } from '@zxbench/types';
 import { runInContainer } from './containerRunner.js';
+import { completionToken, completed } from './completion.js';
 
 export interface BashFixture {
   /** 镜像，默认 bash:5 */
@@ -16,6 +17,7 @@ export interface BashFixture {
 }
 
 export interface BashRunResult {
+  compiled: boolean;
   success: boolean;
   stdout: string;
   stderr: string;
@@ -55,19 +57,24 @@ export async function runBashTestsInContainer(
   let allStderr = '';
   let exitCode = 0;
   let timedOut = false;
+  let compiled = testCases.length > 0;
   const startedAt = Date.now();
 
   for (let i = 0; i < testCases.length; i++) {
-    const harness = buildBashHarness(sourceCode, [testCases[i]], fixture);
+    const token = completionToken();
+    const harness = buildBashHarness(sourceCode, [{ ...testCases[i], testCode: `set -e -o pipefail\n${testCases[i].testCode}\nprintf '\\n${token}\\n'` }], fixture);
     const res = await runInContainer({
       image,
-      command: ['bash', 'main.sh'],
+      command: ['bash', '-c', `bash -n main.sh && printf '\\n${token}_COMPILED\\n' && bash -e -o pipefail main.sh`],
       files: [{ path: 'main.sh', content: harness['main.sh'] }],
       timeoutMs,
       memoryMb: 128,
       pidsLimit: 64,
     });
-    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut });
+    const didComplete = completed(res.stdout, token);
+    compiled = compiled && completed(res.stdout, token + '_COMPILED');
+    tests.push({ name: 't' + i, passed: res.exitCode === 0 && !res.timedOut && didComplete });
+    if (!didComplete && res.exitCode === 0) allStderr += '\nTEST_EXECUTION_INCOMPLETE: no completion evidence\n';
     allStdout += res.stdout;
     allStderr += res.stderr;
     if (res.exitCode !== 0) exitCode = res.exitCode;
@@ -75,7 +82,8 @@ export async function runBashTestsInContainer(
   }
 
   return {
-    success: tests.every((t) => t.passed),
+    compiled,
+    success: tests.length > 0 && tests.every((t) => t.passed),
     stdout: allStdout,
     stderr: allStderr,
     exitCode,

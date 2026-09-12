@@ -14,6 +14,7 @@
     "type-check": "pnpm -r run type-check",
     "pretest": "pnpm -r --filter \"./packages/*\" run build",
     "test": "vitest run",
+    "test:containers": "node scripts/test-containers.mjs",
     "eval:methods-v2": "pnpm --filter server exec tsx ../../packages/core/src/scripts/methods-v2.ts",
     "eval:methods-v2:test": "vitest run packages/core/src/evaluationLab/methodsV2",
     "eval:inspect": "pnpm --filter server exec tsx ../../packages/core/src/scripts/inspect-capability.ts",

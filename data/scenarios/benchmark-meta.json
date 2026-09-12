@@ -1,12 +1,12 @@
 {
- "version": "1.3.0",
- "count": 574,
+ "version": "1.5.0",
+ "count": 595,
  "retiredCount": 78,
- "totalCount": 652,
+ "totalCount": 673,
  "dimensions": {
   "agent_workflow": 45,
   "cli_deep_tasks": 56,
-  "data_extraction": 35,
+  "data_extraction": 56,
   "hallucination_resistance": 78,
   "instruction_following": 42,
   "program": 150,
@@ -18,9 +18,11 @@
  "retiredDimensions": {
   "hallucination_resistance": 78
  },
- "generatedAt": "2026-09-08T15:03:32.787Z",
- "validCount": 574,
+ "generatedAt": "2026-09-12T00:00:00.000+08:00",
+ "validCount": 595,
  "ambiguousCount": 0,
  "reviewCount": 0,
- "questionReview": "math-3.2-hallucination-5.0"
+ "questionReview": "math-3.2-hallucination-5.0",
+ "dataExtractionReview": "json-atomic-v3-56-reviewed",
+ "executionReview": "code-3.4-instruction-5-pr-2"
 }
