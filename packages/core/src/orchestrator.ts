@@ -28,6 +28,7 @@ import type {
   RuntimeEvaluation,
 } from '@zxbench/types';
 import { callModelWithRetry } from './model/caller.js';
+import { extractAnswerLine } from './evaluators/exactAnswerLine.js';
 import { buildOutputMetadata } from '@zxbench/utils';
 import { runTieredJudge, runJudgeEnsemble, computeJudgeScore, type JudgeOptions } from './judge/index.js';
 import { getEvaluator } from './evaluators/index.js';
@@ -444,7 +445,20 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
   let result: Partial<ScenarioResult>;
 
   if (evaluator) {
-    result = await evaluator.evaluate(scenario, modelResponse.content, outputMetadata, modelResponse);
+    // answerFirst 对齐：该约束注入 prompt 要求「先给最终答案再给原因」，与 exact_answer_line 的末行答案
+    // 契约方向相反。模型遵守 answerFirst 指令（首个非空行为 ANSWER 行且末行提取失败）时，把首行答案
+    // 规范化到末行，仅作为评分输入；modelResponse.content 原文保持不变，存储与判题审计不受影响。
+    let normalizedContent = modelResponse.content;
+    const effectiveConstraints = resolveConstraints(scenario, constraints);
+    if (effectiveConstraints.answerFirst && scenario.grader === 'exact_answer_line'
+      && extractAnswerLine(normalizedContent) === null) {
+      const lines = normalizedContent.split(/\r?\n/);
+      const firstAnswerIdx = lines.findIndex(l => /^[ \t]*(?:\*\*)?(?:ANSWER|最终答案|答案)(?::\*\*)?[ \t]*[:：]/i.test(l));
+      if (firstAnswerIdx >= 0) {
+        normalizedContent = [...lines.slice(0, firstAnswerIdx), ...lines.slice(firstAnswerIdx + 1), lines[firstAnswerIdx]].join('\n');
+      }
+    }
+    result = await evaluator.evaluate(scenario, normalizedContent, outputMetadata, modelResponse);
     // 沙箱探查摘要（存在则置顶，便于审计）
     if (sandboxSummary) {
       result.evidence = [sandboxSummary, ...(result.evidence || [])];
