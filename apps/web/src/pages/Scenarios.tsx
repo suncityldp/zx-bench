@@ -71,6 +71,9 @@ export default function Scenarios() {
   const [scenarios, setScenarios] = useState<ScenarioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dimensionFilter, setDimensionFilter] = useState<string>('');
+  const [searchText, setSearchText] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState<string[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorValue, setEditorValue] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export default function Scenarios() {
 
   const loadScenarios = () => {
     setLoading(true);
-    const url = dimensionFilter ? `/api/scenarios?dimension=${dimensionFilter}` : '/api/scenarios';
+    const url = '/api/scenarios';
     fetch(url)
       .then((r) => r.json())
       .then((res) => { if (res.success) setScenarios(res.data); })
@@ -89,7 +92,7 @@ export default function Scenarios() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadScenarios(); }, [dimensionFilter]);
+  useEffect(() => { loadScenarios(); }, []);
 
   const openNew = () => {
     setEditingId(null);
@@ -164,6 +167,12 @@ export default function Scenarios() {
   };
 
   const dimensions = [...new Set(scenarios.map((s) => s.dimension))];
+  const categories = [...new Set(scenarios.map((x) => x.category))].sort();
+  const filteredScenarios = scenarios.filter((x) =>
+    (!dimensionFilter || x.dimension === dimensionFilter) &&
+    (difficultyFilter.length === 0 || difficultyFilter.includes(x.difficulty)) &&
+    (!categoryFilter || x.category === categoryFilter) &&
+    (!searchText || x.id.toLowerCase().includes(searchText.toLowerCase())));
 
   return (
     <div>
@@ -177,12 +186,40 @@ export default function Scenarios() {
         >
           {dimensions.map((d) => <Select.Option key={d} value={d}>{d}</Select.Option>)}
         </Select>
+        <Select
+          placeholder="按难度筛选"
+          allowClear
+          mode="multiple"
+          style={{ width: 220 }}
+          onChange={(v) => setDifficultyFilter(v || [])}
+          options={[
+            { value: 'easy', label: '简单 easy' },
+            { value: 'medium', label: '中等 medium' },
+            { value: 'hard', label: '困难 hard' },
+            { value: 'adversarial', label: '对抗 adversarial' },
+          ]}
+        />
+        <Select
+          placeholder="按类别筛选"
+          allowClear
+          showSearch
+          style={{ width: 200 }}
+          onChange={(v) => setCategoryFilter(v || '')}
+        >
+          {categories.map((cat) => <Select.Option key={cat} value={cat}>{cat}</Select.Option>)}
+        </Select>
+        <Input.Search
+          placeholder="按 ID 搜索"
+          allowClear
+          style={{ width: 200 }}
+          onSearch={(v) => setSearchText(v.trim())}
+        />
         <Button type="primary" icon={<PlusOutlined />} onClick={openNew}>新增题目</Button>
         <Button icon={<CloudDownloadOutlined />} onClick={() => setPackOpen(true)}>导入测试包</Button>
       </Space>
 
       <Table
-        dataSource={scenarios}
+        dataSource={filteredScenarios}
         rowKey="id"
         loading={loading}
         pagination={{ pageSize: 20 }}

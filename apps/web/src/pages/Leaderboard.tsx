@@ -44,6 +44,10 @@ interface LeaderboardEntry {
   dimensionScores: Record<string, DimensionScore>;
   runCount: number;
   evaluatedAt: string;
+  totalInputTokens?: number;
+  totalOutputTokens?: number;
+  totalInferenceMs?: number;
+  aggregateTokensPerSecond?: number;
   latestRunId: string;
 }
 
@@ -227,6 +231,24 @@ export default function Leaderboard() {
           </div>
         );
       },
+    },
+    {
+        title: lang === 'en' ? 'Tokens / Speed' : 'Token / 速度',
+        key: 'tokensSpeed', width: 140,
+        render: (_: unknown, record: LeaderboardEntry) => {
+          const o = record.totalOutputTokens;
+          const tps = record.aggregateTokensPerSecond;
+          if (o == null && tps == null) return '-';
+          const f = (n?: number) => n == null ? '-' : (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`);
+          return (
+            <span style={{ fontSize: 11 }}>
+              <div>↓{f(o)} tok{tps != null && tps > 0 ? ` · ${tps} t/s` : ''}</div>
+              {record.totalInferenceMs != null && record.totalInferenceMs > 0 && (
+                <div style={{ color: 'var(--text-helper)' }}>纯推理 {(record.totalInferenceMs / 60000).toFixed(1)}min</div>
+              )}
+            </span>
+          );
+        },
     },
     {
       title: lang === 'en' ? 'Evaluated At' : '评测时间',

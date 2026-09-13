@@ -35,8 +35,28 @@ export default function EvalCreate() {
   const [judgeEnabled, setJudgeEnabled] = useState(false);
   const [selectedModelReasoning, setSelectedModelReasoning] = useState(false);
   const [mode, setMode] = useState<'single' | 'batch'>('single');
+  const [validScenarios, setValidScenarios] = useState<Array<{ dimension: string; difficulty: string }>>([]);
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  useEffect(() => {
+    fetch('/api/scenarios')
+      .then((r) => r.json())
+      .then((res) => {
+        if (!res.success) return;
+        const valid = (res.data as Array<Record<string, unknown>>)
+          .filter((x) => x.status === 'valid')
+          .filter((x) => {
+            try {
+              const req = typeof x.requirements === 'string' ? JSON.parse(x.requirements || '{}') : (x.requirements || {});
+              return !(req as { developmentShadow?: boolean }).developmentShadow;
+            } catch { return true; }
+          })
+          .map((x) => ({ dimension: String(x.dimension), difficulty: String(x.difficulty) }));
+        setValidScenarios(valid);
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     fetch('/api/models')
@@ -60,6 +80,11 @@ export default function EvalCreate() {
 
   const testedModels = models.filter((m) => m.modelType !== 'judge');
   const judgeModels = models.filter((m) => m.modelType === 'judge');
+  const dimSel = (Form.useWatch('dimensionIds', form) as string[] | undefined) || [];
+  const diffSel = (Form.useWatch('difficultyIds', form) as string[] | undefined) || [];
+  const matchedCount = validScenarios.filter((x) =>
+    (dimSel.length === 0 || dimSel.includes(x.dimension)) &&
+    (diffSel.length === 0 || diffSel.includes(x.difficulty))).length;
 
   const onFinish = async (values: Record<string, unknown>) => {
     setLoading(true);
@@ -87,6 +112,13 @@ export default function EvalCreate() {
         ...(Object.keys(constraints).length > 0 ? { constraints } : {}),
       };
 
+      const _dims = (values.dimensionIds as string[]) || [];
+      const _diffs = (values.difficultyIds as string[]) || [];
+      if (_dims.length === 0 && _diffs.length === 0) {
+        message.error('请至少选择一个评测维度或难度（避免无意中全量跑题）');
+        setLoading(false);
+        return;
+      }
       if (mode === 'batch') {
         const modelConfigIds = (values.modelConfigIds as string[]) || [];
         if (modelConfigIds.length === 0) {
@@ -101,7 +133,8 @@ export default function EvalCreate() {
             name: values.name || undefined,
             modelConfigIds,
             judgeModelConfigId: values.judgeModelConfigId || undefined,
-            dimensionIds: (values.dimensionIds as string[]) || [],
+            dimensionIds: _dims,
+            difficultyIds: _diffs,
             config,
           }),
         });
@@ -120,7 +153,8 @@ export default function EvalCreate() {
             name: values.name,
             modelConfigId: values.modelConfigId,
             judgeModelConfigId: values.judgeModelConfigId || undefined,
-            dimensionIds: (values.dimensionIds as string[]) || [],
+            dimensionIds: _dims,
+            difficultyIds: _diffs,
             config,
           }),
         });
@@ -227,8 +261,29 @@ export default function EvalCreate() {
               options={DIMENSION_OPTIONS}
             />
           </Form.Item>
+          <Form.Item
+            label="评测难度"
+            name="difficultyIds"
+            tooltip="多选难度档位，与维度筛选叠加生效。不选 = 全部难度"
+          >
+            <Select
+              mode="multiple"
+              placeholder="默认全部难度（easy / medium / hard / adversarial）"
+              maxTagCount="responsive"
+              allowClear
+              options={[
+                { value: 'easy', label: '简单 easy' },
+                { value: 'medium', label: '中等 medium' },
+                { value: 'hard', label: '困难 hard' },
+                { value: 'adversarial', label: '对抗 adversarial' },
+              ]}
+            />
+          </Form.Item>
           <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: -16, marginBottom: 16 }}>
             不选任何维度 = 全量评测；选中部分维度时仅跑对应题目，排行榜会按实际覆盖范围统计题量
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
+            当前筛选命中 {matchedCount} 题（随维度/难度选择实时变化）
           </Text>
 
           {mode === 'single' && selectedModelReasoning && (

@@ -54,7 +54,7 @@ const PACK_DIMENSION_MAP: Record<string, string> = {
 };
 
 /** Freeze the exact selection before any candidate API request. */
-async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[]): Promise<BenchmarkPack> {
+async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[], difficultyIds?: string[]): Promise<BenchmarkPack> {
   if (config.evaluationMode && !['development', 'official'].includes(config.evaluationMode)) throw new Error('Invalid evaluationMode');
   if (!Number.isInteger(config.runsPerQuestion) || config.runsPerQuestion < 1 || config.runsPerQuestion > 10) {
     throw new Error('runsPerQuestion must be an integer between 1 and 10');
@@ -63,7 +63,9 @@ async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[
     throw new Error('judgeEnsembleRuns must be an integer between 1 and 10');
   }
   const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } });
-  let selected = rows.filter(s => !dimensionIds?.length || dimensionIds.includes(s.dimension));
+  let selected = rows.filter(s =>
+    (!dimensionIds?.length || dimensionIds.includes(s.dimension)) &&
+    (!difficultyIds?.length || difficultyIds.includes(s.difficulty)));
   if (config.evaluationMode === 'official') {
     selected = selected.filter((scenario) => RELEASE_BENCHMARK_BY_ID.has(scenario.id));
     const drifted = selected.filter((scenario) =>
@@ -1112,6 +1114,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.delete('/api/models/:id', async (request) => {
     try {
       const { id } = request.params as { id: string };
+      const refCount = await prisma.evalRun.count({ where: { modelConfigId: id } });
+      if (refCount > 0) {
+        return { success: false, error: (refCount) + ' 条评测记录正在引用该模型，无法删除。请先在评测历史页删除相关运行。' };
+      }
       await prisma.modelConfig.delete({ where: { id } });
       return { success: true };
     } catch (err) {
@@ -1168,6 +1174,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         _count: undefined,
       })),
     };
+  });
+
+  /** 删除评测运行（含级联结果）。运行中/排队/暂停的 run 拒绝删除，需先取消。 */
+  app.delete('/api/runs/:id', async (request) => {
+    const { id } = request.params as { id: string };
+    const run = await prisma.evalRun.findUnique({ where: { id }, select: { status: true } });
+    if (!run) return { success: false, error: 'Run not found' };
+    if (run.status === 'running' || run.status === 'pending' || run.status === 'paused') {
+      return { success: false, error: 'Run is active/paused, cancel it first' };
+    }
+    await prisma.evalRun.delete({ where: { id } });
+    evalControllers.delete(id);
+    runLiveStates.delete(id);
+    return { success: true };
   });
 
   app.get('/api/runs/:id', async (request) => {
@@ -1306,6 +1326,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       if (Array.isArray(body.scenarioIds) && body.scenarioIds.length > 0) {
         config.scenarioIds = body.scenarioIds;
       }
+        if (Array.isArray(body.difficultyIds) && body.difficultyIds.length > 0) {
+          config.difficultyFilter = body.difficultyIds;
+        }
 
       // 拉齐评测配置：推理模型强制 maxTokens 下限
       // （防止同一排行榜下不同模型评测条件不一致导致排名失真，如 27B 推理模型被 8192 预算系统性压低）
@@ -1343,7 +1366,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       let pack: BenchmarkPack;
-      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      try { pack = await selectBenchmarkPack(config, body.dimensionIds, body.difficultyIds); }
       catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
       const run = await prisma.evalRun.create({
@@ -1422,7 +1445,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const groupName = body.groupName || `batch-${Date.now()}`;
       const config = { ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 } as EvalRunConfig;
       let pack: BenchmarkPack;
-      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      try { pack = await selectBenchmarkPack(config, body.dimensionIds, body.difficultyIds); }
       catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       const judgeOptions = await resolveJudgeOptionsForBatch(config, body.judgeModelConfigId);
       if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
@@ -2753,12 +2776,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     let reportInputTokens = 0;
     let reportOutputTokens = 0;
     const perQuestionSpeeds: number[] = [];
+    let reportInferenceMs = 0;
     for (const r of results) {
       try {
         const meta = r.outputMetadata ? JSON.parse(r.outputMetadata) : null;
         if (meta) {
           reportInputTokens += meta.inputTokens || 0;
           reportOutputTokens += meta.outputTokens || 0;
+          reportInferenceMs += meta.inferenceMs || 0;
           // 优先使用预计算的 tokenSpeed，其次用 nativeTokensPerSecond，最后用 inferenceMs 推算
           const speed = meta.tokenSpeed
             || meta.nativeTokensPerSecond
@@ -2821,6 +2846,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           totalOutputTokens: reportOutputTokens,
           totalTokens: reportInputTokens + reportOutputTokens,
           avgTokensPerSecond,
+          totalInferenceMs: reportInferenceMs,
+          aggregateTokensPerSecond: reportInferenceMs > 0 ? Math.round(reportOutputTokens / (reportInferenceMs / 1000)) : 0,
         },
       },
     };
@@ -3279,7 +3306,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       if (run.createdAt > g.createdAt) g.createdAt = run.createdAt;
     }
 
-    const leaderboard: Array<{ modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; truncationRate: number; totalScenarios: number; completedScenarios?: number; missingScenarios?: number; averageScore: number; passRate: number; passCount: number; redLineCount: number; dimensionScores: Record<string, unknown>; runCount: number; evaluatedAt: Date; latestRunId: string; totalInputTokens: number; totalOutputTokens: number; totalTokens: number }> = [];
+    const leaderboard: Array<{ modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; truncationRate: number; totalScenarios: number; completedScenarios?: number; missingScenarios?: number; averageScore: number; passRate: number; passCount: number; redLineCount: number; dimensionScores: Record<string, unknown>; runCount: number; evaluatedAt: Date; latestRunId: string; totalInputTokens: number; totalOutputTokens: number; totalTokens: number; totalInferenceMs?: number; aggregateTokensPerSecond?: number; }> = [];
     for (const [modelId, group] of modelGroups) {
       // latest：只统计最新一次 run；best：跨 run 聚合（按题取最优）
       const runIds = scope === 'best' ? group.runIds : [group.latestRunId];
@@ -3351,12 +3378,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       let truncatedCount = 0;
       let sumInputTokens = 0;
       let sumOutputTokens = 0;
+      let sumInferenceMs = 0;
       for (const r of results) {
         try {
-          const meta = JSON.parse(r.outputMetadata) as { truncated?: boolean; inputTokens?: number; outputTokens?: number };
+          const meta = JSON.parse(r.outputMetadata) as { truncated?: boolean; inputTokens?: number; outputTokens?: number; inferenceMs?: number };
           if (meta.truncated) truncatedCount++;
           sumInputTokens += meta.inputTokens || 0;
           sumOutputTokens += meta.outputTokens || 0;
+          sumInferenceMs += meta.inferenceMs || 0;
         } catch { /* ignore */ }
       }
 
@@ -3380,6 +3409,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         latestRunId: group.runIds[0],
         totalInputTokens: Math.max(group.latestSummary?.totalInputTokens ?? 0, sumInputTokens),
         totalOutputTokens: Math.max(group.latestSummary?.totalOutputTokens ?? 0, sumOutputTokens),
+        totalInferenceMs: sumInferenceMs,
+        aggregateTokensPerSecond: sumInferenceMs > 0
+          ? Math.round(sumOutputTokens / (sumInferenceMs / 1000))
+          : ((group.latestSummary as { aggregateTokensPerSecond?: number } | null)?.aggregateTokensPerSecond ?? 0),
         totalTokens: (sumInputTokens + sumOutputTokens) || ((group.latestSummary?.totalInputTokens ?? 0) + (group.latestSummary?.totalOutputTokens ?? 0)),
       });
     }
@@ -4503,12 +4536,14 @@ async function runEvaluation(
   const perQuestionSpeeds2: number[] = [];
   let summaryInputTokens = 0;
   let summaryOutputTokens = 0;
+  let summaryInferenceMs = 0;
   for (const r of results) {
     try {
       const meta = r.outputMetadata ? JSON.parse(r.outputMetadata) : null;
       if (meta) {
         summaryInputTokens += meta.inputTokens || 0;
         summaryOutputTokens += meta.outputTokens || 0;
+        summaryInferenceMs += meta.inferenceMs || 0;
         const speed = meta.tokenSpeed
           || meta.nativeTokensPerSecond
           || (meta.inferenceMs && meta.outputTokens ? Math.round(meta.outputTokens / (meta.inferenceMs / 1000)) : 0);
@@ -4543,6 +4578,8 @@ async function runEvaluation(
         totalInputTokens: summaryInputTokens,
         totalOutputTokens: summaryOutputTokens,
         avgTokensPerSecond,
+        totalInferenceMs: summaryInferenceMs,
+        aggregateTokensPerSecond: summaryInferenceMs > 0 ? Math.round(summaryOutputTokens / (summaryInferenceMs / 1000)) : 0,
         qualityReport,
         // ===== 耗时（多模型并行汇总用）=====
         startedAt: new Date(startTime).toISOString(),

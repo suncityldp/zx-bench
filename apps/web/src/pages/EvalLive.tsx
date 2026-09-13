@@ -792,10 +792,12 @@ export default function EvalLive() {
                           <Text type="secondary">{lang === 'en' ? 'Difficulty' : '难度'}</Text>
                           <div>
                             <Tag color={
-                              info.difficulty === 'hard' ? 'red' :
-                              info.difficulty === 'medium' ? 'orange' : 'green'
+                              info.difficulty === 'adversarial' ? 'red' :
+                              info.difficulty === 'hard' ? 'orange' :
+                              info.difficulty === 'medium' ? 'gold' : 'green'
                             }>
-                              {info.difficulty === 'hard' ? (lang === 'en' ? 'Hard' : '困难') :
+                              {info.difficulty === 'adversarial' ? (lang === 'en' ? 'Adversarial' : '对抗') :
+                               info.difficulty === 'hard' ? (lang === 'en' ? 'Hard' : '困难') :
                                info.difficulty === 'medium' ? (lang === 'en' ? 'Medium' : '中等') : (lang === 'en' ? 'Easy' : '简单')}
                             </Tag>
                           </div>
@@ -936,10 +938,11 @@ export default function EvalLive() {
                 <Text type="secondary">{lang === 'en' ? 'Difficulty' : '难度'}</Text>
                 <div>
                   <Tag color={
-                    progress.currentDifficulty === 'hard' ? 'red' :
-                    progress.currentDifficulty === 'medium' ? 'orange' : 'green'
+                    progress.currentDifficulty === 'adversarial' ? 'red' : progress.currentDifficulty === 'hard' ? 'orange' :
+                    progress.currentDifficulty === 'medium' ? 'gold' : 'green'
                   }>
-                    {progress.currentDifficulty === 'hard' ? (lang === 'en' ? 'Hard' : '困难') :
+                    {progress.currentDifficulty === 'adversarial' ? (lang === 'en' ? 'Adversarial' : '对抗') :
+                     progress.currentDifficulty === 'hard' ? (lang === 'en' ? 'Hard' : '困难') :
                      progress.currentDifficulty === 'medium' ? (lang === 'en' ? 'Medium' : '中等') :
                      progress.currentDifficulty === 'easy' ? (lang === 'en' ? 'Easy' : '简单') :
                      progress.currentDifficulty || '-'}
@@ -1117,8 +1120,8 @@ export default function EvalLive() {
               {
                 title: lang === 'en' ? 'Difficulty' : '难度', dataIndex: 'difficulty', key: 'difficulty', width: 70,
                 render: (v: string) => (
-                  <Tag color={v === 'hard' ? 'red' : v === 'medium' ? 'orange' : 'green'}>
-                    {v === 'hard' ? (lang === 'en' ? 'Hard' : '困难') : v === 'medium' ? (lang === 'en' ? 'Medium' : '中等') : (lang === 'en' ? 'Easy' : '简单')}
+                  <Tag color={v === 'adversarial' ? 'red' : v === 'hard' ? 'orange' : v === 'medium' ? 'gold' : 'green'}>
+                    {v === 'adversarial' ? (lang === 'en' ? 'Adversarial' : '对抗') : v === 'hard' ? (lang === 'en' ? 'Hard' : '困难') : v === 'medium' ? (lang === 'en' ? 'Medium' : '中等') : (lang === 'en' ? 'Easy' : '简单')}
                   </Tag>
                 ),
               },

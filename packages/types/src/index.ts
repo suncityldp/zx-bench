@@ -562,6 +562,7 @@ export interface EvalRunConfig {
   judgeEnsembleRuns?: number;
   /** 题目子集白名单。非空时只评测这些 scenarioId（用于方差基线、分层抽样、快速冒烟）。
    *  随 config 一起落库，因此断点续跑/重跑可还原同一子集，保证实验可复现。 */
+  difficultyFilter?: string[];
   scenarioIds?: string[];
 }
 
@@ -647,6 +648,7 @@ export interface CreateEvalRunRequest {
   name: string;
   modelConfigId: string;
   judgeModelConfigId?: string;   // AI Judge 模型配置 ID
+  difficultyIds?: string[];
   dimensionIds: string[];
   config: Partial<EvalRunConfig>;
   parentRunId?: string;           // 父运行ID（多维度并行）
@@ -660,6 +662,7 @@ export interface CreateBatchEvalRunRequest {
   name?: string;                  // 批量任务名称（各子运行名 = name · 模型名）
   modelConfigIds: string[];       // 多个被测模型配置 ID（并发执行）
   judgeModelConfigId?: string;   // AI Judge 模型配置 ID（共享）
+  difficultyIds?: string[];       // difficulty filter (shared across models)
   dimensionIds: string[];         // 维度过滤（所有模型共享）
   config: Partial<EvalRunConfig>; // 共享评测配置
   groupName?: string;             // 并行组名（不传则自动生成）
