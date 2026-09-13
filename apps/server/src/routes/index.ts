@@ -74,7 +74,7 @@ async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[
     if (drifted.length) {
       throw new Error(`Official benchmark database is out of sync: ${drifted.map((s) => s.id).join(', ')}`);
     }
-  } (feat: 评测流程与题目管理体验优化)
+  }
   if (config.scenarioIds?.length) {
     selected = selected.filter(s => config.scenarioIds!.includes(s.id));
     const found = new Set(selected.map(s => s.id));
