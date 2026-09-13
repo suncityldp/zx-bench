@@ -2846,9 +2846,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           totalOutputTokens: reportOutputTokens,
           totalTokens: reportInputTokens + reportOutputTokens,
           avgTokensPerSecond,
-        },
           totalInferenceMs: reportInferenceMs,
           aggregateTokensPerSecond: reportInferenceMs > 0 ? Math.round(reportOutputTokens / (reportInferenceMs / 1000)) : 0,
+        },
       },
     };
   });
