@@ -13,7 +13,7 @@ interface RunItem {
   updatedAt: string;
   groupName: string | null;
   parentRunId: string | null;
-  summary: { averageScore: number; totalScenarios: number; safetyRedLineCount: number; completedScenarios: number; totalOutputTokens?: number; avgTokensPerSecond?: number } | null;
+  summary: { averageScore: number; totalScenarios: number; safetyRedLineCount: number; completedScenarios: number; totalInputTokens?: number; totalOutputTokens?: number; avgTokensPerSecond?: number; totalInferenceMs?: number; aggregateTokensPerSecond?: number } | null;
   modelConfig: { name: string };
 }
 
@@ -245,14 +245,29 @@ export default function EvalHistory() {
           render: (_: unknown, r: RunItem) => r.summary?.averageScore != null ? r.summary.averageScore.toFixed(2) : '-',
         },
         {
+          title: lang === 'en' ? 'Tokens' : 'Token', key: 'tokens', width: 110,
+          render: (_: unknown, r: RunItem) => {
+            const i = r.summary?.totalInputTokens, o = r.summary?.totalOutputTokens;
+            if (i == null && o == null) return '-';
+            const f = (n?: number) => n == null ? '-' : (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`);
+            return <span style={{ fontSize: 11 }}>↑{f(i)} ↓{f(o)}</span>;
+          },
+        },
+        {
           title: lang === 'en' ? 'Token Speed' : 'Token速度', key: 'tokenSpeed', width: 90,
           render: (_: unknown, r: RunItem) => {
-            const tps = r.summary?.avgTokensPerSecond;
+            const tps = r.summary?.aggregateTokensPerSecond ?? r.summary?.avgTokensPerSecond;
             if (tps == null) return '-';
+            const inf = r.summary?.totalInferenceMs;
             return (
-              <Tag color={tps >= 100 ? 'green' : tps >= 30 ? 'blue' : 'orange'} style={{ fontSize: 11 }}>
-                {tps >= 1000 ? `${(tps / 1000).toFixed(1)}K` : tps} t/s
-              </Tag>
+              <span>
+                <Tag color={tps >= 100 ? 'green' : tps >= 30 ? 'blue' : 'orange'} style={{ fontSize: 11 }}>
+                  {tps >= 1000 ? `${(tps / 1000).toFixed(1)}K` : tps} t/s
+                </Tag>
+                {inf != null && inf > 0 && (
+                  <div style={{ fontSize: 10, color: 'var(--text-helper)' }}>{(inf / 60000).toFixed(1)}min 纯推理</div>
+                )}
+              </span>
             );
           },
         },

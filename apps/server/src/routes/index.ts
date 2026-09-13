@@ -2776,12 +2776,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     let reportInputTokens = 0;
     let reportOutputTokens = 0;
     const perQuestionSpeeds: number[] = [];
+    let reportInferenceMs = 0;
     for (const r of results) {
       try {
         const meta = r.outputMetadata ? JSON.parse(r.outputMetadata) : null;
         if (meta) {
           reportInputTokens += meta.inputTokens || 0;
           reportOutputTokens += meta.outputTokens || 0;
+          reportInferenceMs += meta.inferenceMs || 0;
           // 优先使用预计算的 tokenSpeed，其次用 nativeTokensPerSecond，最后用 inferenceMs 推算
           const speed = meta.tokenSpeed
             || meta.nativeTokensPerSecond
@@ -2845,6 +2847,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           totalTokens: reportInputTokens + reportOutputTokens,
           avgTokensPerSecond,
         },
+          totalInferenceMs: reportInferenceMs,
+          aggregateTokensPerSecond: reportInferenceMs > 0 ? Math.round(reportOutputTokens / (reportInferenceMs / 1000)) : 0,
       },
     };
   });
@@ -3302,7 +3306,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       if (run.createdAt > g.createdAt) g.createdAt = run.createdAt;
     }
 
-    const leaderboard: Array<{ modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; truncationRate: number; totalScenarios: number; completedScenarios?: number; missingScenarios?: number; averageScore: number; passRate: number; passCount: number; redLineCount: number; dimensionScores: Record<string, unknown>; runCount: number; evaluatedAt: Date; latestRunId: string; totalInputTokens: number; totalOutputTokens: number; totalTokens: number }> = [];
+    const leaderboard: Array<{ modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; truncationRate: number; totalScenarios: number; completedScenarios?: number; missingScenarios?: number; averageScore: number; passRate: number; passCount: number; redLineCount: number; dimensionScores: Record<string, unknown>; runCount: number; evaluatedAt: Date; latestRunId: string; totalInputTokens: number; totalOutputTokens: number; totalTokens: number; totalInferenceMs?: number; aggregateTokensPerSecond?: number; }> = [];
     for (const [modelId, group] of modelGroups) {
       // latest：只统计最新一次 run；best：跨 run 聚合（按题取最优）
       const runIds = scope === 'best' ? group.runIds : [group.latestRunId];
@@ -3374,12 +3378,14 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       let truncatedCount = 0;
       let sumInputTokens = 0;
       let sumOutputTokens = 0;
+      let sumInferenceMs = 0;
       for (const r of results) {
         try {
-          const meta = JSON.parse(r.outputMetadata) as { truncated?: boolean; inputTokens?: number; outputTokens?: number };
+          const meta = JSON.parse(r.outputMetadata) as { truncated?: boolean; inputTokens?: number; outputTokens?: number; inferenceMs?: number };
           if (meta.truncated) truncatedCount++;
           sumInputTokens += meta.inputTokens || 0;
           sumOutputTokens += meta.outputTokens || 0;
+          sumInferenceMs += meta.inferenceMs || 0;
         } catch { /* ignore */ }
       }
 
@@ -3403,6 +3409,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         latestRunId: group.runIds[0],
         totalInputTokens: Math.max(group.latestSummary?.totalInputTokens ?? 0, sumInputTokens),
         totalOutputTokens: Math.max(group.latestSummary?.totalOutputTokens ?? 0, sumOutputTokens),
+        totalInferenceMs: sumInferenceMs,
+        aggregateTokensPerSecond: sumInferenceMs > 0
+          ? Math.round(sumOutputTokens / (sumInferenceMs / 1000))
+          : ((group.latestSummary as { aggregateTokensPerSecond?: number } | null)?.aggregateTokensPerSecond ?? 0),
         totalTokens: (sumInputTokens + sumOutputTokens) || ((group.latestSummary?.totalInputTokens ?? 0) + (group.latestSummary?.totalOutputTokens ?? 0)),
       });
     }
@@ -4526,12 +4536,14 @@ async function runEvaluation(
   const perQuestionSpeeds2: number[] = [];
   let summaryInputTokens = 0;
   let summaryOutputTokens = 0;
+  let summaryInferenceMs = 0;
   for (const r of results) {
     try {
       const meta = r.outputMetadata ? JSON.parse(r.outputMetadata) : null;
       if (meta) {
         summaryInputTokens += meta.inputTokens || 0;
         summaryOutputTokens += meta.outputTokens || 0;
+        summaryInferenceMs += meta.inferenceMs || 0;
         const speed = meta.tokenSpeed
           || meta.nativeTokensPerSecond
           || (meta.inferenceMs && meta.outputTokens ? Math.round(meta.outputTokens / (meta.inferenceMs / 1000)) : 0);
@@ -4566,6 +4578,8 @@ async function runEvaluation(
         totalInputTokens: summaryInputTokens,
         totalOutputTokens: summaryOutputTokens,
         avgTokensPerSecond,
+        totalInferenceMs: summaryInferenceMs,
+        aggregateTokensPerSecond: summaryInferenceMs > 0 ? Math.round(summaryOutputTokens / (summaryInferenceMs / 1000)) : 0,
         qualityReport,
         // ===== 耗时（多模型并行汇总用）=====
         startedAt: new Date(startTime).toISOString(),

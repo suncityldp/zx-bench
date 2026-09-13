@@ -75,6 +75,8 @@ interface ReportData {
     totalOutputTokens: number;
     totalTokens: number;
     avgTokensPerSecond: number;
+    totalInferenceMs?: number;
+    aggregateTokensPerSecond?: number;
   };
   /** 全局证据强度摘要（全部结果的轴证据类型分布） */
   evidenceSummary?: Record<string, number>;
@@ -348,11 +350,11 @@ export default function Report() {
           <Card className="swiss-card" bodyStyle={{ padding: 20 }}>
             <Statistic
               title="Token 速度"
-              value={report.tokenStats?.avgTokensPerSecond ?? '-'}
+              value={report.tokenStats?.aggregateTokensPerSecond ?? report.tokenStats?.avgTokensPerSecond ?? '-'}
               suffix={report.tokenStats ? 't/s' : ''}
               valueStyle={{
                 color: (() => {
-                  const tps = report.tokenStats?.avgTokensPerSecond ?? 0;
+                  const tps = report.tokenStats?.aggregateTokensPerSecond ?? report.tokenStats?.avgTokensPerSecond ?? 0;
                   return tps >= 100 ? '#52c41a' : tps >= 30 ? '#1890ff' : '#fa8c16';
                 })(),
                 fontSize: 32, fontWeight: 700,
@@ -364,6 +366,9 @@ export default function Report() {
                 输出 {report.tokenStats.totalOutputTokens >= 1000
                   ? `${(report.tokenStats.totalOutputTokens / 1000).toFixed(1)}K`
                   : report.tokenStats.totalOutputTokens} tokens
+                  {report.tokenStats.totalInferenceMs != null && report.tokenStats.totalInferenceMs > 0 && (
+                    <span> · 纯推理 {(report.tokenStats.totalInferenceMs / 60000).toFixed(1)}min（不含 Judge）</span>
+                  )}
               </div>
             )}
           </Card>
