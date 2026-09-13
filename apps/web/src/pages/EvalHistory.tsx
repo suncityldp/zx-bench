@@ -90,7 +90,7 @@ export default function EvalHistory() {
     return () => window.clearInterval(timer);
   }, [fetchRuns]);
 
-  // 保留已取消记录，让用户能够查看及删除。
+// 保留已取消记录，让用户能够查看及删除。
   const groupedRuns = useMemo<GroupedRun[]>(() => {
     const groups = new Map<string, RunItem[]>();
     for (const run of runs) {
@@ -199,6 +199,25 @@ export default function EvalHistory() {
   };
 
   // 子运行展开表
+  // 删除运行（组删除传整组 id）
+  const handleDelete = async (runIds: string[]) => {
+    try {
+      for (const id of runIds) {
+        const res = await fetch(`/api/runs/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (!json.success) {
+          message.error(json.error || (lang === 'en' ? 'Delete failed' : '删除失败'));
+          fetchRuns(true);
+          return;
+        }
+      }
+      message.success(lang === 'en' ? 'Deleted' : '已删除');
+      fetchRuns(true);
+    } catch {
+      message.error(lang === 'en' ? 'Request failed' : '请求失败');
+    }
+  };
+
   const expandedRowRender = (group: GroupedRun) => (
     <Table
       dataSource={group.allRuns}
@@ -239,7 +258,7 @@ export default function EvalHistory() {
         },
         { title: lang === 'en' ? 'Time' : '时间', dataIndex: 'createdAt', key: 'createdAt', width: 110, render: (v: string) => formatTimeShort(v) },
         {
-          title: lang === 'en' ? 'Actions' : '操作', key: 'action', width: 150,
+          title: lang === 'en' ? 'Actions' : '操作', key: 'action', width: 215,
           render: (_: unknown, r: RunItem) => (
             <Space size={4}>
               <Button icon={<EyeOutlined />} size="small" onClick={() => navigate(`/eval/${r.id}`)}>{lang === 'en' ? 'Details' : '详情'}</Button>
@@ -248,6 +267,20 @@ export default function EvalHistory() {
                 <Button type="primary" icon={<PlayCircleOutlined />} size="small" onClick={() => handleResume(r.id)}>
                   {r.status === 'paused' ? (lang === 'en' ? 'Continue' : '继续') : (lang === 'en' ? 'Resume' : '恢复')}
                 </Button>
+              )}
+              {r.status !== 'running' && r.status !== 'pending' && r.status !== 'paused' && (
+                <Popconfirm
+                  title={lang === 'en' ? 'Delete this run?' : '删除该运行？'}
+                  description={lang === 'en' ? 'All results will be removed permanently.' : '全部结果将被删除，不可恢复。'}
+                  okText={lang === 'en' ? 'Delete' : '删除'}
+                  cancelText={lang === 'en' ? 'Cancel' : '取消'}
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => handleDelete([r.id])}
+                >
+                  <Button danger icon={<DeleteOutlined />} size="small">
+                    {lang === 'en' ? 'Delete' : '删除'}
+                  </Button>
+                </Popconfirm>
               )}
             </Space>
           ),
@@ -324,7 +357,7 @@ export default function EvalHistory() {
               ),
             },
             {
-              title: lang === 'en' ? 'Actions' : '操作', key: 'action', width: 250,
+              title: lang === 'en' ? 'Actions' : '操作', key: 'action', width: 300,
               render: (_: unknown, g: GroupedRun) => {
                 const mainId = g.mainRun.id;
                 const activeRun = g.allRuns.find((r) => r.status === 'running' || r.status === 'pending');

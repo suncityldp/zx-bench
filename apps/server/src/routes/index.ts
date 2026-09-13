@@ -54,7 +54,7 @@ const PACK_DIMENSION_MAP: Record<string, string> = {
 };
 
 /** Freeze the exact selection before any candidate API request. */
-async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[]): Promise<BenchmarkPack> {
+async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[], difficultyIds?: string[]): Promise<BenchmarkPack> {
   if (config.evaluationMode && !['development', 'official'].includes(config.evaluationMode)) throw new Error('Invalid evaluationMode');
   if (!Number.isInteger(config.runsPerQuestion) || config.runsPerQuestion < 1 || config.runsPerQuestion > 10) {
     throw new Error('runsPerQuestion must be an integer between 1 and 10');
@@ -63,7 +63,9 @@ async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[
     throw new Error('judgeEnsembleRuns must be an integer between 1 and 10');
   }
   const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } });
-  let selected = rows.filter(s => !dimensionIds?.length || dimensionIds.includes(s.dimension));
+  let selected = rows.filter(s =>
+    (!dimensionIds?.length || dimensionIds.includes(s.dimension)) &&
+    (!difficultyIds?.length || difficultyIds.includes(s.difficulty)));
   if (config.evaluationMode === 'official') {
     selected = selected.filter((scenario) => RELEASE_BENCHMARK_BY_ID.has(scenario.id));
     const drifted = selected.filter((scenario) =>
@@ -72,7 +74,7 @@ async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[
     if (drifted.length) {
       throw new Error(`Official benchmark database is out of sync: ${drifted.map((s) => s.id).join(', ')}`);
     }
-  }
+  } (feat: 评测流程与题目管理体验优化)
   if (config.scenarioIds?.length) {
     selected = selected.filter(s => config.scenarioIds!.includes(s.id));
     const found = new Set(selected.map(s => s.id));
@@ -1112,6 +1114,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.delete('/api/models/:id', async (request) => {
     try {
       const { id } = request.params as { id: string };
+      const refCount = await prisma.evalRun.count({ where: { modelConfigId: id } });
+      if (refCount > 0) {
+        return { success: false, error: (refCount) + ' 条评测记录正在引用该模型，无法删除。请先在评测历史页删除相关运行。' };
+      }
       await prisma.modelConfig.delete({ where: { id } });
       return { success: true };
     } catch (err) {
@@ -1168,6 +1174,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         _count: undefined,
       })),
     };
+  });
+
+  /** 删除评测运行（含级联结果）。运行中/排队/暂停的 run 拒绝删除，需先取消。 */
+  app.delete('/api/runs/:id', async (request) => {
+    const { id } = request.params as { id: string };
+    const run = await prisma.evalRun.findUnique({ where: { id }, select: { status: true } });
+    if (!run) return { success: false, error: 'Run not found' };
+    if (run.status === 'running' || run.status === 'pending' || run.status === 'paused') {
+      return { success: false, error: 'Run is active/paused, cancel it first' };
+    }
+    await prisma.evalRun.delete({ where: { id } });
+    evalControllers.delete(id);
+    runLiveStates.delete(id);
+    return { success: true };
   });
 
   app.get('/api/runs/:id', async (request) => {
@@ -1306,6 +1326,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       if (Array.isArray(body.scenarioIds) && body.scenarioIds.length > 0) {
         config.scenarioIds = body.scenarioIds;
       }
+        if (Array.isArray(body.difficultyIds) && body.difficultyIds.length > 0) {
+          config.difficultyFilter = body.difficultyIds;
+        }
 
       // 拉齐评测配置：推理模型强制 maxTokens 下限
       // （防止同一排行榜下不同模型评测条件不一致导致排名失真，如 27B 推理模型被 8192 预算系统性压低）
@@ -1343,7 +1366,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       let pack: BenchmarkPack;
-      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      try { pack = await selectBenchmarkPack(config, body.dimensionIds, body.difficultyIds); }
       catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
       const run = await prisma.evalRun.create({
@@ -1422,7 +1445,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const groupName = body.groupName || `batch-${Date.now()}`;
       const config = { ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 } as EvalRunConfig;
       let pack: BenchmarkPack;
-      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      try { pack = await selectBenchmarkPack(config, body.dimensionIds, body.difficultyIds); }
       catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       const judgeOptions = await resolveJudgeOptionsForBatch(config, body.judgeModelConfigId);
       if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
