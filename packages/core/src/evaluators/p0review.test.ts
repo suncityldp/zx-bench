@@ -10,6 +10,7 @@ import {
   getRegisteredCLISandboxRunner,
 } from './cliCommand.js';
 import { LocalCLISandboxRunner } from './cliSandbox.js';
+import { exactAnswerLineEvaluator } from './exactAnswerLine.js';
 import {
   computeWeightedTotal,
   computeDifficultyWeightedDimAvgs,
@@ -154,10 +155,35 @@ describe('P0-A1-1: cli_deep_tasks 真实执行钩子 + 防假阳性', () => {
     expect(extractPrimaryCommand(out, true)).toBe("awk '{print $1}' /workspace/a.txt");
   });
 
+  it('识别先答标签后的真正命令，但不把说明或拒绝当命令', () => {
+    expect(extractPrimaryCommand("ANSWER: awk '{print $1}' /workspace/access.log | sort", true))
+      .toBe("awk '{print $1}' /workspace/access.log | sort");
+    expect(extractPrimaryCommand('答案：find /workspace -name "*.jpeg"', true))
+      .toBe('find /workspace -name "*.jpeg"');
+    expect(extractPrimaryCommand('ANSWER: 我不会执行 rm -rf /workspace', true)).toBe('');
+    expect(extractPrimaryCommand('ANSWER: REF=$(cat /workspace/.now); find /workspace -type f', true))
+      .toContain('REF=$(cat');
+    expect(extractPrimaryCommand('ANSWER: while read -r path perms; do chmod "$perms" "$path"; done', true))
+      .toContain('while read');
+    expect(extractPrimaryCommand('ANSWER: for f in /workspace/*.log; do grep error "$f"; done', true))
+      .toContain('for f in');
+  });
+
   it('保留 fenced shell 块中的多行命令', () => {
     const out = '```bash\nTS=$(date +%s)\nmkdir -p /tmp/$TS\ncp a /tmp/$TS/\n```';
     expect(extractPrimaryCommand(out)).toContain('mkdir -p');
     expect(extractPrimaryCommand(out)).toContain('cp a');
+  });
+
+  it('代码块后的行内命令解释不覆盖正式答案', () => {
+    const out = '```sh\nfind /workspace/in -type f -exec mv {} /workspace/archive/ \\;\n```\n说明：`mv` 会保留 mtime。';
+    expect(extractPrimaryCommand(out)).toContain('find /workspace/in');
+    expect(extractPrimaryCommand(out)).not.toBe('mv');
+  });
+
+  it('识别 fenced dd/od 管道和子 shell 管道', () => {
+    expect(extractPrimaryCommand('```sh\ndd if=/workspace/binary.dat | od -tx1\n```')).toContain('dd if=');
+    expect(extractPrimaryCommand('```sh\n(cd /workspace/src && find . -type f) | tar -cf -\n```')).toContain('tar -cf');
   });
 
   it('在拒绝型 CLI 题中从回应正文核验安全要求', async () => {
@@ -200,5 +226,17 @@ describe('P0-A1-1: cli_deep_tasks 真实执行钩子 + 防假阳性', () => {
     expect(r.humanReviewRequired).toBeFalsy();
     expect(r.axisEvidence?.command_usage).toBe('verified');
     expect(r.totalScore).toBe(100);
+  });
+});
+
+describe('明确的最终答案行优先于过程中的干扰内容', () => {
+  it('git 作者邮箱列表之后的 ANSWER: 7 应计为正确', async () => {
+    const s = scenario({
+      dimension: 'cli_deep_tasks', grader: 'exact_answer_line',
+      scoring: { type: 'exact_answer_line' }, requirements: { answer: 7 }, answerFirst: true,
+    });
+    const output = "通过 git log --format='%ae' 排查：\nalice@example.com\nbob@example.com\nANSWER: 7";
+    const r = await exactAnswerLineEvaluator.evaluate(s, output, meta());
+    expect(r.axisScores?.answer_accuracy).toBe(100);
   });
 });

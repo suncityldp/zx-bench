@@ -304,6 +304,17 @@ function compareStrictAnswer(extracted: string | number, expected: unknown, unit
  * - Markdown 格式的答案
  */
 function extractFinalAnswer(text: string): string | number | null {
+  // A standalone final-answer line is authoritative. Earlier explanatory text
+  // may contain incidental "答案" or numeric fragments (for example emails
+  // printed while investigating a repository), which must not displace it.
+  const labelledLines = text.split(/\r?\n/).map(line => line.trim())
+    .filter(line => /^(?:\*\*)?(?:ANSWER|最终答案|答案)(?:\*\*)?\s*[:：]/i.test(line));
+  const labelled = labelledLines.at(-1)?.match(/^(?:\*\*)?(?:ANSWER|最终答案|答案)(?:\*\*)?\s*[:：]\s*(.+)$/i);
+  if (labelled) {
+    const answerText = labelled[1].trim();
+    const num = parseNumericAnswer(answerText);
+    return num ?? answerText.replace(/[。，,;；\s]+$/g, '').trim();
+  }
   // 尝试匹配明确的答案标记
   const patterns = [
     // 中文答案格式

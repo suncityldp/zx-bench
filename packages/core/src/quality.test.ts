@@ -23,4 +23,18 @@ describe('saved run quality diagnostics', () => {
     expect(q.environmentErrorCount).toBe(1);
     expect(q.issues.join()).toContain('1/2');
   });
+  it('blocks a run when the saved CLI scorer missed an executable ANSWER line', () => {
+    const q = analyzeRunQuality([{ ...row, graderVersion: 'cli_command@cli_command_v5',
+      modelOutput: "ANSWER: awk '{print $1}' /workspace/access.log | sort",
+      evidence: '["No executable shell command found in model output"]' }], 1);
+    expect(q).toMatchObject({ grade: 'critical', scoringComplete: false, parserFalseNegativeCount: 1 });
+  });
+  it('blocks inconsistent single-attempt score history', () => {
+    const q = analyzeRunQuality([{ ...row, runCount: 1, scoreHistory: '[75]' }], 1);
+    expect(q).toMatchObject({ grade: 'critical', scoringComplete: false, scoreIntegrityFailureCount: 1 });
+  });
+  it('holds publication on an unresolved Judge-versus-execution disagreement', () => {
+    const q = analyzeRunQuality([{ ...row, evidence: '["JUDGE_EXECUTION_CONFLICT: verified test_pass=0"]' }], 1);
+    expect(q).toMatchObject({ grade: 'critical', scoringComplete: false, executionJudgeConflictCount: 1 });
+  });
 });

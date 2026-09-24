@@ -212,8 +212,23 @@ export function rankBlocks(blocks: string[], functionName?: string, language?: s
  * 3. 找到缩进代码段（连续缩进行）
  * 返回提取的代码，或 null 表示真正没有代码
  */
-function heuristicExtractCode(output: string, language: string, functionName?: string): string | null {
-  const lines = output.split('\n');
+export function heuristicExtractCode(output: string, language: string, functionName?: string): string | null {
+  // Answer-first models sometimes add a label even when the task requests raw
+  // code. Strip only that conventional label; the existing patch-extraction
+  // axis still penalizes an answer that was not submitted in a code fence.
+  const normalized = output.trim().replace(/^ANSWER\s*:\s*/i, '').trim();
+  if (language.toLowerCase() === 'sql' && /^(?:SELECT|WITH)\b/i.test(normalized)) {
+    return normalized;
+  }
+  if (/^(?:bash|sh|shell)$/.test(language.toLowerCase())) {
+    const shellLines = normalized.split('\n');
+    const start = shellLines.findIndex(line => /^\s*(?:function\s+)?[A-Za-z_][\w]*\s*\(\s*\)\s*\{\s*$/.test(line));
+    if (start >= 0) {
+      const end = shellLines.findIndex((line, index) => index > start && /^}\s*$/.test(line));
+      if (end > start) return shellLines.slice(start, end + 1).join('\n');
+    }
+  }
+  const lines = normalized.split('\n');
 
   // 策略1：查找包含 functionName 的代码结构
   if (functionName) {

@@ -14,7 +14,7 @@ import { createBenchmarkPack, verifyBenchmarkPack, checkScenarioEligibility, run
 import { DOCKER_NOT_READY, isDockerInfrastructureFailure } from '@zxbench/core';
 import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult, ScenarioResult } from '@zxbench/types';
 import { generateId, generateRunId } from '@zxbench/utils';
-import { orchestrateEvaluation, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, applyReviewedVerdict, getJudgeWeights, mixDeterministicJudge, getEvaluator, scoreExactAnswerContent } from '@zxbench/core';
+import { orchestrateEvaluation, buildProgressiveHistory, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, applyReviewedVerdict, applyCliSemanticReview, detectFormatBlindspot, getJudgeWeights, mixDeterministicJudge, getEvaluator, scoreExactAnswerContent } from '@zxbench/core';
 import { generateReport, generateCompareReport, analyzeRunQuality, referenceAnswerWarnings, partitionReferenceAnswerRuns } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
 import { computeWeightedTotal, computeDifficultyWeightedDimAvgs as computeDifficultyWeightedDimAvgsPure, buildDimAvgWeightLookups, validateScenario, classifyEngineeringFailure, createDimAvgExclusionStats, computeScorerVersionDrift } from '@zxbench/core';
@@ -686,7 +686,8 @@ async function rejudgeSavedResult(
   // Runs created before manifests/audit snapshots cannot faithfully reproduce their
   // deterministic execution today.  A Judge-only recovery must preserve those
   // stored facts and add only the missing Judge verdict.
-  const legacyJudgeOnlyRecovery = !outputMetadata.evaluationAudit?.scenarioHash;
+  let legacyJudgeOnlyRecovery = !outputMetadata.evaluationAudit?.scenarioHash;
+  let deterministicDrift: string | undefined;
   let deterministic: Partial<ScenarioResult> | undefined;
   let deterministicScore = saved.deterministicScore;
   if (!legacyJudgeOnlyRecovery) {
@@ -708,7 +709,12 @@ async function rejudgeSavedResult(
     );
     deterministicScore = deterministic.totalScore ?? 0;
     if (deterministicScore !== saved.deterministicScore) {
-      throw new Error(`deterministic score drift: saved=${saved.deterministicScore}, recomputed=${deterministicScore}`);
+      // Judge recovery preserves the original deterministic verdict. A changed
+      // evaluator must not prevent scoring the saved answer or replace that verdict.
+      deterministicDrift = `saved=${saved.deterministicScore}, recomputed=${deterministicScore}`;
+      deterministic = undefined;
+      deterministicScore = saved.deterministicScore;
+      legacyJudgeOnlyRecovery = true;
     }
   }
 
@@ -717,13 +723,11 @@ async function rejudgeSavedResult(
   const codeExtractionFailed = deterministic?.codeExtractionFailed === true
     || (axisScores.patch_extraction != null && axisScores.patch_extraction <= 40)
     || (deterministic?.evidence || savedEvidence).some((item) => String(item).includes('CODE_EXTRACTION_HEURISTIC'));
-  const hasVerifiedExecution = recomputedAxisEvidence.compilation === 'verified'
-    || recomputedAxisEvidence.test_pass === 'verified';
-  const strictAnswerContract = scenario.grader === 'exact_answer_line'
-    && (scenario.scoring as unknown as Record<string, unknown>).comparisonMode === 'strict';
-  const formatBlindspot = !legacyJudgeOnlyRecovery && !strictAnswerContract && (codeExtractionFailed
-    || ((deterministicScore < 25 && saved.modelOutput.trim().length > 20) && !hasVerifiedExecution)
-    || (saved.dimension === 'structured_output' && !saved.formatParseSuccess));
+  const formatBlindspot = !legacyJudgeOnlyRecovery && detectFormatBlindspot({
+    scenario, deterministicScore, modelOutput: saved.modelOutput,
+    formatParseSuccess: saved.formatParseSuccess, axisScores, axisEvidence: recomputedAxisEvidence,
+    evidence: deterministic?.evidence || savedEvidence, codeExtractionFailed,
+  });
 
   if (!evalConfig.judgeEnabled || !evalConfig.judgeModelConfigId) {
     throw new Error('run has no frozen Judge configuration');
@@ -772,6 +776,7 @@ async function rejudgeSavedResult(
     outputMetadata,
     codeExtractionFailed,
     formatBlindspot,
+    judgeHint: scenario.judgeHint,
   };
   // 与正常评测一致：没有显式方差实验配置时只判一次，避免 program 维度
   // 在慢速远端 Judge 上隐式串行 3 次。
@@ -783,13 +788,14 @@ async function rejudgeSavedResult(
   const judgeScore = saved.dimension === 'hallucination_resistance' && finalJudge.factuality != null
     ? Math.round(finalJudge.factuality * 100)
     : computeJudgeScore(finalJudge);
-  const coverage = deterministic?.axisCoverage ?? 1;
+  const coverage = deterministic?.axisCoverage ?? outputMetadata.evaluationAudit?.axisCoverage ?? 1;
   const judgeWeightCap = scenario.grader === 'ultra_proof_part'
     ? 1
     : (saved.dimension === 'hallucination_resistance' || scenario.grader === 'cli_command' ? .7 : undefined);
   const mixed = mixDeterministicJudge(weights.deterministic, weights.judge, coverage, judgeWeightCap);
   const reviewed = { totalScore: Math.round(saved.deterministicScore * mixed.detW + judgeScore * mixed.judgeW), deterministicScore: saved.deterministicScore, evidence: savedEvidence, humanReviewRequired: saved.humanReviewRequired, environmentError: saved.environmentError, axisScores: savedAxisScores, axisEvidence: savedAxisEvidence as any };
   applyReviewedVerdict(reviewed, finalJudge);
+  applyCliSemanticReview(reviewed, scenario, finalJudge);
   const totalScore = reviewed.totalScore;
   const ensembleHistory = (judgeResult as { runs?: JudgeResult[] }).runs;
   const history = ensembleHistory && ensembleHistory.length > 1
@@ -805,6 +811,7 @@ async function rejudgeSavedResult(
   if (legacyJudgeOnlyRecovery) {
     evidence.push('JUDGE_RESCORED_LEGACY_SAVED_DETERMINISTIC: preserved stored deterministic score, axes, and evidence');
   }
+  if (deterministicDrift) evidence.push(`JUDGE_RECOVERY_DETERMINISTIC_DRIFT: ${deterministicDrift}`);
   if (judgeResult.escalated) {
     evidence.push(`DISPUTE: local=${judgeResult.localJudge.verdict} frontier=${judgeResult.frontierJudge?.verdict} final=${finalJudge.verdict}`);
   }
@@ -833,7 +840,8 @@ async function rejudgeSavedResult(
       outputMetadata: JSON.stringify({ ...outputMetadata, evaluationAudit: legacyJudgeOnlyRecovery
         ? { ...outputMetadata.evaluationAudit, version: 1, judgeScoreHistory: history }
         : { ...outputMetadata.evaluationAudit, version: 1, scenarioHash: scenario.scenarioHash,
-          judgeScoreHistory: history, criterionResults: deterministic?.criterionResults }
+          judgeScoreHistory: history,
+          criterionResults: deterministic?.criterionResults ?? outputMetadata.evaluationAudit?.criterionResults }
       }),
       humanReviewRequired: reviewed.humanReviewRequired || judgeResult.escalated || totalScore < 30,
       evidence: JSON.stringify(evidence),
@@ -1388,6 +1396,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           ? await prisma.modelConfig.findUnique({ where: { id: body.judgeModelConfigId } })
           : await prisma.modelConfig.findFirst({ where: { modelType: 'judge' } });
         if (judgeRow) {
+          if (judgeRow.modelType !== 'judge') {
+            return reply.status(400).send({ success: false, error: '选定的 Judge 配置不是 AI Judge 模型' });
+          }
+          // Do not start a long evaluation with a stale provider model name or
+          // unreachable Judge.  Those failures are grading infrastructure
+          // failures and otherwise surface only after many model calls.
+          try {
+            await verifyJudgeRecoveryConfigs([judgeRow], 60_000);
+          } catch (error) {
+            return reply.status(503).send({
+              success: false,
+              error: `Judge 连通性预检失败，请修正模型名、地址或凭据后再启动：${error instanceof Error ? error.message : String(error)}`,
+            });
+          }
           config.judgeModelConfigId = judgeRow.id;
           console.log(`[Eval] Judge 模型已选定: ${judgeRow.name} (${judgeRow.id})${body.judgeModelConfigId ? '' : ' ← findFirst 自动选择，建议前端显式指定'}`);
           judgeOptions = {
@@ -1456,6 +1478,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       console.warn('[Batch] judgeEnabled=true 但未配置 Judge 模型，跳过 AI Judge');
       return undefined;
     }
+    if (judgeRow.modelType !== 'judge') throw new Error('选定的 Judge 配置不是 AI Judge 模型');
+    await verifyJudgeRecoveryConfigs([judgeRow], 60_000);
     config.judgeModelConfigId = judgeRow.id;
     console.log(`[Batch] Judge 模型已选定: ${judgeRow.name} (${judgeRow.id})${judgeModelConfigId ? '' : ' ← findFirst 自动选择，建议前端显式指定'}`);
     return {
@@ -3360,7 +3384,16 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     });
     // Reject incompatible runs before both cached-summary and best-of-run paths.
     // Original results remain available in history; do not turn gold errors into model failures.
-    const { eligible: completedRuns, excluded: excludedRuns } = partitionReferenceAnswerRuns(candidateRuns);
+    const { eligible: referenceEligible, excluded: excludedRuns } = partitionReferenceAnswerRuns(candidateRuns);
+    // A completed execution is not necessarily a completed score. Keep its
+    // detail page/history, but do not publish a provisional score as a rank.
+    const completedRuns = referenceEligible.filter((run) => {
+      const summary = parseStoredJson<{ qualityReport?: { scoringComplete?: boolean; issues?: string[] } }>(run.summary, {});
+      if (summary.qualityReport?.scoringComplete !== false) return true;
+      excludedRuns.push({ runId: run.id, issues: summary.qualityReport.issues?.length
+        ? summary.qualityReport.issues : ['评分完整性审计未通过'] });
+      return false;
+    });
 
     // 按 modelConfigId 分组
     const modelGroups = new Map<string, { modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; runIds: string[]; createdAt: Date; dimensionFilters: (string[] | null)[]; latestRunId: string; latestDimensionFilter: string[] | null; latestSnapshot?: Scenario[]; latestSummary: { averageScore?: number; dimensionAverages?: Record<string, number>; passCount?: number; safetyRedLineCount?: number; completedScenarios?: number; totalInputTokens?: number; totalOutputTokens?: number } | null }>();
@@ -3806,6 +3839,25 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     // 反序列化 scenario
     assertExecutionIdentity(run.manifest ? JSON.parse(run.manifest) as RunManifest : undefined, modelConfig, evalConfig, judgeOptions);
     const scenario = retryScenario;
+    const progressive = scenario.category === 'ultra_progressive_exam'
+      ? scenario.requirements as { groupId?: string; partNumber?: number } : undefined;
+    let priorMessages: ReturnType<typeof buildProgressiveHistory> = [];
+    if (progressive?.groupId && progressive.partNumber && retryPack) {
+      const laterIds = Array.from({ length: 4 - progressive.partNumber }, (_, index) =>
+        `${progressive.groupId}-P${progressive.partNumber! + index + 1}`);
+      const laterCount = await prisma.scenarioResult.count({ where: { evalRunId: runId, scenarioId: { in: laterIds } } });
+      if (laterCount) return reply.status(409).send({ success: false,
+        error: 'A later progressive part already exists; rerun the whole group in order to preserve context' });
+      const priorIds = Array.from({ length: progressive.partNumber - 1 }, (_, index) => `${progressive.groupId}-P${index + 1}`);
+      const priorRows = await prisma.scenarioResult.findMany({ where: { evalRunId: runId, scenarioId: { in: priorIds } } });
+      try {
+        priorMessages = buildProgressiveHistory(scenario, retryPack.scenarios,
+          new Map(priorRows.map(row => [row.scenarioId, { modelOutput: row.modelOutput, environmentError: row.environmentError }])));
+      } catch (error) {
+        return reply.status(409).send({ success: false,
+          error: `Progressive prerequisite unavailable: ${error instanceof Error ? error.message : String(error)}` });
+      }
+    }
 
     const questionStartTime = Date.now();
 
@@ -3827,6 +3879,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         modelParams: { ...modelConfig.defaultParams, maxTokens: evalConfig.maxTokens, temperature: evalConfig.temperature },
         evalConfig,
         judgeOptions,
+        priorMessages,
         // 单题补跑必须继承原运行的约束；否则 caller 会回退到默认 600 秒，
         // 与该运行配置的 hardTimeLimitMs 不一致。
         constraints: evalConfig.constraints,
@@ -4263,6 +4316,9 @@ async function runEvaluation(
   }
 
   let questionQueueIndex = 0;
+  // A progressive group's turns must finish and persist in order even when
+  // unrelated groups share the same global worker pool.
+  const progressiveGroupTails = new Map<string, Promise<void>>();
   const dimensionActiveCount = new Map<string, number>();
 
   // 确保并发数不超过题目总数（避免空转）
@@ -4316,6 +4372,23 @@ async function runEvaluation(
     });
 
     try {
+      const partInfo = scenario.requirements as { groupId?: string; partNumber?: number } | undefined;
+      const priorIds = scenario.category === 'ultra_progressive_exam' && partInfo?.groupId && Number(partInfo.partNumber) > 1
+        ? Array.from({ length: Number(partInfo.partNumber) - 1 }, (_, index) => `${partInfo.groupId}-P${index + 1}`)
+        : [];
+      const priorRows = priorIds.length ? await prisma.scenarioResult.findMany({
+        where: { evalRunId: runId, scenarioId: { in: priorIds } },
+        select: { scenarioId: true, modelOutput: true, environmentError: true },
+        orderBy: { finishedAt: 'desc' },
+      }) : [];
+      const priorResults = new Map<string, { modelOutput: string; environmentError: boolean }>();
+      for (const row of priorRows) if (!priorResults.has(row.scenarioId)) priorResults.set(row.scenarioId, row);
+      let priorMessages: ReturnType<typeof buildProgressiveHistory>;
+      try {
+        priorMessages = buildProgressiveHistory(scenario, filteredScenarios, priorResults);
+      } catch (error) {
+        throw new Error(`PROGRESSIVE_PREREQUISITE: ${error instanceof Error ? error.message : String(error)}`);
+      }
       const result = await runMultipleEvaluations(scenario, {
         runsPerQuestion: config.auditVersion === 1 ? config.runsPerQuestion : 1,
         beforeAttempt: async () => (await checkPause(runId, activeController)) !== 'cancelled',
@@ -4326,6 +4399,7 @@ async function runEvaluation(
         evalConfig: config,
         judgeOptions,
         constraints: config.constraints, // 思考/输出约束（反拖尾）
+        priorMessages,
         onProgress: (stage) => {
           // 同步更新当前题目的阶段
           const entry = currentScenariosMap.get(trackingKey);
@@ -4460,7 +4534,7 @@ async function runEvaluation(
       }
       // ===== 兜底：硬性配额/鉴权错误（余额不足、401/403 等）→ 暂停评测，避免烧 token =====
       // 不落 0 分：该题保持「未完成」，resume 后会自动重跑；其余 worker 会在 checkPause 处等待。
-      if (isHardQuotaError(errMsg) || errMsg.startsWith(`${DOCKER_NOT_READY}:`)) {
+      if (isHardQuotaError(errMsg) || errMsg.startsWith(`${DOCKER_NOT_READY}:`) || errMsg.startsWith('PROGRESSIVE_PREREQUISITE:')) {
         infrastructurePauseReason = errMsg;
         console.error(`[Eval ${runId}] 硬性错误，暂停评测（避免烧 token）: ${errMsg}`);
         pauseEvaluation(runId);
@@ -4572,8 +4646,21 @@ async function runEvaluation(
       const idx = questionQueueIndex++;
       if (idx >= allPendingQuestions.length) break;
       const { scenarioRow, dimension } = allPendingQuestions[idx];
-      while (!(await processQuestion(scenarioRow, dimension))) {
-        if ((await checkPause(runId, activeController)) === 'cancelled') return;
+      const partInfo = scenarioRow.requirements as { groupId?: string } | undefined;
+      const groupId = scenarioRow.category === 'ultra_progressive_exam' ? partInfo?.groupId : undefined;
+      const previous = groupId ? progressiveGroupTails.get(groupId) : undefined;
+      let release: (() => void) | undefined;
+      if (groupId) {
+        const tail = new Promise<void>(resolve => { release = resolve; });
+        progressiveGroupTails.set(groupId, tail);
+      }
+      try {
+        if (previous) await previous;
+        while (!(await processQuestion(scenarioRow, dimension))) {
+          if ((await checkPause(runId, activeController)) === 'cancelled') return;
+        }
+      } finally {
+        release?.();
       }
     }
   }

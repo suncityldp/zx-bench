@@ -161,6 +161,34 @@ export const CONTAINER_IMAGES: Record<string, string> = {
  * 构建期的 apt / rustup 下载会全部超时。
  */
 const LOCAL_BUILD_IMAGES: Record<string, string> = {
+  'zxbench/java-spring:3.2.5': [
+    // Spring 工程题在禁网容器内用 Maven offline 模式运行。基础 Maven 镜像
+    // 没有 Spring Boot/JPA/H2/Surefire 依赖，必须在构建期填充固定仓库目录。
+    // BuildKit cache 让超时或网络中断后的重试接着下载，而不是从零开始。
+    '# syntax=docker/dockerfile:1',
+    'FROM maven:3.9-eclipse-temurin-17-alpine',
+    // 评测容器以 UID 65534 运行，避免 Maven entrypoint 尝试写只属于 root 的 ~/.m2。
+    'ENV MAVEN_CONFIG=/tmp/.m2',
+    'COPY pom.xml /tmp/zxbench-java-bootstrap/pom.xml',
+    'COPY src /tmp/zxbench-java-bootstrap/src',
+    'RUN --mount=type=cache,id=zxbench-java-spring-maven,target=/root/.m2/repository \\',
+    // 执行与题目相同的 test 生命周期即可精确预热依赖；dependency:go-offline 会额外
+    // 拉取大量与测试无关的旧版 reporting 依赖，显著拖慢首次构建。
+    '    success=0; \\',
+    '    for attempt in 1 2 3 4 5; do \\',
+    '      if mvn -q -U -f /tmp/zxbench-java-bootstrap/pom.xml test; then success=1; break; fi; \\',
+    // Maven Central/代理偶发 TLS handshake 中断时，从 BuildKit 缓存续传。
+    '      sleep 5; \\',
+    '    done; \\',
+    '    [ "$success" = 1 ] \\',
+    ' && mkdir -p /usr/share/maven/repository \\',
+    ' && cp -a /root/.m2/repository/. /usr/share/maven/repository/ \\',
+    ' && mvn -q -o -f /tmp/zxbench-java-bootstrap/pom.xml \\',
+    '      -Dmaven.repo.local=/usr/share/maven/repository test \\',
+    ' && rm -rf /tmp/zxbench-java-bootstrap \\',
+    ' && chmod -R a+rX /usr/share/maven/repository',
+  ].join('\n'),
+
   'zxbench/go:1.21-gcc': [
     // Go 容器执行需要 gcc（-race 走 cgo）
     'FROM golang:1.21',
@@ -182,12 +210,66 @@ const LOCAL_BUILD_IMAGES: Record<string, string> = {
     // 运行时以 UID 65534 且 --network none 执行，默认 /usr/local/rustup 不可写/不可读。
     // MIRI_SYSROOT 预构建好，运行时免去 miri setup（离线环境无法联网重建）。
     'FROM rust:1',
-    'ENV RUSTUP_HOME=/opt/rustup-home CARGO_HOME=/opt/cargo-home MIRI_SYSROOT=/opt/miri-sysroot',
-    'ENV PATH=/opt/cargo-home/bin:$PATH',
-    'RUN rustup toolchain install nightly --component miri rust-src',
+    'ENV MIRI_SYSROOT=/opt/miri-sysroot',
+    'RUN rustup toolchain install nightly --component miri --component rust-src',
     'RUN cargo +nightly miri setup',
-    'RUN chmod -R a+rX /opt/rustup-home /opt/cargo-home /opt/miri-sysroot',
+    'RUN chmod -R a+rX /usr/local/rustup /usr/local/cargo /opt/miri-sysroot',
   ].join('\n'),
+};
+
+// 历史题包 CP-L4-JV-001 曾把同一镜像写成无命名空间的
+// `zxbench-java-spring:3.2.5`。两种引用必须都能自建；否则 Docker 会把
+// 这个私有镜像误当作远程仓库镜像拉取，进而把题目错误标成环境故障。
+LOCAL_BUILD_IMAGES['zxbench-java-spring:3.2.5'] = LOCAL_BUILD_IMAGES['zxbench/java-spring:3.2.5'];
+
+/** 本地镜像构建所需的受信任上下文文件。 */
+const LOCAL_BUILD_CONTEXT_FILES: Record<string, Record<string, string>> = {
+  'zxbench/java-spring:3.2.5': {
+    'pom.xml': [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<project xmlns="http://maven.apache.org/POM/4.0.0"',
+      '         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
+      '         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">',
+      '  <modelVersion>4.0.0</modelVersion>',
+      '  <parent>',
+      '    <groupId>org.springframework.boot</groupId>',
+      '    <artifactId>spring-boot-starter-parent</artifactId>',
+      '    <version>3.2.5</version>',
+      '    <relativePath/>',
+      '  </parent>',
+      '  <groupId>com.shop</groupId>',
+      '  <artifactId>zxbench-java-bootstrap</artifactId>',
+      '  <version>1.0.0</version>',
+      '  <properties><java.version>17</java.version></properties>',
+      '  <dependencies>',
+      '    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>',
+      '    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></dependency>',
+      '    <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>test</scope></dependency>',
+      '    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>',
+      '  </dependencies>',
+      '</project>',
+    ].join('\n'),
+    'src/test/java/com/shop/ZxbenchBootstrapTest.java': [
+      'package com.shop;',
+      'import org.junit.jupiter.api.Test;',
+      'import static org.junit.jupiter.api.Assertions.assertTrue;',
+      'class ZxbenchBootstrapTest {',
+      '  @Test void junitPlatformIsAvailableOffline() { assertTrue(true); }',
+      '}',
+    ].join('\n'),
+  },
+};
+
+LOCAL_BUILD_CONTEXT_FILES['zxbench-java-spring:3.2.5'] = LOCAL_BUILD_CONTEXT_FILES['zxbench/java-spring:3.2.5'];
+
+/**
+ * Recovery aliases for locally-built images whose historical content digest is
+ * referenced by frozen benchmark packs but was never published to a registry.
+ * Keep this list exact: public digest-pinned images must still be pulled and
+ * verified by Docker under their original reference.
+ */
+const LOCAL_IMAGE_RECOVERY_ALIASES: Record<string, string> = {
+  'zxbench/go@sha256:bbe499b0985c0481a47548381d03e2a46ded78e13411b8e5865b0efbdb391e03': 'zxbench/go:1.21-gcc',
 };
 
 /**
@@ -291,15 +373,29 @@ export async function getImageDigest(image: string): Promise<string | undefined>
 /** 本次进程内已尝试过自建的镜像（失败不重复烧时间，每题一次构建会拖垮评测） */
 const localBuildAttempted = new Set<string>();
 
+/**
+ * Java/Spring 首次构建需要从 Maven Central 预热完整的离线仓库；在较慢网络下
+ * 15 分钟不足。只放宽这个镜像，避免其他镜像构建异常时长时间占用评测槽位。
+ */
+const LOCAL_BUILD_TIMEOUT_MS: Record<string, number> = {
+  'zxbench/java-spring:3.2.5': 1_800_000,
+  'zxbench-java-spring:3.2.5': 1_800_000,
+};
+
 /** 用内置 Dockerfile 本地构建镜像 */
 async function buildLocalImage(image: string, dockerfile: string): Promise<boolean> {
   const ctx = mkdtempSync(join(tmpdir(), 'zxbench-img-'));
   try {
     writeFileSync(join(ctx, 'Dockerfile'), dockerfile, 'utf8');
+    for (const [path, content] of Object.entries(LOCAL_BUILD_CONTEXT_FILES[image] ?? {})) {
+      const full = containerFilePath(ctx, path);
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, content, 'utf8');
+    }
     const res = await execAsync(
       'docker',
       ['build', '--network', 'host', '-t', image, '.'],
-      { timeout: 900_000, cwd: ctx, stdio: 'ignore' },
+      { timeout: LOCAL_BUILD_TIMEOUT_MS[image] ?? 900_000, cwd: ctx, stdio: 'ignore' },
     );
     const ok = res.status === 0;
     console.log(ok ? `[CT] 本地自建镜像完成: ${image}` : `[CT] 本地自建镜像失败: ${image}`);
@@ -329,6 +425,18 @@ async function ensureImage(image: string): Promise<void> {
   await execAsync('docker', ['pull', image], { timeout: 300000, stdio: 'ignore' });
 }
 
+/**
+ * 供评测启动前的预检使用：保证内置可复现镜像已存在，或抛出可诊断错误。
+ * 这样缺失的私有基础镜像会在开跑前恢复，而不会消耗模型生成后才失败。
+ */
+export async function ensureContainerImage(image: string): Promise<void> {
+  await ensureImage(image);
+  const inspect = await execAsync('docker', ['image', 'inspect', image], { timeout: 15_000 });
+  if (inspect.status !== 0) {
+    throw new Error(`Required container image is unavailable after recovery: ${image}`);
+  }
+}
+
 /** 在隔离容器中执行命令，返回 stdout/stderr/exitCode。工作区只读 bind mount。 */
 export async function runInContainer(options: ContainerRunOptions): Promise<ContainerRunResult> {
   const {
@@ -338,6 +446,7 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
     seccompUnconfined = false, env = {}, mounts = [],
     readOnlyRoot = false, localImageOnly = false, maxOutputBytes = 8 * 1024 * 1024, tmpfsSizeMb = 32, tmpfsExec = false,
   } = options;
+  const runtimeImage = LOCAL_IMAGE_RECOVERY_ALIASES[image] ?? image;
   if(!Number.isInteger(tmpfsSizeMb)||tmpfsSizeMb<16||tmpfsSizeMb>512)throw new Error('tmpfsSizeMb must be an integer from 16 to 512');
 
   const startedAt = Date.now();
@@ -351,10 +460,10 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
 
   if (T) console.log('[CT] ensureImage 开始');
   if (localImageOnly) {
-    const cached = await execAsync('docker', ['image', 'inspect', image], { timeout: 15000 });
+    const cached = await execAsync('docker', ['image', 'inspect', runtimeImage], { timeout: 15000 });
     if (cached.status !== 0) return { success: false, stdout: '', stderr: 'Required local image unavailable',
       infrastructureError: `Local image unavailable: ${image}`, exitCode: -1, timedOut: false, durationMs: Date.now() - startedAt };
-  } else await ensureImage(image);
+  } else await ensureImage(runtimeImage);
   if (T) console.log('[CT] ensureImage 完成');
 
   if (T) console.log('[CT] 物化临时目录开始');
@@ -399,7 +508,7 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
     for (const m of mounts) {
       args.push('--mount', 'type=bind,src=' + m.src.split('\\').join('/') + ',dst=' + m.dst + (m.readonly === false ? '' : ',readonly'));
     }
-    args.push(image, ...command);
+    args.push(runtimeImage, ...command);
     if (T) console.log('[CT] docker run 开始: ' + args.join(' ').slice(0, 220));
 
     const res = await execAsync('docker', args, { timeout: timeoutMs + 5000, maxBuffer: maxOutputBytes });

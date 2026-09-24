@@ -65,6 +65,7 @@ export type { SupportedFormat } from './parsers/index.js';
 
 // 编排器
 export { orchestrateEvaluation, generateManifest } from './orchestrator.js';
+export { buildProgressiveHistory } from './progressiveContext.js';
 export type { OrchestrateOptions } from './orchestrator.js';
 
 // 多轮稳定性评测
@@ -132,7 +133,7 @@ export type { ReportUserPromptData, CompareReportUserPromptData } from './report
 // 参数化题目引擎
 export { generateVariables, instantiateScenario, createParameterizedInstance } from './parameterize/index.js';
 // 评分/聚合核心
-export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, JUDGE_WEIGHT_CAP, TARGET_DIFFICULTY_DISTRIBUTION, analyzeDifficultyDistribution, computeWeightedTotal, getJudgeWeights, applyReviewedVerdict, mixDeterministicJudge, applyCoverageDiscount, computeConsistencyScore, computeDifficultyWeightedDimAvgs, buildDimAvgWeightLookups, computeScorerVersionDrift, normalizeDimension, DIMENSION_ALIASES, classifyEngineeringFailure, createDimAvgExclusionStats } from './scoring.js';
+export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, JUDGE_WEIGHT_CAP, TARGET_DIFFICULTY_DISTRIBUTION, analyzeDifficultyDistribution, computeWeightedTotal, getJudgeWeights, detectFormatBlindspot, applyReviewedVerdict, applyCliSemanticReview, mixDeterministicJudge, applyCoverageDiscount, computeConsistencyScore, computeDifficultyWeightedDimAvgs, buildDimAvgWeightLookups, computeScorerVersionDrift, normalizeDimension, DIMENSION_ALIASES, classifyEngineeringFailure, createDimAvgExclusionStats } from './scoring.js';
 export type { EngineeringFailureKind, EngineeringFailureInput, DimAvgExclusionStats, DimAvgLookups, ScorerVersionDrift } from './scoring.js';
 
 // 场景契约（Phase 1）

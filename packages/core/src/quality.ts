@@ -2,6 +2,7 @@ import type { EvaluationAudit } from '@zxbench/types';
 import { summarizeCriteria } from './audit.js';
 
 import { referenceAnswerWarnings } from './referenceAnswerReview.js';
+import { extractPrimaryCommand } from './evaluators/cliCommand.js';
 /** Diagnose saved rows, not stale in-memory attempts or display metadata. */
 export interface QualityRow {
   scenarioId?: string;
@@ -14,6 +15,9 @@ export interface QualityRow {
   deterministicScore: number | null;
   environmentError?: boolean | null;
   evidence?: string | null;
+  scoreHistory?: string | null;
+  runCount?: number | null;
+  finalJudge?: string | null;
 }
 
 export function analyzeRunQuality(results: QualityRow[], totalScenarios: number) {
@@ -64,7 +68,39 @@ export function analyzeRunQuality(results: QualityRow[], totalScenarios: number)
     try { return (JSON.parse(r.evidence || '[]') as string[]).some(e => e.startsWith('CANDIDATE_REPEATS_PARTIAL:')); }
     catch { return false; }
   });
+  const parserFalseNegatives = valid.filter(r => {
+    if (!r.graderVersion?.startsWith('cli_command@')) return false;
+    try {
+      return (JSON.parse(r.evidence || '[]') as string[])
+        .some(e => e.startsWith('No executable shell command found'))
+        && !!extractPrimaryCommand(r.modelOutput || '', true);
+    } catch { return false; }
+  });
+  const scoreIntegrityFailures = valid.filter(r => {
+    if (!Number.isInteger(r.totalScore) || r.totalScore < 0 || r.totalScore > 100
+      || r.judgeScore != null && !r.finalJudge) return true;
+    if (r.runCount !== 1 || !r.scoreHistory) return false;
+    try {
+      const history = JSON.parse(r.scoreHistory);
+      return !Array.isArray(history) || history.length !== 1 || history[0] !== r.totalScore;
+    } catch { return true; }
+  });
+  const executionJudgeConflicts = valid.filter(r => {
+    try { return (JSON.parse(r.evidence || '[]') as string[]).some(e => e.startsWith('JUDGE_EXECUTION_CONFLICT:')); }
+    catch { return false; }
+  });
+  const unresolvedCliDisagreements = valid.filter(r => {
+    try {
+      const evidence = JSON.parse(r.evidence || '[]') as string[];
+      return evidence.some(e => e.startsWith('CLI_LEXICAL_JUDGE_CONFLICT:'))
+        && !evidence.some(e => e.startsWith('CLI_SEMANTIC_REVIEW:'));
+    } catch { return false; }
+  });
   if (partialRepeats.length) issues.push(`候选重复作答未完成: ${partialRepeats.length} 题`);
+  if (parserFalseNegatives.length) issues.push(`评分器解析漏判: ${parserFalseNegatives.length} 题 — ${parserFalseNegatives.map(r => r.scenarioId || 'unknown').slice(0, 10).join(', ')}`);
+  if (scoreIntegrityFailures.length) issues.push(`分数/判分记录不一致: ${scoreIntegrityFailures.length} 题 — ${scoreIntegrityFailures.map(r => r.scenarioId || 'unknown').slice(0, 10).join(', ')}`);
+  if (executionJudgeConflicts.length) issues.push(`Judge 与已验证执行结果冲突: ${executionJudgeConflicts.length} 题`);
+  if (unresolvedCliDisagreements.length) issues.push(`CLI 规则与 Judge 分歧未复核: ${unresolvedCliDisagreements.length} 题`);
   if (results.length !== totalScenarios) issues.push(`结果覆盖: ${results.length}/${totalScenarios}`);
   if (results.length !== valid.length) issues.push(`环境故障隔离: ${results.length - valid.length} 题`);
   if (empty.length) issues.push(`空输出: ${empty.length}/${valid.length} 题`);
@@ -76,11 +112,18 @@ export function analyzeRunQuality(results: QualityRow[], totalScenarios: number)
   if (partialEnvironmentErrors) issues.push(`重复作答环境故障: ${partialEnvironmentErrors} 次（已隔离，完整尝试记录已保留）`);
   if (constraintMetrics.unmeasuredCriteria) issues.push(`未测量约束: ${constraintMetrics.unmeasuredCriteria} 条（严格通过不放行）`);
   const threshold = Math.max(5, Math.floor(valid.length * 0.05));
-  const grade: 'good' | 'warning' | 'critical' = referenceIssues.length > 0 || failed.length > 0 || empty.length > threshold || length.length > threshold
+  const grade: 'good' | 'warning' | 'critical' = referenceIssues.length > 0 || failed.length > 0
+    || parserFalseNegatives.length > 0 || scoreIntegrityFailures.length > 0
+    || executionJudgeConflicts.length > 0 || unresolvedCliDisagreements.length > 0
+    || empty.length > threshold || length.length > threshold
     ? 'critical' : issues.length ? 'warning' : 'good';
   return { grade, issues, constraintMetrics, partialEnvironmentErrors, emptyOutputCount: empty.length, judgeZeroCount: judgeZero.length,
     lengthFinishCount: length.length, zeroDeterministCount: zeroDet.length,
-    judgeFailedCount: failed.length, scoringComplete: failed.length === 0 && partialRepeats.length === 0 && referenceIssues.length === 0,
+    judgeFailedCount: failed.length, scoringComplete: failed.length === 0 && partialRepeats.length === 0
+      && referenceIssues.length === 0 && parserFalseNegatives.length === 0 && scoreIntegrityFailures.length === 0
+      && executionJudgeConflicts.length === 0 && unresolvedCliDisagreements.length === 0,
+    parserFalseNegativeCount: parserFalseNegatives.length, scoreIntegrityFailureCount: scoreIntegrityFailures.length,
+    executionJudgeConflictCount: executionJudgeConflicts.length, unresolvedCliDisagreementCount: unresolvedCliDisagreements.length,
     referenceAnswerIssueCount: referenceIssues.length,
     environmentErrorCount: results.length - valid.length };
 }

@@ -36,7 +36,7 @@ import { runTieredJudge, runJudgeEnsemble, computeJudgeScore, type JudgeOptions 
 import { getEvaluator } from './evaluators/index.js';
 import { prepareSandboxEvaluation } from './sandbox/workspace.js';
 import { checkSafetyRedLines } from './safety/index.js';
-import { getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, applyReviewedVerdict } from './scoring.js';
+import { getJudgeWeights, mixDeterministicJudge, applyCoverageDiscount, detectFormatBlindspot, applyReviewedVerdict, applyCliSemanticReview } from './scoring.js';
 import { attachEvaluationAudit } from './audit.js';
 import { snapshotHash } from './contracts/pack.js';
 import { isDockerAvailable } from './execution/containerRunner.js';
@@ -51,6 +51,8 @@ export interface OrchestrateOptions {
   signal?: AbortSignal;
   judgeOptions?: JudgeOptions;
   systemPrompt?: string;
+  /** Previous frozen exam questions and committed model answers. */
+  priorMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   onProgress?: (stage: string) => void;
   /** 思考/输出约束策略（反拖尾）：优先级 = 题目级字段 > 运行级 constraints */
   constraints?: EvalConstraints;
@@ -409,6 +411,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
         params: { ...modelParams, maxTokens: effectiveMaxTokens, hardTimeoutMs: scenarioHardTimeoutMs },
         systemPrompt,
         userPrompt,
+        priorMessages: options.priorMessages,
         signal: options.signal,
         constraints: effectiveConstraints,
         stream: true, // 流式调用以获取精确 TTFT 和生成速度
@@ -480,6 +483,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
         params: { ...modelParams, maxTokens: effectiveMaxTokens, hardTimeoutMs: scenarioHardTimeoutMs },
         systemPrompt,
         userPrompt,
+        priorMessages: options.priorMessages,
         signal: options.signal,
         constraints: effectiveConstraints,
         stream: true,
@@ -616,22 +620,11 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
   // 推广到所有维度：数学答案提取失败、JSON 解析失败、格式合规失败等场景
   // 阈值取 20 字符：数学题的正确答案常是一句话/一个数（<200 字符），
   // 过高的阈值会漏掉"短答案但格式不符"的格式盲区场景。
-  const hasSubstantialOutput = modelResponse.content.trim().length > 20;
-  const detScoreVeryLow = (result.totalScore ?? 100) < 25;
-  const formatParseFailed = !formatParseSuccess && scenario.schema != null;
-
-  // 有真实执行验证（编译/测试 verified）时，det 低是真实执行失败而非格式盲区，
-  // 不应让 Judge 覆盖真实的编译/测试结果（否则"编译失败但 Judge 说对"会虚增分数）。
-  const hasVerifiedExecution =
-    result.axisEvidence?.compilation === 'verified' ||
-    result.axisEvidence?.test_pass === 'verified';
-
-  const strictAnswerContract = scenario.grader === 'exact_answer_line'
-    && (scenario.scoring as unknown as Record<string, unknown>).comparisonMode === 'strict';
-  const formatBlindspot = !strictAnswerContract && (
-    codeExtractionFailed ||  // 编程维度：代码提取失败（无真实执行）
-    ((detScoreVeryLow && hasSubstantialOutput) && !hasVerifiedExecution) ||  // 有内容但极低分，且非真实执行失败
-    formatParseFailed);  // 结构化输出：JSON 解析失败
+  const formatBlindspot = detectFormatBlindspot({
+    scenario, deterministicScore: result.totalScore ?? 0, modelOutput: modelResponse.content,
+    formatParseSuccess, axisScores: result.axisScores, axisEvidence: result.axisEvidence,
+    evidence: result.evidence, codeExtractionFailed,
+  });
 
   // ===== Stage 6: 硬安全和权限验证（GPT5.6 P0-5 上下文感知） =====
   if (evalConfig.safetyCheckEnabled) {
@@ -834,6 +827,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     result.deterministicScore = detScore;
   }
   applyReviewedVerdict(result, finalJudge);
+  applyCliSemanticReview(result, scenario, finalJudge);
   // P1（2026-09-16）：满分可疑审计——幻觉维度 judge 给满分（≥98）但输出含引用形态
   // （DOI/URL/ISBN）时标记人工复核。纯 judge 口径下满分最容易被"格式正确但内容编造"骗过，
   // 引用形态是可机械检测的疑点。只标记不改分，避免引入第二个 judge 依赖。

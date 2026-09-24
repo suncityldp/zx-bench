@@ -11,6 +11,8 @@ export interface CallModelOptions {
   params: ModelParams;
   systemPrompt?: string;
   userPrompt: string;
+  /** Prior user/assistant turns for a progressive exam; final userPrompt follows them. */
+  priorMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
   signal?: AbortSignal;
   /** 思考/输出约束（反拖尾）：注入 prompt 软约束 + 预算硬限制 */
   constraints?: EvalConstraints;
@@ -33,7 +35,7 @@ async function callModelNonStreaming(options: CallModelOptions): Promise<ModelRe
   const startTime = Date.now();
 
   const { controller, timeoutId, timeoutMs } = buildTimeout(constraints, params, signal);
-  const { messages, defaultMaxTokens } = buildMessages(config, params, systemPrompt, userPrompt, constraints);
+  const { messages, defaultMaxTokens } = buildMessages(config, params, systemPrompt, userPrompt, constraints, options.priorMessages);
 
   const body: Record<string, unknown> = {
     model: config.name,
@@ -78,7 +80,7 @@ async function callModelStreaming(options: CallModelOptions): Promise<ModelRespo
   const requestStartTime = Date.now();
 
   const { controller, timeoutId, timeoutMs } = buildTimeout(constraints, params, signal);
-  const { messages, defaultMaxTokens } = buildMessages(config, params, systemPrompt, userPrompt, constraints);
+  const { messages, defaultMaxTokens } = buildMessages(config, params, systemPrompt, userPrompt, constraints, options.priorMessages);
 
   const body: Record<string, unknown> = {
     model: config.name,
@@ -357,6 +359,7 @@ function buildMessages(
   systemPrompt: string | undefined,
   userPrompt: string,
   constraints: EvalConstraints | undefined,
+  priorMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [],
 ): { messages: Array<{ role: string; content: string }>; defaultMaxTokens: number } {
   const REASONING_DEFAULT_TOKENS = 32768;
   const NORMAL_DEFAULT_TOKENS = 8192;
@@ -377,6 +380,7 @@ function buildMessages(
   if (effectiveSystem) {
     messages.push({ role: 'system', content: effectiveSystem + REASONING_SUFFIX });
   }
+  messages.push(...priorMessages);
   messages.push({ role: 'user', content: constraintSuffix ? `${userPrompt}${constraintSuffix}` : userPrompt });
 
   // 运行级 maxTokens 是一次请求的硬上限。题级 token 约束可以进一步收紧预算，

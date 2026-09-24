@@ -17,7 +17,7 @@ interface GroupResultsData {
   config: Record<string, unknown>;
   summary: { averageScore: number; dimensionAverages: Record<string, number>; pauseReason?: string } | null;
   results: ScenarioResult[];
-  qualityReport?: { grade: 'good' | 'warning' | 'critical'; issues: string[]; judgeFailedCount: number;
+  qualityReport?: { grade: 'good' | 'warning' | 'critical'; issues: string[]; judgeFailedCount: number; scoringComplete?: boolean;
     constraintMetrics?: { samples: number; scoredSamples: number; strictPassRate: number | null;
       constraintAccuracy: number | null; criticalFailures: number; unmeasuredCriteria: number; unscoredSamples: number } };
   referenceAnswerWarnings?: string[];
@@ -281,8 +281,10 @@ export default function EvalDetail() {
           showIcon
           type={data.qualityReport.grade === 'critical' ? 'error' : 'warning'}
           style={{ marginBottom: 16 }}
-          message={data.qualityReport.judgeFailedCount > 0
-            ? (lang === 'en' ? 'Scoring incomplete: Judge recovery required' : '评分尚未完成：部分题目需要补评 Judge')
+          message={data.qualityReport.scoringComplete === false
+            ? (data.qualityReport.judgeFailedCount > 0
+              ? (lang === 'en' ? 'Scoring incomplete: Judge recovery required' : '评分尚未完成：部分题目需要补评 Judge')
+              : (lang === 'en' ? 'Scoring incomplete: integrity review required' : '评分尚未完成：需要核查评分完整性'))
             : (lang === 'en' ? 'Evaluation quality warnings' : '评测质量提示')}
           description={data.qualityReport.issues.map((issue, i) => <div key={i}>{issue}</div>)}
         />

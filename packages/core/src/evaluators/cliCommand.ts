@@ -236,33 +236,47 @@ export const cliCommandEvaluator: Evaluator = {
  * 否则取首个看起来像 shell 命令的行。仅用于交给 sandbox runner 执行，不做评分判断。
  */
 export function extractPrimaryCommand(output: string, preferFirst = false): string {
-  const candidates: Array<{ index: number; command: string }> = [];
+  const fencedCandidates: Array<{ index: number; command: string }> = [];
+  const inlineCandidates: Array<{ index: number; command: string }> = [];
   const fencedRanges: Array<[number, number]> = [];
   for (const match of output.matchAll(/```(?:bash|sh|shell|zsh|fish)?\s*\n([\s\S]*?)```/gi)) {
     const index = match.index ?? 0;
     fencedRanges.push([index, index + match[0].length]);
     const command = selectCommandBlock(match[1]);
-    if (command) candidates.push({ index, command });
+    if (command) fencedCandidates.push({ index, command });
   }
   for (const match of output.matchAll(/`([^`\r\n]+)`/g)) {
     const index = match.index ?? 0;
     if (fencedRanges.some(([start, end]) => index >= start && index < end)) continue;
     const command = selectCommandLine(match[1]);
-    if (command) candidates.push({ index, command });
+    if (command) inlineCandidates.push({ index, command });
   }
   const plain = selectCommandLine(output);
   if (plain) {
     const index = output.lastIndexOf(plain);
     if (!fencedRanges.some(([start, end]) => index >= start && index < end)) {
-      candidates.push({ index: index < 0 ? output.length : index, command: plain });
+      inlineCandidates.push({ index: index < 0 ? output.length : index, command: plain });
     }
   }
+  // Explanatory prose often contains later inline `sed`/`mv` examples. A
+  // fenced executable block is the submitted answer and must take precedence.
+  const candidates = fencedCandidates.length > 0 ? fencedCandidates : inlineCandidates;
   if (candidates.length === 0) return '';
   candidates.sort((a, b) => a.index - b.index);
   return (preferFirst ? candidates[0] : candidates.at(-1))!.command;
 }
 
-const SHELL_COMMAND = /^(?:command\s+|env\s+)?(?:awk|sed|grep|sort|uniq|cat|head|tail|wc|find|ls|echo|printf|cut|tr|jq|curl|wget|python3?|node|bash|sh|tee|xargs|diff|comm|mkdir|cp|mv|rm|touch|git|npm|pnpm|tar|sha\d*sum|date|stat|du|realpath|readlink|chmod|chown|test)\b/i;
+const SHELL_COMMAND = /^(?:command\s+|env\s+)?(?:awk|sed|grep|sort|uniq|cat|head|tail|wc|find|ls|echo|printf|cut|tr|jq|curl|wget|python3?|node|bash|sh|tee|xargs|diff|comm|mkdir|cp|mv|rm|touch|git|npm|pnpm|tar|sha\d*sum|date|stat|du|dd|od|xxd|realpath|readlink|chmod|chown|test|cd|perl|ps)\b/i;
+
+function looksExecutableLine(line: string): boolean {
+  return SHELL_COMMAND.test(line)
+    || /^\(\s*(?:cd|find|tar|sort)\b/i.test(line)
+    || /^[A-Za-z_][A-Za-z0-9_]*=\$\(/.test(line)
+    || /^[A-Za-z_][A-Za-z0-9_]*=[^\s;]+(?:\s|;|$)/.test(line)
+    || /^for\s+[A-Za-z_][A-Za-z0-9_]*\s+in\b/.test(line)
+    || /^while\s+(?:IFS=|read\b|\[|test\b)/.test(line)
+    || /^\{\s*(?:echo|printf|awk|grep|sort|cat|find|sed|jq)\b/.test(line);
+}
 
 function isExecutableRequirement(token: string): boolean {
   return SHELL_COMMAND.test(token.trim());
@@ -272,16 +286,21 @@ function selectCommandBlock(text: string): string {
   const normalized = text.replace(/\r\n?/g, '\n').trim();
   if (!normalized) return '';
   const lines = normalized.split('\n').map((line) => line.trim());
-  return lines.some((line) => line.length > 0 && !line.startsWith('#') && SHELL_COMMAND.test(line))
+  return lines.some((line) => line.length > 0 && !line.startsWith('#') && looksExecutableLine(line))
     ? normalized
     : '';
 }
 
 function selectCommandLine(text: string): string {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n').map((line) => line.trim());
+  const lines = text.replace(/\r\n?/g, '\n').split('\n').map((line) => {
+    const trimmed = line.trim();
+    // Run-level answer-first explicitly asks for this label. It is a delivery
+    // wrapper, not part of the shell command; keep the executable-token check.
+    return trimmed.replace(/^(?:ANSWER|答案|最终答案)\s*[:：]\s*/i, '').trim();
+  });
   // A command is a non-comment line that starts with an executable token.
   // This deliberately ignores “# awk …” and prose such as “use awk”.
-  const candidates = lines.filter((line) => line.length > 0 && !line.startsWith('#') && SHELL_COMMAND.test(line));
+  const candidates = lines.filter((line) => line.length > 0 && !line.startsWith('#') && looksExecutableLine(line));
   return candidates[candidates.length - 1] ?? '';
 }
 
