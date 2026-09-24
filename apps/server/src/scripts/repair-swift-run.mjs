@@ -194,7 +194,9 @@ try {
           }
         }
       };
-      const outcomes = await Promise.allSettled([worker(), worker()]);
+      const workerCount = Number(process.env.ZXB_PROGRESSIVE_WORKERS ?? 2);
+      if (![1, 2].includes(workerCount)) throw new Error('ZXB_PROGRESSIVE_WORKERS must be 1 or 2');
+      const outcomes = await Promise.allSettled(Array.from({ length: workerCount }, () => worker()));
       const failures = outcomes.filter(outcome => outcome.status === 'rejected');
       if (failures.length) {
         await updateSummary(run, scenarios);
