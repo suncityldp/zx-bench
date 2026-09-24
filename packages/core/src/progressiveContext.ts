@@ -13,6 +13,15 @@ export interface ProgressiveMessage {
   content: string;
 }
 
+function differsOnlyByHardTimeLimit(frozenPrompt: string, currentPrompt: string): boolean {
+  const limit = /时限(\d+)秒/g;
+  const frozenLimits = [...frozenPrompt.matchAll(limit)];
+  const currentLimits = [...currentPrompt.matchAll(limit)];
+  if (frozenLimits.length !== 1 || currentLimits.length !== 1
+    || frozenLimits[0][1] === currentLimits[0][1]) return false;
+  return frozenPrompt.replace(limit, '时限<T>秒') === currentPrompt.replace(limit, '时限<T>秒');
+}
+
 /** Build the prior turns of a frozen progressive exam without answer feedback. */
 export function buildProgressiveHistory(
   current: Scenario,
@@ -38,7 +47,13 @@ export function buildProgressiveHistory(
     if (!scenario || !part || !result) throw new Error(`Missing frozen prior part or result: ${current.id} needs ${id}`);
     const recordedHash = (scenario.requirements as { questionHash?: string } | undefined)?.questionHash;
     if (recordedHash && recordedHash !== part.question.questionHash) {
-      throw new Error(`Progressive paper drift: ${id}`);
+      const currentPrompt = part.question.messages.length === 1 && part.question.messages[0].role === 'user'
+        ? part.question.messages[0].content : '';
+      const safeLegacyTimeLimit = scenario.id === part.id
+        && scenario.dimension === part.question.dimension
+        && typeof scenario.promptTemplate === 'string'
+        && differsOnlyByHardTimeLimit(scenario.promptTemplate, currentPrompt);
+      if (!safeLegacyTimeLimit) throw new Error(`Progressive paper drift: ${id}`);
     }
     const committed = result.environmentError ? new Map<string, unknown>()
       : committedItems(result.modelOutput, part.items.map(item => item.key)).items;
