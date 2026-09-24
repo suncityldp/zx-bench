@@ -1,4 +1,4 @@
-/** Audited, resumable repair of the frozen Swift run. Run from apps/server. */
+/** Audited, resumable repair of a frozen run. Run from apps/server. */
 import { PrismaClient } from '@prisma/client';
 import { createHash, createDecipheriv, scryptSync } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -23,7 +23,7 @@ const prisma = new PrismaClient();
 const sha = value => createHash('sha256').update(value).digest('hex');
 const parse = value => JSON.parse(value);
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-const artifactDir = resolve('logs', `swift-repair-${stamp}`);
+const artifactDir = resolve('logs', `frozen-repair-${runId.replace(/[^a-zA-Z0-9-]/g, '_')}-${stamp}`);
 mkdirSync(artifactDir, { recursive: true });
 const save = (name, value) => writeFileSync(resolve(artifactDir, name), JSON.stringify(value, null, 2));
 const decrypt = value => {
@@ -72,7 +72,7 @@ async function updateRow(old, result, kind, details) {
   const audit = { version: 1, kind, at: new Date().toISOString(), originalRowId: old.id,
     oldScore: old.totalScore, newScore: result.totalScore, originalAnswerSha256: sha(old.modelOutput),
     newAnswerSha256: sha(result.modelOutput), ...details };
-  const updatedMetadata = { ...metadata, swiftRepair: audit };
+  const updatedMetadata = { ...metadata, evaluationRepair: audit };
   const data = {
     modelOutput: kind === 'offline' ? old.modelOutput : result.modelOutput,
     reasoningContent: kind === 'offline' ? old.reasoningContent : (result.reasoningContent ?? null),
@@ -85,7 +85,7 @@ async function updateRow(old, result, kind, details) {
     finalJudge: result.finalJudge ? JSON.stringify(result.finalJudge) : null,
     escalated: result.escalated, runCount: kind === 'offline' ? old.runCount : result.runCount,
     scoreHistory: JSON.stringify(result.scoreHistory), verdictHistory: JSON.stringify(result.verdictHistory),
-    graderVersion: result.graderVersion, evidence: JSON.stringify([...result.evidence, `SWIFT_REPAIR: ${JSON.stringify(audit)}`]),
+    graderVersion: result.graderVersion, evidence: JSON.stringify([...result.evidence, `EVALUATION_REPAIR: ${JSON.stringify(audit)}`]),
     humanReviewRequired: result.humanReviewRequired, reasoningLimitExceeded: result.reasoningLimitExceeded ?? false,
     environmentError: result.environmentError ?? false,
     startedAt: kind === 'offline' ? old.startedAt : new Date(result.startedAt),
@@ -114,7 +114,7 @@ async function updateSummary(run, scenarios) {
   const original = parse(run.summary);
   const unresolved = rows.filter(r => scenarios.find(s => s.id === r.scenarioId)?.category === 'ultra_progressive_exam'
     && scenarios.find(s => s.id === r.scenarioId)?.requirements?.partNumber > 1
-    && parse(r.outputMetadata).swiftRepair?.kind !== 'progressive').length;
+    && !['progressive'].includes(parse(r.outputMetadata).evaluationRepair?.kind ?? parse(r.outputMetadata).swiftRepair?.kind)).length;
   const summary = { ...original, averageScore: computeWeightedTotal(dimensions), dimensionAverages: Object.fromEntries(dimensions),
     completedScenarios: rows.length, passCount: measured.filter(r => r.totalScore >= 60).length,
     safetyRedLineCount: measured.filter(r => r.safetyLevel === 'red_line').length,
@@ -122,7 +122,7 @@ async function updateSummary(run, scenarios) {
       byDimension: Object.fromEntries(engineering.excludedByDimension) },
     qualityReport: analyzeRunQuality(rows, scenarios.length), scorerVersionDrift: computeScorerVersionDrift(rows, scenarios),
     scoringEligibility: { ...original.scoringEligibility, unresolvedProtocolParts: unresolved },
-    reportNeedsRegeneration: !!run.reportContent, lastSwiftRepairAt: new Date().toISOString() };
+    reportNeedsRegeneration: !!run.reportContent, lastEvaluationRepairAt: new Date().toISOString() };
   await prisma.evalRun.update({ where: { id: run.id }, data: { summary: JSON.stringify(summary) } });
   save('summary-after.json', summary);
   console.log(JSON.stringify({ phase, averageBefore: original.averageScore, averageAfter: summary.averageScore,
@@ -144,6 +144,8 @@ try {
   const judgeRow = await prisma.modelConfig.findUniqueOrThrow({ where: { id: config.judgeModelConfigId } });
   const judgeOptions = { localModel: model(judgeRow), escalationThreshold: config.escalationThreshold ?? 0.85 };
   const testedModel = model(run.modelConfig);
+  if (process.env.ZXB_TESTED_MODEL_BASE_URL) testedModel.baseUrl = process.env.ZXB_TESTED_MODEL_BASE_URL;
+  if (process.env.ZXB_TESTED_MODEL_API_KEY === 'none') testedModel.apiKey = '';
   save('plan.json', { runId, phase, model: { name: testedModel.name, baseUrl: testedModel.baseUrl },
     judge: { name: judgeRow.name, baseUrl: judgeRow.baseUrl }, offline: offline.map(r => r.scenarioId),
     progressive: progressive.map(r => r.scenarioId), benchmarkPackHash: manifest.benchmarkPack.hash });
@@ -153,7 +155,7 @@ try {
     await backup(run);
     if (phase === 'offline') {
       for (const old of offline) {
-        if (parse(old.outputMetadata).swiftRepair?.kind === 'offline') continue;
+        if (['offline'].includes(parse(old.outputMetadata).evaluationRepair?.kind ?? parse(old.outputMetadata).swiftRepair?.kind)) continue;
         const scenario = scenarioById.get(old.scenarioId);
         const metadata = parse(old.outputMetadata);
         if (metadata.evaluationAudit?.attempts?.length) throw new Error(`Multi-attempt answer requires separate recovery: ${old.scenarioId}`);
@@ -176,7 +178,7 @@ try {
           for (let part = 2; part <= 4; part++) {
             const id = `${group}-P${part}`;
             const old = await prisma.scenarioResult.findFirstOrThrow({ where: { evalRunId: run.id, scenarioId: id } });
-            if (parse(old.outputMetadata).swiftRepair?.kind === 'progressive') continue;
+            if (['progressive'].includes(parse(old.outputMetadata).evaluationRepair?.kind ?? parse(old.outputMetadata).swiftRepair?.kind)) continue;
             const scenario = scenarioById.get(id);
             const priorRows = await prisma.scenarioResult.findMany({ where: { evalRunId: run.id,
               scenarioId: { in: Array.from({ length: part - 1 }, (_, i) => `${group}-P${i + 1}`) } } });
