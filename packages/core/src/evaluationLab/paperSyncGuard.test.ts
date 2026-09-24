@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { buildExamPaper, loadPaperSource, paperSourceIdentity, paperSourceVersion, referenceOutput } from './examExpansion/index.js';
+import { buildEvidenceExam, referenceOutput as evidenceReferenceOutput } from './evidenceExam/index.js';
 import { ultraBatchPartEvaluator } from '../evaluators/ultraBatchPart.js';
 import type { OutputMetadata, Scenario } from '@zxbench/types';
 
@@ -49,6 +50,33 @@ describe('评卷表版本自检（R3：杜绝"题库已更新、内存仍旧表"
     const graded = await ultraBatchPartEvaluator.evaluate(fresh, referenceOutput(part), {} as OutputMetadata);
     expect(graded.environmentError).toBeUndefined();
     expect(graded.totalScore).toBe(100);
+  });
+
+  it('冻结证据题仅有历史时限文字漂移时仍按当前确定性评分表正常判分', async () => {
+    const part = buildEvidenceExam().parts.find((p) => p.id === 'DX3-01-P2')!;
+    const frozen: Scenario = {
+      id: part.id,
+      dimension: part.question.dimension,
+      promptTemplate: part.question.messages[0].content.replace('时限600秒', '时限360秒'),
+      requirements: { questionHash: 'legacy-time-limit-hash' },
+    } as unknown as Scenario;
+    const graded = await ultraBatchPartEvaluator.evaluate(frozen, evidenceReferenceOutput(part), {} as OutputMetadata);
+    expect(graded.environmentError).toBeUndefined();
+    expect(graded.totalScore).toBe(100);
+  });
+
+  it('冻结题除时限外还有题面漂移时仍 fail-closed', async () => {
+    const part = buildEvidenceExam().parts.find((p) => p.id === 'DX3-01-P2')!;
+    const frozen: Scenario = {
+      id: part.id,
+      dimension: part.question.dimension,
+      promptTemplate: part.question.messages[0].content.replace('时限600秒', '时限360秒').replace('批次B1', '批次B9'),
+      requirements: { questionHash: 'legacy-time-limit-hash' },
+    } as unknown as Scenario;
+    const graded = await ultraBatchPartEvaluator.evaluate(frozen, evidenceReferenceOutput(part), {} as OutputMetadata);
+    expect(graded.environmentError).toBe(true);
+    expect(graded.totalScore).toBe(0);
+    expect((graded.evidence ?? []).join('\\n')).toContain('STALE_GRADER_PAPER');
   });
 
   it('未记录 questionHash 的旧题库行仍按原逻辑评分（守卫只在该字段存在时生效）', async () => {

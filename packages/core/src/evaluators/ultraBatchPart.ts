@@ -2,6 +2,7 @@ import type { OutputMetadata, Scenario, ScenarioResult } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { buildEvidenceExam, gradePart as gradeEvidencePart } from '../evaluationLab/evidenceExam/index.js';
 import { buildExamPaper, gradePart as gradeMathPart, paperSourceIdentity, paperSourceVersion } from '../evaluationLab/examExpansion/index.js';
+import { differsOnlyByHardTimeLimit } from '../evaluationLab/questionHashCompatibility.js';
 
 // 2026-09-16（R3）：**不再在模块加载时固化评卷表**。
 // 旧实现 `const mathParts = new Map(buildExamPaper().parts...)` 会把进程启动那一刻的
@@ -28,7 +29,13 @@ export const ultraBatchPartEvaluator: Evaluator = {
 
     // ---- 评卷表一致性守卫（fail-closed）----
     const recorded = (scenario.requirements as { questionHash?: unknown } | undefined)?.questionHash;
-    if (typeof recorded === 'string' && recorded.length > 0 && recorded !== part.question.questionHash) {
+    const currentPrompt = part.question.messages.length === 1 && part.question.messages[0].role === 'user'
+      ? part.question.messages[0].content : '';
+    const safeLegacyTimeLimit = scenario.dimension === part.question.dimension
+      && typeof scenario.promptTemplate === 'string'
+      && differsOnlyByHardTimeLimit(scenario.promptTemplate, currentPrompt);
+    if (typeof recorded === 'string' && recorded.length > 0
+      && recorded !== part.question.questionHash && !safeLegacyTimeLimit) {
       return {
         axisScores: {},
         axisEvidence: {},

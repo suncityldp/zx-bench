@@ -2,6 +2,7 @@ import type { Scenario } from '@zxbench/types';
 import { committedItems } from './evaluationLab/examPaper/index.js';
 import { buildEvidenceExam } from './evaluationLab/evidenceExam/index.js';
 import { buildExamPaper } from './evaluationLab/examExpansion/index.js';
+import { differsOnlyByHardTimeLimit } from './evaluationLab/questionHashCompatibility.js';
 
 export interface PriorProgressiveResult {
   modelOutput: string;
@@ -11,15 +12,6 @@ export interface PriorProgressiveResult {
 export interface ProgressiveMessage {
   role: 'user' | 'assistant';
   content: string;
-}
-
-function differsOnlyByHardTimeLimit(frozenPrompt: string, currentPrompt: string): boolean {
-  const limit = /时限(\d+)秒/g;
-  const frozenLimits = [...frozenPrompt.matchAll(limit)];
-  const currentLimits = [...currentPrompt.matchAll(limit)];
-  if (frozenLimits.length !== 1 || currentLimits.length !== 1
-    || frozenLimits[0][1] === currentLimits[0][1]) return false;
-  return frozenPrompt.replace(limit, '时限<T>秒') === currentPrompt.replace(limit, '时限<T>秒');
 }
 
 /** Build the prior turns of a frozen progressive exam without answer feedback. */
