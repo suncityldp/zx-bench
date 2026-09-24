@@ -124,6 +124,7 @@ try {
         deterministicFrom: row.deterministicScore, deterministicTo: det, reason });
     }
     if ((reason.endsWith('replay') || score !== row.totalScore || det !== row.deterministicScore
+      || data.scoreHistory !== row.scoreHistory
       || reviewed.humanReviewRequired !== row.humanReviewRequired || reviewed.evidence.length !== oldEvidence.length)
       && JSON.stringify(data) !== JSON.stringify({ totalScore: row.totalScore, deterministicScore: row.deterministicScore,
       axisScores: row.axisScores, axisEvidence: row.axisEvidence, evidence: row.evidence,

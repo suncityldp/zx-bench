@@ -14,7 +14,10 @@ import { fileURLToPath } from 'node:url';
 
 try { loadEnvFile(fileURLToPath(new URL('../../.env', import.meta.url))); } catch { /* optional */ }
 const swift = process.argv.includes('--swift');
+const qwopus = process.argv.includes('--qwopus');
+if (swift && qwopus) throw new Error('Choose one frozen run');
 const runId = swift ? 'zxbench-pro-2026-09-21T17-49-48-301Z-495e858b'
+  : qwopus ? 'zxbench-pro-2026-09-22T05-36-29-160Z-ae04e4a0'
   : 'zxbench-pro-2026-09-23T17-38-00-993Z-92dd6b98';
 const apply = process.argv.includes('--apply');
 const decisions = new Map(swift ? [
@@ -37,6 +40,12 @@ const decisions = new Map(swift ? [
     expected: { score: 55, judgeScore: 96, testPass: 0, patchCorrectness: .9 },
     patchCorrectness: 0,
     reason: 'All hidden deployment tests fail; the submitted direct lib/remote.sh invocation cannot start in the test image (bad interpreter), so no healthy host receives a current release. Judge inspected intent but did not verify execution.',
+  }],
+] : qwopus ? [
+  ['CP-L4-CC-001', {
+    expected: { score: 47, judgeScore: 95, testPass: 0, patchCorrectness: .9 },
+    patchCorrectness: 0,
+    reason: 'The submitted parser.h does not declare Session or include cstddef; parser.cpp also uses SIZE_MAX without cstdint. Every hidden C++ build fails before any test can execute. The Judge noted a compile risk but credited a non-compiling patch.',
   }],
 ] : [
   ['CP-L4-CC-001', {
