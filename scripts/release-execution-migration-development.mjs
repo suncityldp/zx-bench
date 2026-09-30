@@ -12,6 +12,12 @@ const packNames = ['cli-original-docker-v1', 'cli-advanced-docker-v1', 'recovery
   'cli-execution-v1', 'tool-world-v1', 'retail-docker-v1', 'shell-investigation-v1', 'special-shell-v1'];
 const byId = new Map(packNames.flatMap((name) => JSON.parse(fs.readFileSync(
   path.join(root, 'data/pilots', `${name}.json`), 'utf8'))).map((scenario) => [scenario.id, scenario]));
+// Packaged task contracts are authoritative when a reviewed fix has superseded
+// its pilot copy. The frozen plan and canonical hash checks below still apply.
+for (const task of plan.migrationTasks) {
+  const file = path.join(root, 'data/execution/tasks', task.taskId, 'scenario.json');
+  if (fs.existsSync(file)) byId.set(task.taskId, JSON.parse(fs.readFileSync(file, 'utf8')));
+}
 if (plan.sourceCount !== 189 || plan.taskCount !== 306 || plan.migrationTasks.length !== 306
   || new Set(plan.migrationTasks.map((task) => task.sourceId)).size !== 189) {
   throw Error('Frozen migration plan does not contain 189 sources and 306 task instances');

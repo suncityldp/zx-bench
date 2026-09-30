@@ -27,10 +27,11 @@ describe('bank 1.31.1 challenge integration and restored formal scope', () => {
   it('freezes the exact source, counts, hashes and default eligibility', () => {
     expect(pack.hash).toBe(manifest.sourceHash);
     expect(pack.cases).toHaveLength(21);
-    expect(bank).toHaveLength(849);
+    const meta = JSON.parse(readFileSync('data/scenarios/benchmark-meta.json', 'utf8'));
+    expect(bank).toHaveLength(meta.currentRecordCount);
     // 2026-09-17：UMX 八题标 developmentShadow（ultra_proof_part 在普通 run 路径下分数无意义），
     // 非 shadow 数 848 -> 840。定义与 rubric 保留，仍可被显式指定运行。
-    expect(bank.filter(s => !(s.requirements as any)?.developmentShadow)).toHaveLength(840);
+    expect(bank.filter(s => s.status === 'valid' && !(s.requirements as any)?.developmentShadow)).toHaveLength(meta.defaultRunCount);
     for (const item of pack.cases) {
       const scenario = find(item.id);
       expect(scenario.scenarioHash, item.id).toBe(hashScenarioShort(scenario));

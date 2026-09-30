@@ -1,3 +1,4 @@
+import { combineCandidateMetrics, type CandidateMetrics } from '../../../../packages/utils/src/candidateMetrics';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Table, Tag, Button, Space, message, Badge, Modal } from 'antd';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +14,7 @@ interface RunItem {
   updatedAt: string;
   groupName: string | null;
   parentRunId: string | null;
-  summary: { averageScore: number; totalScenarios: number; safetyRedLineCount: number; completedScenarios: number; totalOutputTokens?: number; avgTokensPerSecond?: number } | null;
+  summary: CandidateMetrics & { wallClockMs?: number | null; activeMs?: number | null; pausedMs?: number | null; consumedCandidateMetrics?: CandidateMetrics; averageScore: number; totalScenarios: number; safetyRedLineCount: number; completedScenarios: number; totalOutputTokens?: number; avgTokensPerSecond?: number | null } | null;
   modelConfig: { name: string };
 }
 
@@ -28,6 +29,7 @@ interface GroupedRun {
   createdAt: string;
   finishedAt: string | null;
   avgTokensPerSecond: number | null;
+  metrics: CandidateMetrics;
   totalOutputTokens: number | null;
 }
 
@@ -122,11 +124,9 @@ export default function EvalHistory() {
         : null;
 
       // Token 速度：取所有 completed 运行中最高的 avgTokensPerSecond
-      const completedWithTokens = completedRuns.filter((r) => r.summary?.avgTokensPerSecond != null);
-      const bestTps = completedWithTokens.length > 0
-        ? Math.max(...completedWithTokens.map((r) => r.summary!.avgTokensPerSecond!))
-        : null;
-      const totalOutput = completedRuns.reduce((sum, r) => sum + (r.summary?.totalOutputTokens || 0), 0);
+      const metrics = combineCandidateMetrics(groupRuns.flatMap(r => r.summary ? [r.summary] : []));
+      const bestTps = metrics.candidateTokensPerSecond;
+      const totalOutput = metrics.totalOutputTokens;
 
       result.push({
         groupKey: key,
@@ -139,7 +139,8 @@ export default function EvalHistory() {
         createdAt: main.createdAt,
         finishedAt,
         avgTokensPerSecond: bestTps,
-        totalOutputTokens: totalOutput > 0 ? totalOutput : null,
+        metrics,
+        totalOutputTokens: totalOutput,
       });
     }
     return result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -225,14 +226,15 @@ export default function EvalHistory() {
           key: 'score', width: 70,
           render: (_: unknown, r: RunItem) => r.summary?.averageScore != null ? r.summary.averageScore.toFixed(2) : '-',
         },
+        { title: '墙钟 / 执行区间 / 等待空档', key: 'timeline', width: 180, render: (_: unknown, r: RunItem) => <span>{[r.summary?.wallClockMs, r.summary?.activeMs, r.summary?.pausedMs].map(v => v == null ? '-' : (v / 1000).toFixed(1) + 's').join(' / ')}</span> },
         {
-          title: lang === 'en' ? 'Token Speed' : 'Token速度', key: 'tokenSpeed', width: 90,
+          title: lang === 'en' ? 'Candidate throughput / coverage' : '候选吞吐 / 覆盖率', key: 'tokenSpeed', width: 90,
           render: (_: unknown, r: RunItem) => {
-            const tps = r.summary?.avgTokensPerSecond;
+            const tps = r.summary?.candidateTokensPerSecond;
             if (tps == null) return '-';
             return (
               <Tag color={tps >= 100 ? 'green' : tps >= 30 ? 'blue' : 'orange'} style={{ fontSize: 11 }}>
-                {tps >= 1000 ? `${(tps / 1000).toFixed(1)}K` : tps} t/s
+                {tps.toFixed(1)} t/s · {((r.summary?.timingCoverage ?? 0) * 100).toFixed(0)}%
               </Tag>
             );
           },
@@ -258,6 +260,7 @@ export default function EvalHistory() {
 
   return (
     <div>
+      <p>候选有效吞吐 = 同一有计时样本的输出 tokens / 请求或工具循环耗时之和（含网络、prefill、工具，非纯推理）。并行组采用累加口径，不能当作真实墙钟速度；未知计时显示「-」。等待空档由题级区间计算，含排队和中断，并非已测用户暂停；执行区间含模型、工具、Judge。</p>
       <h2 className="swiss-page-title">{lang === 'en' ? 'Eval History' : '评测历史'}</h2>
       <div className="swiss-card">
         <Table
@@ -299,13 +302,13 @@ export default function EvalHistory() {
               },
             },
             {
-              title: lang === 'en' ? 'Token Speed' : 'Token速度', key: 'tokenSpeed', width: 100,
+              title: lang === 'en' ? 'Candidate throughput' : '候选有效吞吐', key: 'tokenSpeed', width: 100,
               render: (_: unknown, g: GroupedRun) => {
                 if (g.avgTokensPerSecond == null) return '-';
                 const tps = g.avgTokensPerSecond;
                 return (
                   <Tag color={tps >= 100 ? 'green' : tps >= 30 ? 'blue' : 'orange'}>
-                    {tps >= 1000 ? `${(tps / 1000).toFixed(1)}K` : tps} t/s
+                    {tps.toFixed(1)} t/s · {((g.metrics.timingCoverage ?? 0) * 100).toFixed(0)}%
                   </Tag>
                 );
               },

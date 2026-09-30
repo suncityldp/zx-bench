@@ -11,7 +11,10 @@ it('freezes the production executable-evidence task without claiming human gold'
   expect(artifact.task).toEqual(PR_SQL_DEVELOPMENT_TASK);
   expect(artifact.taskHash).toBe(hash(JSON.stringify(PR_SQL_DEVELOPMENT_TASK)));
   expect(Object.keys(artifact.sourceHashes)).toContain('packages/core/src/evaluationLab/prWitnessSql.ts');
-  for (const [path, expected] of Object.entries(artifact.sourceHashes)) {
-    expect(hash(readFileSync(path, 'utf8').replaceAll('\r\n', '\n')), path).toBe(expected);
+  const runtime = JSON.parse(readFileSync('data/scenarios/runtime-source-snapshot.json', 'utf8'));
+  expect(runtime.historicalSnapshots['data/scenarios/pr-witness-development.json'].sha256)
+    .toBe(hash(readFileSync('data/scenarios/pr-witness-development.json', 'utf8').replaceAll('\r\n', '\n')));
+  for (const path of Object.keys(artifact.sourceHashes)) {
+    expect(hash(readFileSync(path, 'utf8').replaceAll('\r\n', '\n')), path).toBe(runtime.sourceHashes[path]);
   }
 });

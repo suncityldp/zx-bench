@@ -595,6 +595,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
         retryChainExhausted: attemptedTokenBudgets.length > TOKEN_RETRY_BUDGETS.length,
         retryBudgets: attemptedTokenBudgets.slice(1),
         inferenceMs: modelResponse.latencyMs,
+        candidateGenerated: !options.savedCandidate,
         ...(modelResponse.agentLoop ? { agentLoopTrace: modelResponse.agentLoop } : {}),
         ...(modelResponse.executionWorld ? { executionWorldTrace: modelResponse.executionWorld } : {}),
         ...(modelResponse.shellLoop ? { shellExecutionTrace: modelResponse.shellLoop } : {}),
@@ -640,6 +641,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
   // Keep measured generation metadata, but recompute parsing and execution evidence.
   if (options.savedCandidate?.metadata) outputMetadata = { ...structuredClone(options.savedCandidate.metadata), ...outputMetadata };
   outputMetadata.inputTokens = modelResponse.usage.inputTokens;
+  outputMetadata.candidateGenerated = !options.savedCandidate;
   const loopTrace = (modelResponse.executionWorld ?? modelResponse.shellLoop) as
     { terminationReason?: string; turnErrors?: string[]; errors?: string[] } | undefined;
   if (loopTrace) {
@@ -669,13 +671,14 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     outputMetadata.shellExecutionTrace = modelResponse.shellLoop;
     outputMetadata.executionTraceSha256 = createHash('sha256').update(JSON.stringify(modelResponse.shellLoop)).digest('hex');
   }
-  outputMetadata.reasoningTokens = modelResponse.usage.reasoningTokens;
-  outputMetadata.tokenUsageSource = modelResponse.usage.source;
-  // 存储 LLM 纯推理耗时（caller.ts 中 latencyMs = fetch 发起到响应解析完成）
-  outputMetadata.inferenceMs = modelResponse.latencyMs;
+  outputMetadata.reasoningTokens = modelResponse.usage.reasoningTokens ?? outputMetadata.reasoningTokens;
+  outputMetadata.tokenUsageSource = modelResponse.usage.source ?? outputMetadata.tokenUsageSource;
+  // Candidate request/loop elapsed time includes network, prefill and loop tools.
+  outputMetadata.inferenceMs = options.savedCandidate ? (outputMetadata.inferenceMs ?? modelResponse.latencyMs) : modelResponse.latencyMs;
   // 流式调用时的精确计时数据
-  outputMetadata.tokenSpeed = modelResponse.tokensPerSecond;
-  outputMetadata.ttftMs = modelResponse.ttftMs;
+  outputMetadata.tokenSpeed = modelResponse.tokensPerSecond ?? outputMetadata.tokenSpeed;
+  outputMetadata.generationMs = modelResponse.generationMs ?? outputMetadata.generationMs;
+  outputMetadata.ttftMs = modelResponse.ttftMs ?? outputMetadata.ttftMs;
   // 尝试提取 LM Studio 原生 timing 数据（不同版本字段名可能不同）
   const rawData = modelResponse.raw as Record<string, unknown> | undefined;
   const stats = rawData?.stats as Record<string, number> | undefined;

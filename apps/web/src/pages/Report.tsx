@@ -1,3 +1,4 @@
+import type { CandidateMetrics } from '../../../../packages/utils/src/candidateMetrics';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Spin, Tag, Progress, Row, Col, Card, Statistic, Button, Empty, Tooltip, message, Dropdown, Table, Alert } from 'antd';
@@ -70,12 +71,7 @@ interface ReportData {
     distribution: Record<string, number>;
     subCategories: Array<{ category: string; count: number; averageScore: number }>;
   } | null;
-  tokenStats?: {
-    totalInputTokens: number;
-    totalOutputTokens: number;
-    totalTokens: number;
-    avgTokensPerSecond: number;
-  };
+  tokenStats?: CandidateMetrics & { avgTokensPerSecond: number | null };
   /** 全局证据强度摘要（全部结果的轴证据类型分布） */
   evidenceSummary?: Record<string, number>;
 }
@@ -348,12 +344,12 @@ export default function Report() {
         <Col xs={12} sm={6} md={4}>
           <Card className="swiss-card" bodyStyle={{ padding: 20 }}>
             <Statistic
-              title="Token 速度"
-              value={report.tokenStats?.avgTokensPerSecond ?? '-'}
+              title="候选有效吞吐"
+              value={report.tokenStats?.candidateTokensPerSecond ?? '-'}
               suffix={report.tokenStats ? 't/s' : ''}
               valueStyle={{
                 color: (() => {
-                  const tps = report.tokenStats?.avgTokensPerSecond ?? 0;
+                  const tps = report.tokenStats?.candidateTokensPerSecond ?? 0;
                   return tps >= 100 ? '#52c41a' : tps >= 30 ? '#1890ff' : '#fa8c16';
                 })(),
                 fontSize: 32, fontWeight: 700,
@@ -362,8 +358,8 @@ export default function Report() {
             />
             {report.tokenStats && (
               <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
-                输出 {report.tokenStats.totalOutputTokens >= 1000
-                  ? `${(report.tokenStats.totalOutputTokens / 1000).toFixed(1)}K`
+                计时覆盖 {(report.tokenStats.timingCoverage * 100).toFixed(0)}%；含网络/prefill/工具，非纯推理。生成速度 {report.tokenStats.generationTokensPerSecond?.toFixed(1) ?? '-'} t/s。输出 {(report.tokenStats.totalOutputTokens ?? 0) >= 1000
+                  ? `${((report.tokenStats.totalOutputTokens ?? 0) / 1000).toFixed(1)}K`
                   : report.tokenStats.totalOutputTokens} tokens
               </div>
             )}
@@ -382,10 +378,10 @@ export default function Report() {
             />
             {report.tokenStats && (
               <div style={{ fontSize: 12, color: 'var(--text-helper)' }}>
-                输入 {report.tokenStats.totalInputTokens >= 1000
-                  ? `${(report.tokenStats.totalInputTokens / 1000).toFixed(1)}K`
-                  : report.tokenStats.totalInputTokens} / 输出 {report.tokenStats.totalOutputTokens >= 1000
-                  ? `${(report.tokenStats.totalOutputTokens / 1000).toFixed(1)}K`
+                输入 {(report.tokenStats.totalInputTokens ?? 0) >= 1000
+                  ? `${((report.tokenStats.totalInputTokens ?? 0) / 1000).toFixed(1)}K`
+                  : report.tokenStats.totalInputTokens} / 输出 {(report.tokenStats.totalOutputTokens ?? 0) >= 1000
+                  ? `${((report.tokenStats.totalOutputTokens ?? 0) / 1000).toFixed(1)}K`
                   : report.tokenStats.totalOutputTokens}
               </div>
             )}

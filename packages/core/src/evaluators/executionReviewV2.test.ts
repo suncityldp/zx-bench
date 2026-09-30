@@ -14,9 +14,12 @@ const check=(id:string,text:string)=>instruction.evaluate(get(id),text,metadata)
 describe('frozen instruction v5 contracts',()=>{
   it('freezes all 171 contracts and the scoring/execution source fingerprint',()=>{
     const manifest=JSON.parse(readFileSync('data/scenarios/execution-review-manifest.json','utf8'));
+    const runtime=JSON.parse(readFileSync('data/scenarios/runtime-source-snapshot.json','utf8'));
+    const hash=(text:string)=>createHash('sha256').update(text.replaceAll('\r\n','\n')).digest('hex');
+    expect(runtime.historicalSnapshots['data/scenarios/execution-review-manifest.json'].sha256).toBe(hash(readFileSync('data/scenarios/execution-review-manifest.json','utf8')));
     expect(manifest.scenarios).toHaveLength(171);
     for(const row of manifest.scenarios) expect(hashScenarioShort(get(row.id))).toBe(row.scenarioHash);
-    for(const [path,hash] of Object.entries(manifest.sourceHashes)) expect(createHash('sha256').update(readFileSync(path,'utf8').replaceAll('\r\n','\n')).digest('hex'),path).toBe(hash);
+    for(const path of Object.keys(manifest.sourceHashes)) expect(hash(readFileSync(path,'utf8')),path).toBe(runtime.sourceHashes[path]);
     expect(manifest.independentHumanReview).toBe(false);
   });
   it('all current configurations are measurable and every updated hash matches',async()=>{

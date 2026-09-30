@@ -25,15 +25,18 @@ export interface RunTimelineStats {
   /** 最早一题开始时间（无有效结果时退回 fallbackStart） */
   firstStartedAt: number;
   /** 各题执行跨度之和（并行时含重叠；保留旧语义供报告侧使用） */
-  executionMs: number;
+  executionMs: number | null;
   /** 墙钟 = finishedAt − firstStartedAt */
   wallClockMs: number;
   /** 区间并集 = 至少有一题在执行的真实时长 */
-  activeMs: number;
+  activeMs: number | null;
   /** 中断/暂停空档 = 墙钟 − activeMs（恒非负） */
-  pausedMs: number;
+  /** Uncovered wall-clock gaps, including queues/interruption; not measured user pauses. */
+  pausedMs: number | null;
   /** 执行段数：相邻执行区间间隔 > 60s 记一次中断（1 = 从未中断） */
-  resumeCount: number;
+  resumeCount: number | null;
+  timingBasis: 'question-span-union' | 'unknown';
+  timingCoverage: number;
   /** 与 wallClockMs 同义，保留旧字段名 */
   durationMs: number;
 }
@@ -55,11 +58,13 @@ export function computeRunTimeline(
     const wallClockMs = Math.max(0, finishedAt - fallbackStart);
     return {
       firstStartedAt: fallbackStart,
-      executionMs: wallClockMs,
+      executionMs: null,
       wallClockMs,
-      activeMs: wallClockMs,
-      pausedMs: 0,
-      resumeCount: 1,
+      activeMs: null,
+      pausedMs: null,
+      resumeCount: null,
+      timingBasis: 'unknown',
+      timingCoverage: 0,
       durationMs: wallClockMs,
     };
   }
@@ -74,9 +79,9 @@ export function computeRunTimeline(
   let cursorStart = valid[0].start;
   let cursorEnd = valid[0].end;
   for (const s of valid.slice(1)) {
-    if (s.start > cursorEnd + RESUME_GAP_MS) {
+    if (s.start > cursorEnd) {
       activeMs += cursorEnd - cursorStart;
-      resumeCount += 1;
+      if (s.start > cursorEnd + RESUME_GAP_MS) resumeCount += 1;
       cursorStart = s.start;
       cursorEnd = s.end;
       continue;
@@ -92,6 +97,8 @@ export function computeRunTimeline(
     activeMs,
     pausedMs: Math.max(0, wallClockMs - activeMs),
     resumeCount,
+    timingBasis: 'question-span-union',
+    timingCoverage: valid.length / spans.length,
     durationMs: wallClockMs,
   };
 }

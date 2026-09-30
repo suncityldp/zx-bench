@@ -1,3 +1,4 @@
+import type { CandidateMetrics } from '../../../../packages/utils/src/candidateMetrics';
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Table, Tag, Spin, Card, Empty, Tooltip, Segmented, Alert } from 'antd';
@@ -28,7 +29,8 @@ interface DimensionScore {
   redLine: number;
 }
 
-interface LeaderboardEntry {
+interface LeaderboardEntry extends CandidateMetrics {
+  costScope: string;
   modelId: string;
   modelName: string;
   provider: string;
@@ -124,6 +126,7 @@ export default function Leaderboard() {
   ];
 
   const columns: ColumnsType<LeaderboardEntry> = [
+    { title: '候选吞吐 / 计时覆盖', key: 'candidateThroughput', width: 160, render: (_, r) => <Tooltip title={r.costScope === 'stitched-selected-results' ? 'best 为跨运行挑选的结果拼接成本，不是真实单次运行成本。耗时含网络/prefill/工具。' : '最新运行的题级统计；耗时含网络/prefill/工具，非纯推理。'}>{r.candidateTokensPerSecond?.toFixed(1) ?? '-'} t/s · {((r.timingCoverage ?? 0) * 100).toFixed(0)}%</Tooltip> },
     {
       title: lang === 'en' ? 'Rank' : '排名',
       key: 'rank',

@@ -110,6 +110,14 @@ ANSWER: ${answer}次`)).toBe(100);
 
 describe('strict answer-contract regressions', () => {
   it.each([
+    ['ANSWER: 0元\n说明\nANSWER: 497776.30元'],
+    ['ANSWER: 497776.30元\n说明\nANSWER: 0元'],
+  ])('keeps exact-match scoring monotonic for conflicting answer positions: %s', async output => {
+    const result = await evaluator.evaluate({ ...scenario(4), answerFirst: true }, output, meta);
+    expect(result.axisScores?.answer_accuracy).toBe(100);
+    expect(result.axisScores?.content_accuracy).toBe(100);
+  });
+  it.each([
     [13, '累计占比=A:40%,B:64%,C:80%,D:86.4%,E:91.2%,F:94.4%,G:96.8%,H:98.4%,I:99.6%,J:100%，A类=A,B，B类=C,D，C类=E,F,G,H,I,J'],
     [22, 'A=20万,B=15万,C=27万,D=10万,E=48万'],
     [23, '12'],

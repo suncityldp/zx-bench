@@ -2,6 +2,7 @@
 // 与 refresh-benchmark-hashes.mjs 同一思路：能推导的就不要手写，避免与题集漂移。
 // 用法: node scripts/refresh-benchmark-meta.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
+import { benchmarkCounts } from './benchmark-counts.mjs';
 
 const root = new URL('../', import.meta.url);
 const packPath = new URL('data/scenarios/benchmark.json', root);
@@ -11,8 +12,6 @@ const pack = JSON.parse(readFileSync(packPath, 'utf8'));
 const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
 
 const valid = pack.filter((s) => s.status === 'valid');
-const dimensions = {};
-for (const s of valid) dimensions[s.dimension] = (dimensions[s.dimension] ?? 0) + 1;
 
 const before = {
   count: meta.count,
@@ -22,13 +21,9 @@ const before = {
   dimensions: meta.dimensions,
 };
 
-meta.count = valid.length;
-meta.validCount = valid.length;
-meta.totalCount = valid.length + (meta.retiredCount ?? 0);
-meta.dimensions = Object.fromEntries(Object.entries(dimensions).sort(([a], [b]) => a.localeCompare(b)));
-// 默认跑量 = 有效题数 - 显式运行专属题（当前恒为 1 题：MC2-004-R1）
-const explicitOnly = meta.challengeExtension?.explicitOnlyIds?.length ?? 0;
-meta.defaultRunCount = valid.length - explicitOnly;
+const archive = JSON.parse(readFileSync(new URL('data/scenarios/archive/benchmark-retired.json', root), 'utf8'));
+Object.assign(meta, benchmarkCounts(pack, archive));
+meta.countSemantics = { currentRecordCount: 'All records in benchmark.json (valid and retired)', retiredCount: 'Retired records retained in benchmark.json', archivedRetiredCount: 'Disjoint retired records in archive/benchmark-retired.json', totalCount: 'currentRecordCount + archivedRetiredCount', defaultRunCount: 'Valid current records excluding developmentShadow; execution migration instances excluded' };
 
 writeFileSync(metaPath, `${JSON.stringify(meta, null, 1)}\n`, 'utf8');
 console.log(JSON.stringify({ totalRecords: pack.length, valid: valid.length, before, after: {

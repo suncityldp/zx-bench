@@ -41,6 +41,21 @@ export default function EvalCreate() {
   const { t } = useLanguage();
   const answerFirstEnabled = Form.useWatch('answerFirst', form);
   const structuredPack = Form.useWatch('structuredPack', form);
+  const [preview, setPreview] = useState<{ count: number; scenarioIds: string[]; hash: string } | null>(null);
+  const [previewError, setPreviewError] = useState('');
+  const selection = Form.useWatch(values => ({ dimensionIds: values.dimensionIds, difficultyIds: values.difficultyIds, specialPack: values.structuredPack, evaluationMode: values.evaluationMode }), form);
+  const selectionKey = JSON.stringify(selection);
+  useEffect(() => {
+    const controller = new AbortController();
+    setPreview(null); setPreviewError('');
+    const specialPack = selection?.specialPack || 'default';
+    const timer = window.setTimeout(() => {
+      fetch('/api/runs/preview', { method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dimensionIds: selection?.dimensionIds || [], difficultyIds: selection?.difficultyIds || [], config: { specialPack, evaluationMode: specialPack === 'default' ? (selection?.evaluationMode || 'development') : 'development' } }) })
+        .then(r => r.json()).then(r => { if (!controller.signal.aborted) { if (r.success) setPreview(r.data); else setPreviewError(r.error); } })
+        .catch(e => { if (!controller.signal.aborted) setPreviewError(String(e)); });
+    }, 200);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [selectionKey]);
 
   useEffect(() => {
     fetch('/api/models')
@@ -68,29 +83,9 @@ export default function EvalCreate() {
   const onFinish = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
-      let scenarioIds: string[] | undefined;
       const useStructuredPack = values.structuredPack === 'mixed' || values.structuredPack === 'all';
       const useMigrationPack = values.structuredPack === 'migration-189';
       const useSpecialPack = useStructuredPack || useMigrationPack;
-      if (useSpecialPack) {
-        const response = await fetch(useMigrationPack
-          ? '/api/scenarios?status=valid'
-          : '/api/scenarios?dimension=structured_output&status=valid');
-        const catalog = await response.json();
-        if (!response.ok || !catalog.success || !Array.isArray(catalog.data)) throw new Error('无法读取专项题组');
-        const selectedIds: string[] = useMigrationPack
-          ? catalog.data.filter((s: { id: string; requirements?: { developmentShadow?: boolean; migrationSourceId?: string } }) =>
-            s.requirements?.developmentShadow === true
-            && (Boolean(s.requirements.migrationSourceId) || s.id.endsWith('PILOT') || s.id.startsWith('CLI-PILOT-')),
-          ).map((s: { id: string }) => s.id)
-          : catalog.data.filter((s: { tags?: string[] }) =>
-            s.tags?.includes('structured-contract-development-release')
-            && (values.structuredPack !== 'mixed' || s.tags.includes('screening:mixed')),
-          ).map((s: { id: string }) => s.id);
-        if (useMigrationPack && selectedIds.length !== 306) throw new Error(`迁移执行题组不完整：${selectedIds.length}/306`);
-        if (!selectedIds.length) throw new Error('专项题组尚未发布');
-        scenarioIds = selectedIds;
-      }
       // 思考/输出约束（反拖尾）：任一约束项开启时组装 constraints
       const constraints: Record<string, unknown> = {};
       if (values.answerFirst) {
@@ -103,6 +98,8 @@ export default function EvalCreate() {
       if (hasActiveConstraint && values.onLimit) constraints.onLimit = values.onLimit;
 
       const config = {
+        specialPack: values.structuredPack || 'default',
+        difficultyFilter: values.difficultyIds || [],
         evaluationMode: values.evaluationMode || 'development',
         maxTokens: values.maxTokens || 8192,
         temperature: values.temperature ?? null,
@@ -116,7 +113,7 @@ export default function EvalCreate() {
         parallelMode: values.parallelMode || 'global',
         ...(Object.keys(constraints).length > 0 ? { constraints } : {}),
         ...(useSpecialPack ? {
-          scenarioIds, evaluationMode: 'development', runsPerQuestion: 1,
+          evaluationMode: 'development', runsPerQuestion: 1,
           judgeEnabled: false, escalationEnabled: false, structuredOutputEnabled: false,
         } : {}),
       };
@@ -135,7 +132,8 @@ export default function EvalCreate() {
             name: values.name || undefined,
             modelConfigIds,
             judgeModelConfigId: values.judgeModelConfigId || undefined,
-            dimensionIds: useStructuredPack ? ['structured_output'] : useMigrationPack ? [] : (values.dimensionIds as string[]) || [],
+            dimensionIds: (values.dimensionIds as string[]) || [],
+            difficultyIds: (values.difficultyIds as string[]) || [],
             config,
           }),
         });
@@ -154,7 +152,8 @@ export default function EvalCreate() {
             name: values.name,
             modelConfigId: values.modelConfigId,
             judgeModelConfigId: values.judgeModelConfigId || undefined,
-            dimensionIds: useStructuredPack ? ['structured_output'] : useMigrationPack ? [] : (values.dimensionIds as string[]) || [],
+            dimensionIds: (values.dimensionIds as string[]) || [],
+            difficultyIds: (values.difficultyIds as string[]) || [],
             config,
           }),
         });
@@ -177,7 +176,7 @@ export default function EvalCreate() {
     <div>
       <h2 className="swiss-page-title">创建评测</h2>
       <div className="swiss-card">
-        <Form layout="vertical" onFinish={onFinish}>
+        <Form form={form} layout="vertical" onFinish={onFinish}>
           {/* ===== 测试模式：单模型 / 多模型并行 ===== */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 13, color: 'var(--text-helper)', marginBottom: 8 }}>{t('eval.testMode')}</div>
@@ -300,6 +299,7 @@ export default function EvalCreate() {
               placeholder="默认全部维度（可只选一个或几个）"
               maxTagCount="responsive"
               allowClear
+              disabled={Boolean(structuredPack && structuredPack !== 'default')}
               options={DIMENSION_OPTIONS}
             />
           </Form.Item>
@@ -307,6 +307,10 @@ export default function EvalCreate() {
             不选任何维度 = 全量评测；选中部分维度时仅跑对应题目，排行榜会按实际覆盖范围统计题量
           </Text>
 
+          <Form.Item name="difficultyIds" label="难度筛选" tooltip="留空表示全部难度；专项题组使用固定题集，忽略维度和难度筛选。">
+            <Select mode="multiple" allowClear disabled={Boolean(structuredPack && structuredPack !== 'default')} options={['easy', 'medium', 'hard', 'adversarial'].map(value => ({ value, label: ({ easy: '简单', medium: '中等', hard: '困难', adversarial: '对抗' } as Record<string, string>)[value] }))} />
+          </Form.Item>
+          <Alert type={previewError ? 'warning' : 'info'} style={{ marginBottom: 16 }} message={previewError || (preview ? ('预计 ' + preview.count + ' 道执行实例；服务端预览与创建共用同一选题规则') : '正在预览题集…')} description={structuredPack && structuredPack !== 'default' ? '专项题组固定，不按维度或难度裁剪；迁移实例不增加默认源题总数。' : '维度和难度留空表示全部可用默认题，开发影子题仅显式选择或专项运行。'} />
           {selectedModelReasoning && (
             <Alert
               message={mode === 'batch' ? '已选模型中包含推理模型' : '推理模型已选择'}

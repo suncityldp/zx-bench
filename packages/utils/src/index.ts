@@ -3,6 +3,8 @@
 // ============================================================
 
 export { generateId, generateRunId } from './id.js';
+export { aggregateCandidateMetrics, combineCandidateMetrics } from './candidateMetrics.js';
+export type { CandidateMetrics } from './candidateMetrics.js';
 export { sha256, scenarioHash } from './hash.js';
 export {
   mean,

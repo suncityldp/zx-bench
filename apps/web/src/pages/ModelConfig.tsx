@@ -93,8 +93,17 @@ export default function ModelConfigPage() {
   };
 
   const onDelete = async (id: string) => {
-    await fetch('/api/models/' + id, { method: 'DELETE' });
-    message.success('已删除');
+    try {
+      const res = await fetch('/api/models/' + id, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        message.success('已删除');
+      } else {
+        message.error(json.error || '删除失败', 8);
+      }
+    } catch {
+      message.error('请求失败');
+    }
     fetchModels();
   };
 

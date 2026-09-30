@@ -25,6 +25,13 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter server prisma:generate
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned structured-format validators
+        run: python -m pip install PyYAML==6.0.3 jsonschema==4.26.0
+
       - name: Build
         run: pnpm build
 

@@ -109,7 +109,12 @@ describe('restored math independent oracles', () => {
     for(const s of validBank)dimCounts[s.dimension]=(dimCounts[s.dimension]??0)+1;
     expect(metadata.count).toBe(validBank.length);
     expect(metadata.validCount).toBe(validBank.length);
-    expect(metadata.totalCount).toBe(validBank.length+(metadata.retiredCount??0));
+    const archive = JSON.parse(readFileSync(new URL('../../../../data/scenarios/archive/benchmark-retired.json', import.meta.url), 'utf8'));
+    expect(metadata.currentRecordCount).toBe(bank.length);
+    expect(metadata.retiredCount).toBe(bank.filter(s => s.status === 'retired').length);
+    expect(metadata.archivedRetiredCount).toBe(archive.length);
+    expect(metadata.totalCount).toBe(bank.length + archive.length);
+    expect(metadata.defaultRunCount).toBe(validBank.filter(s => !(s.requirements as any)?.developmentShadow).length);
     expect(metadata.ambiguousCount).toBe(0);
     expect(metadata.reviewCount).toBe(0);
     expect(metadata.dimensions).toEqual(dimCounts);

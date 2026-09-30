@@ -284,7 +284,7 @@
   "sourcePackHash": "42929b253e9e2f4d32568c5e164ab4fcb651cca3712b6472950c7907c2ed10e3",
   "prospectiveOnly": true
  },
- "defaultRunCount": 806,
+ "defaultRunCount": 803,
  "challengeExtension": {
   "version": "challenge-extension-2026-09-13-v1",
   "bankVersion": "1.31.1",
@@ -919,5 +919,15 @@
   "basis": "Former frozen holdout cases have deterministic gold, correct/incorrect local gates and independent JSON Schema gate. Old cases passed 6-7 of 8 historical configurations.",
   "limitation": "No new model calibration. The v2 development analogs were all-pass in screened configurations; these replacements strengthen contract specificity but are not proven to lower the score ceiling. Former holdout cases must no longer be treated as an independent holdout.",
   "evidencePath": "analysis/structured-output-redesign/near-ceiling-batch-replacement.json"
+ },
+ "currentRecordCount": 892,
+ "archivedRetiredCount": 78,
+ "developmentShadowCount": 26,
+ "countSemantics": {
+  "currentRecordCount": "All records in benchmark.json (valid and retired)",
+  "retiredCount": "Retired records retained in benchmark.json",
+  "archivedRetiredCount": "Disjoint retired records in archive/benchmark-retired.json",
+  "totalCount": "currentRecordCount + archivedRetiredCount",
+  "defaultRunCount": "Valid current records excluding developmentShadow; execution migration instances excluded"
  }
 }

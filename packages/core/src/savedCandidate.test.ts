@@ -27,6 +27,7 @@ describe('immutable saved candidate replay', () => {
     expect(result.modelOutput).toBe(response.content);
     expect(result.reasoningContent).toBe(response.reasoningContent);
     expect(result.outputMetadata).toMatchObject(metadata);
+    expect(result.outputMetadata.candidateGenerated).toBe(false);
     expect(result.totalScore).toBe(80);
   });
   it('never retries generation even if a saved answer is empty and token-limited', async () => {

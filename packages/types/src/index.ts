@@ -224,6 +224,8 @@ export type { CalibrationSplit, ReviewState, ReviewCriterion, CalibrationCandida
 export interface OutputMetadata {
   /** Versioned audit envelope persisted with existing JSON rows (no DB migration). */
   evaluationAudit?: EvaluationAudit;
+  /** False for rescoring a saved answer; it incurred no new candidate call. */
+  candidateGenerated?: boolean;
   /** Complete execution trace for new live agent runs; absent on legacy rows. */
   agentLoopTrace?: unknown;
   executionWorldTrace?: unknown;
@@ -246,8 +248,10 @@ export interface OutputMetadata {
   retryChainExhausted?: boolean;
   /** 尝试过的重试 token 预算列表 */
   retryBudgets?: number[];
-  /** LLM API 纯推理耗时（毫秒）— 不含评分/Judge/DB 时间 */
+  /** Candidate request/loop elapsed ms, including network/prefill and loop tools; excludes scoring/Judge/DB. */
   inferenceMs?: number;
+  /** Measured stream generation interval; absent for legacy/request-only timing. */
+  generationMs?: number;
   /** LM Studio 原生返回的 tokens/s（如果有） */
   nativeTokensPerSecond?: number;
   /** 预计算的 token 生成速度（tokens/s），落库时统一计算保证一致性 */
@@ -615,6 +619,9 @@ export interface EvalRun {
 }
 
 export interface EvalRunConfig {
+  difficultyFilter?: Difficulty[];
+  dimensionFilter?: string[];
+  specialPack?: 'default' | 'mixed' | 'all' | 'migration-189';
   evaluationMode?: 'development' | 'official';
   /** New runs honor actual candidate repeats; legacy runs retain single-attempt behavior. */
   auditVersion?: 1;
@@ -724,6 +731,7 @@ export interface BenchmarkPack {
 // ----- API 请求/响应 -----
 
 export interface CreateEvalRunRequest {
+  difficultyIds?: Difficulty[];
   name: string;
   modelConfigId: string;
   judgeModelConfigId?: string;   // AI Judge 模型配置 ID
@@ -737,6 +745,7 @@ export interface CreateEvalRunRequest {
 
 /** 多模型并行评测：一次请求并发启动多个不同模型的评测任务 */
 export interface CreateBatchEvalRunRequest {
+  difficultyIds?: Difficulty[];
   name?: string;                  // 批量任务名称（各子运行名 = name · 模型名）
   modelConfigIds: string[];       // 多个被测模型配置 ID（并发执行）
   judgeModelConfigId?: string;   // AI Judge 模型配置 ID（共享）
@@ -827,7 +836,7 @@ export interface QuestionLiveResult {
   error?: string;
   outputTokens?: number;    // 输出 token 数
   inputTokens?: number;     // 输入 token 数
-  inferenceMs?: number;     // LLM 纯推理耗时（毫秒）
+  inferenceMs?: number;     // 候选请求/工具循环耗时（含网络、prefill及循环工具）（毫秒）
   nativeTokensPerSecond?: number; // LM Studio 原生 tokens/s
   tokenSpeed?: number;       // 预计算的 token 生成速度（tokens/s）
 }

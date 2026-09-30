@@ -13,7 +13,8 @@ import type { BenchmarkPack, RunManifest } from '@zxbench/types';
 import { createBenchmarkPack, verifyBenchmarkPack, checkScenarioEligibility, runMultipleEvaluations, snapshotHash } from '@zxbench/core';
 import { DOCKER_NOT_READY, isDockerInfrastructureFailure } from '@zxbench/core';
 import type { APIResponse, ModelConfig, EvalRunConfig, CreateEvalRunRequest, CreateBatchEvalRunRequest, CreateBatchEvalRunResponse, BatchProgressResponse, BatchRunStatus, BatchRunInfo, ScenarioTier, EvalProgress, DimensionProgress, QuestionLiveResult, EvalStage, OutputPolicy, OutputMetadata, Scenario, ScoringConfig, JudgeResult, ScenarioResult } from '@zxbench/types';
-import { generateId, generateRunId } from '@zxbench/utils';
+import { generateId, generateRunId, aggregateCandidateMetrics } from '@zxbench/utils';
+import { selectionConfig, selectScenarioPack, ScenarioSelectionError } from '../scenarioSelection.js';
 import { orchestrateEvaluation, buildProgressiveHistory, generateManifest, callModel, runTieredJudge, runJudgeEnsemble, computeJudgeScore, applyReviewedVerdict, applyCliSemanticReview, detectFormatBlindspot, getJudgeWeights, mixDeterministicJudge, getEvaluator, scoreExactAnswerContent } from '@zxbench/core';
 import { generateReport, generateCompareReport, analyzeRunQuality, referenceAnswerWarnings, partitionReferenceAnswerRuns } from '@zxbench/core';
 import type { ReportUserPromptData, CompareReportUserPromptData } from '@zxbench/core';
@@ -71,44 +72,7 @@ const PACK_DIMENSION_MAP: Record<string, string> = {
 
 /** Freeze the exact selection before any candidate API request. */
 async function selectBenchmarkPack(config: EvalRunConfig, dimensionIds?: string[]): Promise<BenchmarkPack> {
-  if (config.evaluationMode && !['development', 'official'].includes(config.evaluationMode)) throw new Error('Invalid evaluationMode');
-  if (!Number.isInteger(config.runsPerQuestion) || config.runsPerQuestion < 1 || config.runsPerQuestion > 10) {
-    throw new Error('runsPerQuestion must be an integer between 1 and 10');
-  }
-  if (config.judgeEnsembleRuns != null && (!Number.isInteger(config.judgeEnsembleRuns) || config.judgeEnsembleRuns < 1 || config.judgeEnsembleRuns > 10)) {
-    throw new Error('judgeEnsembleRuns must be an integer between 1 and 10');
-  }
-  const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } });
-  let selected = rows.filter(s => !dimensionIds?.length || dimensionIds.includes(s.dimension));
-  if (config.evaluationMode === 'official') {
-    const released = releaseBenchmarkById();
-    selected = selected.filter((scenario) => released.has(scenario.id));
-    const drifted = selected.filter((scenario) =>
-      scenario.scenarioHash !== released.get(scenario.id)?.scenarioHash,
-    );
-    if (drifted.length) {
-      throw new Error(`Official benchmark database is out of sync: ${drifted.map((s) => s.id).join(', ')}`);
-    }
-  }
-  if (config.scenarioIds?.length) {
-    selected = selected.filter(s => config.scenarioIds!.includes(s.id));
-    const found = new Set(selected.map(s => s.id));
-    const missing = config.scenarioIds.filter(id => !found.has(id));
-    if (missing.length) throw new Error(`Scenario selection missing or outside dimension filter: ${missing.join(', ')}`);
-  }
-  let scenarios = selected.map(decodeScenario);
-  // Development-shadow tasks stay available for an explicit development run,
-  // but never consume resources or enter an official aggregate/main score.
-  if (config.evaluationMode === 'official' || !config.scenarioIds?.length) {
-    scenarios = scenarios.filter(s => (s.requirements as unknown as { developmentShadow?: boolean } | undefined)?.developmentShadow !== true);
-  }
-  if (config.evaluationMode !== 'official') {
-    scenarios = scenarios.filter(s => {
-      const until = (s.requirements as unknown as { validUntil?: string })?.validUntil;
-      return !until || (Number.isFinite(Date.parse(until)) && Date.parse(until) >= Date.now());
-    });
-  }
-  return createBenchmarkPack(scenarios, config.evaluationMode);
+  return selectScenarioPack(await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } }), selectionConfig(config, { dimensionIds }));
 }
 
 function modelIdentity(model: { id: string; name: string; provider: string; baseUrl: string; defaultParams: unknown }): string {
@@ -837,7 +801,7 @@ async function rejudgeSavedResult(
       escalated: judgeResult.escalated,
       runCount: 1,
       scoreHistory: JSON.stringify([totalScore]),
-      outputMetadata: JSON.stringify({ ...outputMetadata, evaluationAudit: legacyJudgeOnlyRecovery
+      outputMetadata: JSON.stringify({ ...outputMetadata, candidateGenerated: false, evaluationAudit: legacyJudgeOnlyRecovery
         ? { ...outputMetadata.evaluationAudit, version: 1, judgeScoreHistory: history }
         : { ...outputMetadata.evaluationAudit, version: 1, scenarioHash: scenario.scenarioHash,
           judgeScoreHistory: history,
@@ -1165,14 +1129,20 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.delete('/api/models/:id', async (request) => {
+  app.delete('/api/models/:id', async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
+      const references = await prisma.evalRun.count({ where: { modelConfigId: id } });
+      if (references) return reply.status(409).send({ success: false, error: references + ' 条评测记录引用该模型，请先删除相关运行。' });
+      const runs = await prisma.evalRun.findMany({ select: { config: true } });
+      const judgeReferences = runs.filter(run => parseStoredJson<EvalRunConfig>(run.config, {} as EvalRunConfig).judgeModelConfigId === id).length;
+      if (judgeReferences) return reply.status(409).send({ success: false, error: judgeReferences + ' 条评测记录绑定该 Judge，请先删除相关运行。' });
+      // The database foreign key remains authoritative if a run races this check.
       await prisma.modelConfig.delete({ where: { id } });
       return { success: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { success: false, error: `删除失败: ${msg}` };
+      return reply.status((err as { code?: string }).code === 'P2003' ? 409 : 500).send({ success: false, error: (err as { code?: string }).code === 'P2003' ? '模型仍被评测记录引用，请先删除相关运行。' : `删除失败: ${msg}` });
     }
   });
 
@@ -1211,7 +1181,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/runs', async () => {
     const runs = await prisma.evalRun.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { modelConfig: true },
+      include: { modelConfig: true, results: { select: { id: true, scenarioId: true, outputMetadata: true, startedAt: true, finishedAt: true } } },
     });
     return {
       success: true,
@@ -1219,7 +1189,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         ...run,
         config: JSON.parse(run.config),
         manifest: run.manifest ? JSON.parse(run.manifest) : null,
-        summary: run.summary ? JSON.parse(run.summary) : null,
+        summary: { ...parseStoredJson<Record<string, unknown>>(run.summary, {}), ...aggregateCandidateMetrics(selectLatestScenarioResults(run.results)), consumedCandidateMetrics: aggregateCandidateMetrics(run.results, { consumed: true }) },
+        results: undefined,
         modelConfig: deserializeModel(run.modelConfig),
         _count: undefined,
       })),
@@ -1242,7 +1213,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         ...run,
         config: JSON.parse(run.config),
         manifest: run.manifest ? JSON.parse(run.manifest) : null,
-        summary: run.summary ? JSON.parse(run.summary) : null,
+        summary: { ...parseStoredJson<Record<string, unknown>>(run.summary, {}), ...aggregateCandidateMetrics(selectLatestScenarioResults(run.results)), consumedCandidateMetrics: aggregateCandidateMetrics(run.results, { consumed: true }) },
         modelConfig: deserializeModel(run.modelConfig),
         results: run.results.map(deserializeResult),
         referenceAnswerWarnings: referenceAnswerWarnings(run.results),
@@ -1345,7 +1316,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         totalResults: deserialized.length,
         modelConfig: deserializeModel(run.modelConfig),
         config: JSON.parse(run.config),
-        summary: run.summary ? JSON.parse(run.summary) : null,
+        summary: { ...parseStoredJson<Record<string, unknown>>(run.summary, {}), ...aggregateCandidateMetrics(results), consumedCandidateMetrics: aggregateCandidateMetrics(allResults, { consumed: true }) },
         results: deserialized,
         qualityReport: analyzeRunQuality(results, results.length),
         referenceAnswerWarnings: referenceAnswerWarnings(allResults),
@@ -1373,7 +1344,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const runId = generateRunId();
-      const config = { ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 as const };
+      const config = selectionConfig({ ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 }, body);
 
       // 题目子集白名单：固化进 config，保证断点续跑/重跑还原同一子集
       if (Array.isArray(body.scenarioIds) && body.scenarioIds.length > 0) {
@@ -1389,7 +1360,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       let pack: BenchmarkPack;
-      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      try { pack = await selectBenchmarkPack(config); }
       catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       // Bind any available Judge for semantic final-answer review, even when
       // generic mixed Judge scoring is disabled.
@@ -1405,7 +1376,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
           status: 'pending',
           parentRunId: body.parentRunId || null,
           groupName: body.groupName || null,
-          dimensionFilter: body.dimensionIds?.length > 0 ? JSON.stringify(body.dimensionIds) : null,
+          dimensionFilter: config.dimensionFilter?.length ? JSON.stringify(config.dimensionFilter) : null,
         },
       });
 
@@ -1424,6 +1395,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         }).catch(console.error);
       });
     } catch (err) {
+      if (err instanceof ScenarioSelectionError) return reply.status(400).send({ success: false, error: err.message });
       const msg = err instanceof Error ? err.message : String(err);
       return reply.status(500).send({ success: false, error: `创建评测失败: ${msg}` });
     }
@@ -1466,6 +1438,15 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     };
   }
 
+  app.post('/api/runs/preview', async (request, reply) => {
+    const body = request.body as CreateEvalRunRequest;
+    try {
+      const config = selectionConfig({ ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 }, body);
+      const pack = await selectBenchmarkPack(config);
+      return { success: true, data: { hash: pack.hash, count: pack.scenarios.length, scenarioIds: pack.scenarios.map(s => s.id), config } };
+    } catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
+  });
+
   app.post('/api/runs/batch', async (request, reply) => {
     try {
       const body = request.body as CreateBatchEvalRunRequest;
@@ -1485,9 +1466,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       }
 
       const groupName = body.groupName || `batch-${Date.now()}`;
-      const config = { ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 } as EvalRunConfig;
+      const config = selectionConfig({ ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 }, body);
       let pack: BenchmarkPack;
-      try { pack = await selectBenchmarkPack(config, body.dimensionIds); }
+      try { pack = await selectBenchmarkPack(config); }
       catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
       const judgeOptions = await resolveJudgeOptionsForNewRun(config, body.judgeModelConfigId, pack);
       if (config.judgeEnabled && !judgeOptions) return reply.status(400).send({ success: false, error: 'Judge enabled but no Judge model configured' });
@@ -1528,7 +1509,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
             status: 'pending',
             parentRunId: null,
             groupName,
-            dimensionFilter: body.dimensionIds?.length > 0 ? JSON.stringify(body.dimensionIds) : null,
+            dimensionFilter: config.dimensionFilter?.length ? JSON.stringify(config.dimensionFilter) : null,
           },
         });
         runs.push({ id: runId, modelConfigId: mcId, name: runName, status: 'pending' });
@@ -1557,6 +1538,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         });
       }
     } catch (err) {
+      if (err instanceof ScenarioSelectionError) return reply.status(400).send({ success: false, error: err.message });
       const msg = err instanceof Error ? err.message : String(err);
       return reply.status(500).send({ success: false, error: `批量创建评测失败: ${msg}` });
     }
@@ -2347,7 +2329,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       modelConfig: deserializeModelMasked(run.modelConfig),
       config: JSON.parse(run.config),
       manifest: run.manifest ? JSON.parse(run.manifest) : null,
-      summary: run.summary ? JSON.parse(run.summary) : null,
+        summary: { ...parseStoredJson<Record<string, unknown>>(run.summary, {}), ...aggregateCandidateMetrics(selectLatestScenarioResults(run.results)), consumedCandidateMetrics: aggregateCandidateMetrics(run.results, { consumed: true }) },
       // GPT5.6 P0-7: 导出时脱敏处理
       results: run.results.map((r) => maskSensitiveData(deserializeResult(r))),
       exportedAt: new Date().toISOString(),
@@ -2368,7 +2350,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       md += `**Status**: ${run.status} | **Model**: ${run.modelConfig.name}\n\n`;
       md += `## Summary\n\n`;
       if (exportData.summary) {
-        const s = exportData.summary as Record<string, number>;
+        const s = exportData.summary as unknown as Record<string, number>;
         md += `- Total Scenarios: ${s.totalScenarios ?? 0}\n- Completed: ${s.completedScenarios ?? 0}\n- Average Score: ${s.averageScore ?? 0}\n- Safety Red Lines: ${s.safetyRedLineCount ?? 0}\n`;
       }
       md += `\n## Results\n\n| Scenario | Dimension | Score | Safety |\n|----------|-----------|-------|--------|\n`;
@@ -2866,36 +2848,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     };
 
     // Token 速度统计 — 按每题独立计算再取均值，消除并行执行叠加偏差
-    let reportInputTokens = 0;
-    let reportOutputTokens = 0;
-    const perQuestionSpeeds: number[] = [];
-    for (const r of results) {
-      try {
-        const meta = r.outputMetadata ? JSON.parse(r.outputMetadata) : null;
-        if (meta) {
-          reportInputTokens += meta.inputTokens || 0;
-          reportOutputTokens += meta.outputTokens || 0;
-          // 优先使用预计算的 tokenSpeed，其次用 nativeTokensPerSecond，最后用 inferenceMs 推算
-          const speed = meta.tokenSpeed
-            || meta.nativeTokensPerSecond
-            || (meta.inferenceMs && meta.outputTokens ? Math.round(meta.outputTokens / (meta.inferenceMs / 1000)) : 0);
-          if (speed > 0) perQuestionSpeeds.push(speed);
-        }
-      } catch { /* ignore */ }
-    }
-    // 兜底：本地 GGUF（llama.cpp）API 上报的 token 偏低，用 summary 里重算后的值覆盖
-    try {
-      const _s = run.summary ? JSON.parse(run.summary) : null;
-      if (_s) {
-        reportInputTokens = Math.max(reportInputTokens, _s.totalInputTokens || 0);
-        reportOutputTokens = Math.max(reportOutputTokens, _s.totalOutputTokens || 0);
-      }
-    } catch { /* ignore */ }
-    // 中位数避免极端值（超长题/超短题）歪曲均值
-    const sortedSpeeds = perQuestionSpeeds.sort((a, b) => a - b);
-    const avgTokensPerSecond = perQuestionSpeeds.length > 0
-      ? Math.round(sortedSpeeds[Math.floor(sortedSpeeds.length / 2)])
-      : 0;
+    const reportMetrics = aggregateCandidateMetrics(results);
 
     return {
       success: true,
@@ -2939,10 +2892,10 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         weaknesses: weaknesses.map((w) => ({ dimension: w.dimensionLabel, score: w.averageScore, passRate: w.passRate })),
         radarData: dimensionReports.map((d) => ({ name: d.dimensionLabel, value: d.averageScore })),
         tokenStats: {
-          totalInputTokens: reportInputTokens,
-          totalOutputTokens: reportOutputTokens,
-          totalTokens: reportInputTokens + reportOutputTokens,
-          avgTokensPerSecond,
+          ...reportMetrics,
+          costScope: 'latest-result-per-question',
+          consumedCandidateMetrics: aggregateCandidateMetrics(allResults, { consumed: true }),
+          avgTokensPerSecond: reportMetrics.generationTokensPerSecond,
         },
       },
     };
@@ -3414,7 +3367,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       if (run.createdAt > g.createdAt) g.createdAt = run.createdAt;
     }
 
-    const leaderboard: Array<{ modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; truncationRate: number; totalScenarios: number; completedScenarios?: number; missingScenarios?: number; averageScore: number; passRate: number; passCount: number; redLineCount: number; dimensionScores: Record<string, unknown>; runCount: number; evaluatedAt: Date; latestRunId: string; totalInputTokens: number; totalOutputTokens: number; totalTokens: number; engineeringFailures?: { total: number; byKind: Record<string, number> } }> = [];
+    const leaderboard: Array<{ modelId: string; modelName: string; provider: string; reasoningModel: boolean; maxTokens: number; truncationRate: number; totalScenarios: number; completedScenarios?: number; missingScenarios?: number; averageScore: number; passRate: number; passCount: number; redLineCount: number; dimensionScores: Record<string, unknown>; runCount: number; evaluatedAt: Date; latestRunId: string; costScope: string; consumedCandidateMetrics: ReturnType<typeof aggregateCandidateMetrics>; totalInputTokens: number | null; totalOutputTokens: number | null; totalTokens: number | null; engineeringFailures?: { total: number; byKind: Record<string, number> } }> = [];
     for (const [modelId, group] of modelGroups) {
       // latest：只统计最新一次 run；best：跨 run 聚合（按题取最优）
       const runIds = scope === 'best' ? group.runIds : [group.latestRunId];
@@ -3488,14 +3441,11 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
       // 截断率 + token 消耗（从 outputMetadata 汇总，比 summary 更鲁棒，旧 run 也适用）
       let truncatedCount = 0;
-      let sumInputTokens = 0;
-      let sumOutputTokens = 0;
+      const leaderboardMetrics = aggregateCandidateMetrics(results);
       for (const r of results) {
         try {
           const meta = JSON.parse(r.outputMetadata) as { truncated?: boolean; inputTokens?: number; outputTokens?: number };
           if (meta.truncated) truncatedCount++;
-          sumInputTokens += meta.inputTokens || 0;
-          sumOutputTokens += meta.outputTokens || 0;
         } catch { /* ignore */ }
       }
 
@@ -3517,9 +3467,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         runCount: group.runIds.length,
         evaluatedAt: group.createdAt,
         latestRunId: group.runIds[0],
-        totalInputTokens: Math.max(group.latestSummary?.totalInputTokens ?? 0, sumInputTokens),
-        totalOutputTokens: Math.max(group.latestSummary?.totalOutputTokens ?? 0, sumOutputTokens),
-        totalTokens: (sumInputTokens + sumOutputTokens) || ((group.latestSummary?.totalInputTokens ?? 0) + (group.latestSummary?.totalOutputTokens ?? 0)),
+        ...leaderboardMetrics,
+        consumedCandidateMetrics: aggregateCandidateMetrics(allResults, { consumed: true }),
+        costScope: scope === 'best' ? 'stitched-selected-results' : 'latest-run',
         // P0：工程失败样本披露（不计入均分的测量伪影数）
         engineeringFailures: {
           total: lbEngStats.excludedTotal,
@@ -4026,6 +3976,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         where: { id: runId },
         data: { summary: JSON.stringify({ ...oldSummary, averageScore: groupAvg, dimensionAverages: Object.fromEntries(retryDimAvgs),
           completedScenarios: allEntries.length, passCount: groupPass,
+          ...aggregateCandidateMetrics(selectLatestScenarioResults(allGroupResults)),
+          consumedCandidateMetrics: aggregateCandidateMetrics(allGroupResults, { consumed: true }),
           qualityReport: analyzeRunQuality(selectLatestScenarioResults(allGroupResults), Number(oldSummary.totalScenarios) || allEntries.length),
         }) },
       });
@@ -4755,26 +4707,9 @@ async function runEvaluation(
   );
   const { firstStartedAt, executionMs, wallClockMs, activeMs, pausedMs, resumeCount, durationMs } = timeline;
   // 计算每题独立 token 速度中位数
-  const perQuestionSpeeds2: number[] = [];
-  let summaryInputTokens = 0;
-  let summaryOutputTokens = 0;
-  for (const r of results) {
-    try {
-      const meta = r.outputMetadata ? JSON.parse(r.outputMetadata) : null;
-      if (meta) {
-        summaryInputTokens += meta.inputTokens || 0;
-        summaryOutputTokens += meta.outputTokens || 0;
-        const speed = meta.tokenSpeed
-          || meta.nativeTokensPerSecond
-          || (meta.inferenceMs && meta.outputTokens ? Math.round(meta.outputTokens / (meta.inferenceMs / 1000)) : 0);
-        if (speed > 0) perQuestionSpeeds2.push(speed);
-      }
-    } catch { /* ignore */ }
-  }
-  const sorted2 = perQuestionSpeeds2.sort((a, b) => a - b);
-  const avgTokensPerSecond = perQuestionSpeeds2.length > 0
-    ? Math.round(sorted2[Math.floor(sorted2.length / 2)])
-    : 0;
+  const summaryMetrics = aggregateCandidateMetrics(results);
+  const summaryInputTokens = summaryMetrics.totalInputTokens ?? 0;
+  const summaryOutputTokens = summaryMetrics.totalOutputTokens ?? 0;
   // 去重后的通过题数（避免重试重复行虚高；工程失败样本不计）
   const passSeen = new Set<string>();
   let passCount = 0;
@@ -4805,9 +4740,9 @@ async function runEvaluation(
         passCount,
         dimensionAverages: Object.fromEntries(summaryDimAvgs),
         safetyRedLineCount: results.filter((r) => r.safetyLevel === 'red_line').length,
-        totalInputTokens: summaryInputTokens,
-        totalOutputTokens: summaryOutputTokens,
-        avgTokensPerSecond,
+        ...summaryMetrics,
+        consumedCandidateMetrics: aggregateCandidateMetrics(allResultRows, { consumed: true }),
+        avgTokensPerSecond: summaryMetrics.generationTokensPerSecond,
         // P0：工程失败样本披露（不计入均分的测量伪影：空输出/评分器缺失/环境故障）
         engineeringFailures: {
           total: summaryEngStats.excludedTotal,
@@ -4822,6 +4757,9 @@ async function runEvaluation(
         finishedAt: new Date(finishedAt).toISOString(),
         durationMs,
         executionMs,
+        wallClockMs,
+        timelineTimingCoverage: timeline.timingCoverage,
+        timingBasis: timeline.timingBasis,
         activeMs,
         pausedMs,
         resumeCount,

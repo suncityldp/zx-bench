@@ -40,8 +40,8 @@ describe('computeRunTimeline', () => {
   it('不超过 60s 的空档不算暂停（视作调度抖动，并入 activeMs）', () => {
     const spans = [{ start: 0, end: 10 * MIN }, { start: 10 * MIN + 30_000, end: 20 * MIN }];
     const t = computeRunTimeline(spans, 0, 20 * MIN);
-    expect(t.pausedMs).toBe(0);
-    expect(t.activeMs).toBe(20 * MIN);
+    expect(t.pausedMs).toBe(30_000);
+    expect(t.activeMs).toBe(20 * MIN - 30_000);
     expect(t.resumeCount).toBe(1);
   });
 
@@ -57,7 +57,7 @@ describe('computeRunTimeline', () => {
     const spans = [{ start: 0, end: 10 * MIN }, { start: 11 * MIN, end: 20 * MIN }];
     const exact = computeRunTimeline(spans, 0, 20 * MIN);
     expect(exact.resumeCount).toBe(1);
-    expect(exact.pausedMs).toBe(0);
+    expect(exact.pausedMs).toBe(MIN);
     const spans2 = [{ start: 0, end: 10 * MIN }, { start: 11 * MIN + 1, end: 20 * MIN }];
     expect(computeRunTimeline(spans2, 0, 20 * MIN).resumeCount).toBe(2);
   });
@@ -81,8 +81,11 @@ describe('computeRunTimeline', () => {
     const t = computeRunTimeline([], 1000, 1000 + 2 * H);
     expect(t.firstStartedAt).toBe(1000);
     expect(t.wallClockMs).toBe(2 * H);
-    expect(t.pausedMs).toBe(0);
-    expect(t.resumeCount).toBe(1);
+    expect(t.pausedMs).toBeNull();
+    expect(t.activeMs).toBeNull();
+    expect(t.executionMs).toBeNull();
+    expect(t.resumeCount).toBeNull();
+    expect(t.timingCoverage).toBe(0);
   });
 
   it('丢弃非法跨度（end < start / NaN）', () => {

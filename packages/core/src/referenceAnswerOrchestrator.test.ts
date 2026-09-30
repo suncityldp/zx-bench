@@ -9,6 +9,20 @@ import { hallucinationResistanceEvaluator } from './evaluators/hallucinationResi
 vi.mock('./model/caller.js', () => ({ callModelWithRetry: vi.fn() }));
 vi.mock('./judge/index.js', async importOriginal => ({ ...await importOriginal<typeof import('./judge/index.js')>(), runTieredJudge: vi.fn() }));
 describe('wrong math answers cannot activate Judge format rescue', () => {
+  it.each([
+    [undefined, true, 100],
+    [false, true, 0],
+    [true, false, 100],
+  ])('scores original text using effective answerFirst (scenario=%s run=%s)', async (scenarioFlag, runFlag, expected) => {
+    registerEvaluator(exactAnswerLineEvaluator);
+    const base = JSON.parse(readFileSync(new URL('../../../data/scenarios/benchmark.json', import.meta.url), 'utf8')).find((s: any) => s.id === 'RM-CN-004');
+    const scenario = { ...base, answerFirst: scenarioFlag };
+    const output = 'ANSWER: 497776.30元\n解释中含有另一个数字 442717。';
+    vi.mocked(callModelWithRetry).mockResolvedValue({ content: output, finishReason: 'stop', usage: { inputTokens: 10, outputTokens: 20 }, latencyMs: 10 } as any);
+    const result = await orchestrateEvaluation({ scenario, modelConfig: { id: 'test', name: 'test', provider: 'local', baseUrl: 'http://unused', defaultParams: {} }, modelParams: { maxTokens: 8192 }, evalConfig: { judgeEnabled: false, safetyCheckEnabled: false, constraints: { answerFirst: runFlag } }, constraints: { answerFirst: runFlag } } as any);
+    expect(result.axisScores.answer_accuracy).toBe(expected);
+    expect(result.modelOutput).toBe(output);
+  });
   it('keeps a long but numerically wrong answer below the pass threshold even if Judge awards full marks', async () => {
     registerEvaluator(exactAnswerLineEvaluator);
     const scenario=JSON.parse(readFileSync(new URL('../../../data/scenarios/benchmark.json',import.meta.url),'utf8')).find((s:any)=>s.id==='RM-CN-004');

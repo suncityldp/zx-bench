@@ -1,3 +1,6 @@
+import { structuredContractEvaluator } from './structuredContract.js';
+import { structuredContractV2Evaluator, structuredContractV3Evaluator } from './structuredContractV2.js';
+import { structuredContractV4Evaluator } from './structuredContractV4.js';
 // P0 反例回归：这些输出曾被旧逻辑误判为高分/满分。
 
 import { describe, expect, it } from 'vitest';
@@ -108,7 +111,7 @@ describe('P0: scenario identity and evaluator version are fail-closed', () => {
       canaryAuthorityEvaluator, toolCallTraceEvaluator, agentTraceEvaluator, cliCommandEvaluator,
       hallucinationResistanceEvaluator, sandboxEvaluator, llmJudgeEvaluator, prExecutableEvidenceEvaluator,
       challengeSupplementEvaluator,
-      agentLoopTraceEvaluator,
+      agentLoopTraceEvaluator, structuredContractEvaluator, structuredContractV2Evaluator, structuredContractV3Evaluator, structuredContractV4Evaluator,
       ultraBatchPartEvaluator, ultraProofPartEvaluator,
     ].forEach(registerEvaluator);
     const scenarios = JSON.parse(readFileSync('data/scenarios/benchmark.json', 'utf8')) as Array<{ grader: string; graderVersion: string; id: string }>;

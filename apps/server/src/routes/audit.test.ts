@@ -4,9 +4,9 @@ import { registerRoutes } from './index.js';
 import { createBenchmarkPack, runMultipleEvaluations, verifyBenchmarkPack } from '@zxbench/core';
 
 const db = vi.hoisted(() => ({
-  modelConfig: { findUnique: vi.fn(), findMany: vi.fn() },
+  modelConfig: { findUnique: vi.fn(), findMany: vi.fn(), delete: vi.fn() },
   scenarioDefinition: { findMany: vi.fn(), findUnique: vi.fn(), upsert: vi.fn() },
-  evalRun: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
+  evalRun: { create: vi.fn(), update: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), count: vi.fn(), findMany: vi.fn() },
   scenarioResult: { create: vi.fn(), findMany: vi.fn() },
 }));
 vi.mock('../index.js', () => ({ prisma: db }));
@@ -23,6 +23,7 @@ let saved: Map<string, Record<string, any>>;
 beforeEach(async () => {
   vi.clearAllMocks(); saved = new Map(); app = Fastify();
   db.modelConfig.findUnique.mockResolvedValue(model);
+  db.evalRun.findMany.mockResolvedValue([]);
   db.scenarioDefinition.findMany.mockResolvedValue([row]);
   db.scenarioResult.findMany.mockResolvedValue([]);
   db.scenarioResult.create.mockImplementation(async ({ data }) => data);
@@ -45,6 +46,54 @@ beforeEach(async () => {
 afterEach(async () => { await app.close(); });
 
 describe('audited run API without network or real database', () => {
+  it('recomputes historical list costs from latest rows after retry, without old-summary token fallback', async () => {
+    const original = { id: 'old', scenarioId: 'a', startedAt: '2026-09-01', finishedAt: '2026-09-01', outputMetadata: '{"inputTokens":1,"outputTokens":100,"inferenceMs":1000}' };
+    const latest = { ...original, id: 'new', finishedAt: '2026-09-02', outputMetadata: '{"inputTokens":1,"outputTokens":200,"inferenceMs":2000}' };
+    const untimed = { ...original, id: 'untimed', scenarioId: 'b', outputMetadata: '{"inputTokens":1,"outputTokens":900}' };
+    db.evalRun.findMany.mockResolvedValue([{ id: 'history', config: '{}', manifest: null, summary: '{"totalOutputTokens":99999,"engineeringFailures":{"total":2}}', modelConfig: model, results: [original, latest, untimed] }]);
+    const response = await app.inject({ method: 'GET', url: '/api/runs' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data[0].summary).toMatchObject({ totalOutputTokens: 1100, timedOutputTokens: 200, candidateTokensPerSecond: 100, timingCoverage: .5, engineeringFailures: { total: 2 }, consumedCandidateMetrics: { totalOutputTokens: 1200 } });
+  });
+  it('preview and single/batch creation freeze the same difficulty-selected IDs and hash', async () => {
+    db.modelConfig.findMany.mockResolvedValue([model, { ...model, id: 'mock2' }]);
+    db.scenarioDefinition.findMany.mockResolvedValue([row, { ...row, id: 'hard', difficulty: 'hard' }]);
+    const payload = { difficultyIds: ['hard'], dimensionIds: [], modelConfigId: 'mock', modelConfigIds: ['mock', 'mock2'] };
+    const preview = await app.inject({ method: 'POST', url: '/api/runs/preview', payload });
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json().data.scenarioIds).toEqual(['hard']);
+    const single = await app.inject({ method: 'POST', url: '/api/runs', payload });
+    expect(single.statusCode).toBe(200);
+    await vi.waitFor(() => expect(saved.get(single.json().data.id)?.status).toBe('completed'));
+    const batch = await app.inject({ method: 'POST', url: '/api/runs/batch', payload });
+    expect(batch.statusCode).toBe(200);
+    await vi.waitFor(() => expect([...saved.values()].every(r => r.status === 'completed')).toBe(true));
+    for (const run of saved.values()) {
+      expect(JSON.parse(run.config).difficultyFilter).toEqual(['hard']);
+      expect(JSON.parse(run.manifest).benchmarkPack.hash).toBe(preview.json().data.hash);
+    }
+  });
+  it.each(['/api/runs/preview', '/api/runs', '/api/runs/batch'])('rejects invalid difficulty enum in %s', async url => {
+    const res = await app.inject({ method: 'POST', url, payload: { modelConfigId: 'mock', modelConfigIds: ['mock'], difficultyIds: ['impossible'] } });
+    expect(res.statusCode).toBe(400);
+    expect(db.evalRun.create).not.toHaveBeenCalled();
+  });
+  it('gives friendly model reference feedback and keeps database race protection', async () => {
+    db.evalRun.count.mockResolvedValue(3);
+    const referenced = await app.inject({ method: 'DELETE', url: '/api/models/mock' });
+    expect(referenced.statusCode).toBe(409);
+    expect(referenced.json().error).toContain('3');
+    expect(db.modelConfig.delete).not.toHaveBeenCalled();
+    db.evalRun.count.mockResolvedValue(0);
+    db.modelConfig.delete.mockRejectedValue({ code: 'P2003' });
+    const race = await app.inject({ method: 'DELETE', url: '/api/models/mock' });
+    expect(race.statusCode).toBe(409);
+    expect(race.json().error).toContain('引用');
+    db.evalRun.findMany.mockResolvedValue([{ config: '{"judgeModelConfigId":"mock"}' }]);
+    const judge = await app.inject({ method: 'DELETE', url: '/api/models/mock' });
+    expect(judge.statusCode).toBe(409);
+    expect(judge.json().error).toContain('Judge');
+  });
   it('includes all 10 default extension questions through the official create-run API', async () => {
     const { readFileSync } = await import('node:fs');
     const bank = JSON.parse(readFileSync('data/scenarios/benchmark.json', 'utf8'));
