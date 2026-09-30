@@ -146,6 +146,7 @@ export type { ReportUserPromptData, CompareReportUserPromptData } from './report
 export { generateVariables, instantiateScenario, createParameterizedInstance } from './parameterize/index.js';
 // 评分/聚合核心
 export { DIMENSION_WEIGHTS, DIFFICULTY_WEIGHTS, ATTACK_WEIGHTS, LONG_TASK_WEIGHT, JUDGE_WEIGHT_CAP, TARGET_DIFFICULTY_DISTRIBUTION, analyzeDifficultyDistribution, computeWeightedTotal, getJudgeWeights, detectFormatBlindspot, applyReviewedVerdict, applyCliSemanticReview, mixDeterministicJudge, applyCoverageDiscount, computeConsistencyScore, computeDifficultyWeightedDimAvgs, buildDimAvgWeightLookups, computeScorerVersionDrift, normalizeDimension, DIMENSION_ALIASES, classifyEngineeringFailure, createDimAvgExclusionStats } from './scoring.js';
+export { computeSourceQuestionDimAvgs } from './sourceQuestionScoring.js';
 export type { EngineeringFailureKind, EngineeringFailureInput, DimAvgExclusionStats, DimAvgLookups, ScorerVersionDrift } from './scoring.js';
 
 // 场景契约（Phase 1）

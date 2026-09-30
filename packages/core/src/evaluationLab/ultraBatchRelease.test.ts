@@ -7,6 +7,9 @@ import { ultraBatchPartEvaluator } from '../evaluators/ultraBatchPart.js';
 
 const manifest=JSON.parse(readFileSync('data/scenarios/ultra-batch-release-manifest.json','utf8'));
 const bank=JSON.parse(readFileSync('data/scenarios/benchmark.json','utf8'));
+const archived=JSON.parse(readFileSync('data/scenarios/archive/benchmark-retired.json','utf8'));
+const development=JSON.parse(readFileSync('data/scenarios/archive/benchmark-development.json','utf8'));
+const historical=[...bank,...archived,...development];
 
 describe('three-dimension ultra batch release',()=>{
   it('publishes twelve four-part groups in every target dimension',()=>{
@@ -18,11 +21,11 @@ describe('three-dimension ultra batch release',()=>{
     expect(manifest.dimensions.reasoning_math.groups.map((x:{id:string})=>x.id)).not.toContain('MX3-12');
   });
 
-  it('is present in the formal atomic bank instead of only an export manifest',()=>{
+  it('preserves original atomic-release fixtures in the active catalogue or retired archive',()=>{
     expect(manifest.defaultAtomicBank).toBe(true);
     for(const prefix of ['DX3-','HX3-'])expect(bank.filter((x:{id:string})=>x.id.startsWith(prefix))).toHaveLength(48);
     const selected=new Set(manifest.dimensions.reasoning_math.groups.map((x:{id:string})=>x.id));
-    expect(bank.filter((x:{id:string})=>selected.has(x.id.replace(/-P[1-4]$/,'')))).toHaveLength(48);
+    expect(historical.filter((x:{id:string})=>selected.has(x.id.replace(/-P[1-4]$/,'')))).toHaveLength(48);
   });
 
   it('binds every evidence group to a frozen executable paper and replays all references',()=>{
@@ -50,7 +53,7 @@ describe('three-dimension ultra batch release',()=>{
     for(const v of bankMx3)expect(knownVersions.has(v),v).toBe(true);
     // 2026-09-16 新增的高难度题组必须真实落入题库（而不是只存在于题包）
     for(const g of ['MX3-13','MX3-14','MX3-15','MX3-16','MX3-17','MX3-18','MX3-19','MX3-20','MX3-21','MX3-22','MX3-23','MX3-24'])for(let n=1;n<=4;n++){
-      expect(bank.some((x:{id:string})=>x.id===`${g}-P${n}`),`${g}-P${n}`).toBe(true);
+      expect(historical.some((x:{id:string})=>x.id===`${g}-P${n}`),`${g}-P${n}`).toBe(true);
     }
   });
 

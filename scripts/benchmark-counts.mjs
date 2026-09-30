@@ -5,6 +5,7 @@ export function benchmarkCounts(pack, archive = []) {
   if (ids.size !== pack.length || new Set(archive.map(s => s.id)).size !== archive.length) throw new Error('Duplicate question IDs');
   if (archive.some(s => ids.has(s.id) || s.status !== 'retired')) throw new Error('Archive overlaps current catalogue or contains non-retired questions');
   const valid = pack.filter(s => s.status === 'valid');
+  const defaults = valid.filter(s => s.requirements?.developmentShadow !== true || s.benchmarkSource?.releaseId === 'nine-model-adopted-2026-09-29');
   const dimensions = {};
   for (const s of valid) dimensions[s.dimension] = (dimensions[s.dimension] ?? 0) + 1;
   return {
@@ -14,7 +15,9 @@ export function benchmarkCounts(pack, archive = []) {
     archivedRetiredCount: archive.length,
     totalCount: pack.length + archive.length,
     developmentShadowCount: valid.filter(s => s.requirements?.developmentShadow === true).length,
-    defaultRunCount: valid.filter(s => s.requirements?.developmentShadow !== true).length,
+    defaultRunCount: defaults.length,
+    sourceQuestionCount: new Set(defaults.map(s => s.benchmarkSource?.id ?? s.id)).size,
+    executionInstanceCount: defaults.length,
     dimensions: Object.fromEntries(Object.entries(dimensions).sort(([a], [b]) => a.localeCompare(b))),
   };
 }

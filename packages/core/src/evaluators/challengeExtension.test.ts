@@ -19,7 +19,9 @@ const manifest = JSON.parse(readFileSync('data/scenarios/challenge-extension-man
 const pack = buildChallengeExtension();
 const metadata = { finishReason: 'stop', truncated: false, incomplete: false, containsCodeBlock: false,
   containsFinalConclusion: true, outputLength: 100, outputTokens: 100, inputTokens: 100, maxTokens: 90000 } as any;
-const find = (id: string) => bank.find(s => s.id === id)!;
+const archive = JSON.parse(readFileSync('data/scenarios/archive/benchmark-retired.json','utf8')) as Scenario[];
+const development = JSON.parse(readFileSync('data/scenarios/archive/benchmark-development.json','utf8')) as Scenario[];
+const find = (id: string) => bank.find(s => s.id === id) ?? archive.find(s => s.id === id) ?? development.find(s => s.id === id)!;
 registerEvaluator(challengeExtensionEvaluator);
 registerEvaluator(challengeSupplementEvaluator);
 
@@ -31,7 +33,7 @@ describe('bank 1.31.1 challenge integration and restored formal scope', () => {
     expect(bank).toHaveLength(meta.currentRecordCount);
     // 2026-09-17：UMX 八题标 developmentShadow（ultra_proof_part 在普通 run 路径下分数无意义），
     // 非 shadow 数 848 -> 840。定义与 rubric 保留，仍可被显式指定运行。
-    expect(bank.filter(s => s.status === 'valid' && !(s.requirements as any)?.developmentShadow)).toHaveLength(meta.defaultRunCount);
+    expect(bank.filter(s => s.status === 'valid' && (!(s.requirements as any)?.developmentShadow || s.benchmarkSource))).toHaveLength(meta.defaultRunCount);
     for (const item of pack.cases) {
       const scenario = find(item.id);
       expect(scenario.scenarioHash, item.id).toBe(hashScenarioShort(scenario));

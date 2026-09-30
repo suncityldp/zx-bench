@@ -34,6 +34,8 @@ import { lookup as dnsLookup } from 'node:dns/promises';
 import { URL } from 'node:url';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 import { selectLatestResultsByKey, selectLatestScenarioResults } from '../resultSelection.js';
+import { releasedBenchmark, releasedEligibility, selectReleasedPack } from '../releasedBenchmark.js';
+import { computeSourceQuestionDimAvgs } from '@zxbench/core';
 
 // The database is mutable and may retain bundled development/history rows from
 // an older import. Official runs are therefore selected against the released
@@ -45,14 +47,8 @@ import { selectLatestResultsByKey, selectLatestScenarioResults } from '../result
 // re-tagged, the database was re-synced, yet every official run kept failing
 // with "Official benchmark database is out of sync" until a restart).  Re-read
 // the file whenever its mtime changes instead.
-const RELEASE_BENCHMARK_URL = new URL('../../../../data/scenarios/benchmark.json', import.meta.url);
-let releaseBenchmarkCache: { mtimeMs: number; byId: Map<string, Scenario> } | null = null;
 function releaseBenchmarkById(): Map<string, Scenario> {
-  const mtimeMs = fs.statSync(RELEASE_BENCHMARK_URL).mtimeMs;
-  if (releaseBenchmarkCache?.mtimeMs === mtimeMs) return releaseBenchmarkCache.byId;
-  const list = JSON.parse(fs.readFileSync(RELEASE_BENCHMARK_URL, 'utf8')) as Scenario[];
-  releaseBenchmarkCache = { mtimeMs, byId: new Map(list.map((scenario) => [scenario.id, scenario])) };
-  return releaseBenchmarkCache.byId;
+  return releasedBenchmark().byId;
 }
 
 /** Pack 短名 → 维度映射（all 表示不过滤） */
@@ -173,6 +169,7 @@ async function computeDifficultyWeightedDimAvgs(
     where: { id: { in: scenarioIds } },
     select: { id: true, difficulty: true, category: true, requirements: true },
   });
+  if (snapshot?.some(s => s.benchmarkSource)) return computeSourceQuestionDimAvgs(results, snapshot, statsOut);
   // 查表语义统一由 core 提供，避免与 scripts/recalc-scores.ts 各写一份导致口径漂移
   const { difficultyLookup, attackLookup, weightOverrideLookup } = buildDimAvgWeightLookups(scenarios);
   // 沙箱执行已实现（工作区物化 + 探查转录）：requiresSandbox 调查题结果可参与维度均分
@@ -411,6 +408,7 @@ function maskApiKey(key: string | null | undefined): string | null {
 
 /** 默认评测配置 */
 const DEFAULT_EVAL_CONFIG: EvalRunConfig = {
+  evaluationMode: 'official',
   maxTokens: 8192,
   temperature: null,
   runsPerQuestion: 1, // Actual candidate repeats; opt in to additional cost.
@@ -1330,7 +1328,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/scenarios/eligibility', async () => {
     const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' } });
     return { success: true, data: rows.map(row => {
-      try { return { id: row.id, ...checkScenarioEligibility(decodeScenario(row)) }; }
+      try { return { id: row.id, ...releasedEligibility(decodeScenario(row)) }; }
       catch (err) { return { id: row.id, eligible: false, reasons: [String(err)] }; }
     }) };
   });
@@ -1443,7 +1441,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     try {
       const config = selectionConfig({ ...DEFAULT_EVAL_CONFIG, ...body.config, auditVersion: 1 }, body);
       const pack = await selectBenchmarkPack(config);
-      return { success: true, data: { hash: pack.hash, count: pack.scenarios.length, scenarioIds: pack.scenarios.map(s => s.id), config } };
+      return { success: true, data: { ...releasedBenchmark().metadata, hash: pack.hash, count: pack.scenarios.length, sourceQuestionCount: new Set(pack.scenarios.map(s => s.benchmarkSource?.id ?? s.id)).size, executionInstanceCount: pack.scenarios.length, scenarioIds: pack.scenarios.map(s => s.id), config } };
     } catch (err) { return reply.status(400).send({ success: false, error: String(err) }); }
   });
 
@@ -2194,6 +2192,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       success: true,
       data: scenarios.map((s) => ({
         ...s,
+        benchmarkSource: releasedBenchmark().byId.get(s.id)?.benchmarkSource,
         scoring: JSON.parse(s.scoring),
         hiddenTests: s.hiddenTests ? JSON.parse(s.hiddenTests) : null,
         requirements: s.requirements ? (() => {
@@ -2216,6 +2215,9 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     const s = request.body as Record<string, unknown>;
     if (!s.id || !s.promptTemplate) {
       return reply.status(400).send({ success: false, error: 'id and promptTemplate are required' });
+    }
+    if (!releasedBenchmark().byId.has(String(s.id))) {
+      return reply.status(400).send({ success: false, error: '只允许当前九模型发行题集内的题目；旧题或集合外题目禁止导入' });
     }
     try {
       const data = {
@@ -2377,6 +2379,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     let imported = 0;
     for (const s of body.scenarios) {
       try {
+        if (!releasedBenchmark().byId.has(String(s.id))) throw new Error(`Question outside released benchmark: ${s.id}`);
         await prisma.scenarioDefinition.upsert({
           where: { id: String(s.id) },
           create: {
@@ -2527,6 +2530,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       const errors: string[] = [];
       for (const s of scenarios) {
         try {
+          if (!releasedBenchmark().byId.has(String(s.id))) throw new Error(`Question outside released benchmark: ${s.id}`);
           const expected = (s.expected || {}) as Record<string, unknown>;
           const tags = Array.isArray(s.tags) ? (s.tags as string[]) : [];
           const langTag = tags.find((t) => ['javascript', 'python', 'typescript', 'sql', 'bash', 'rust', 'go', 'java', 'c', 'cpp'].includes(t));
@@ -3815,7 +3819,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
         scenario,
         modelConfig,
         modelParams: { ...modelConfig.defaultParams, maxTokens: evalConfig.maxTokens, temperature: evalConfig.temperature },
-        evalConfig,
+        evalConfig: scenario.benchmarkSource ? { ...evalConfig, judgeEnabled: false, escalationEnabled: false } : evalConfig,
         judgeOptions,
         priorMessages,
         // 单题补跑必须继承原运行的约束；否则 caller 会回退到默认 600 秒，
@@ -4336,7 +4340,7 @@ async function runEvaluation(
         scenario,
         modelConfig,
         modelParams: { ...modelConfig.defaultParams, maxTokens: config.maxTokens, temperature: config.temperature },
-        evalConfig: config,
+        evalConfig: scenario.benchmarkSource ? { ...config, judgeEnabled: false, escalationEnabled: false } : config,
         judgeOptions,
         constraints: config.constraints, // 思考/输出约束（反拖尾）
         priorMessages,
@@ -4735,6 +4739,9 @@ async function runEvaluation(
       ...(manifest ? { manifest: JSON.stringify(manifest) } : {}),
       summary: JSON.stringify({
         totalScenarios: total,
+        sourceQuestionCount: manifest?.benchmarkPack
+          ? new Set(manifest.benchmarkPack.scenarios.map(s => s.benchmarkSource?.id ?? s.id)).size : total,
+        executionInstanceCount: total,
         completedScenarios: results.length,
         averageScore: avgScore,
         passCount,

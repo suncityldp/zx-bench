@@ -41,7 +41,7 @@ export default function EvalCreate() {
   const { t } = useLanguage();
   const answerFirstEnabled = Form.useWatch('answerFirst', form);
   const structuredPack = Form.useWatch('structuredPack', form);
-  const [preview, setPreview] = useState<{ count: number; scenarioIds: string[]; hash: string } | null>(null);
+  const [preview, setPreview] = useState<{ count: number; sourceQuestionCount: number; scenarioIds: string[]; hash: string } | null>(null);
   const [previewError, setPreviewError] = useState('');
   const selection = Form.useWatch(values => ({ dimensionIds: values.dimensionIds, difficultyIds: values.difficultyIds, specialPack: values.structuredPack, evaluationMode: values.evaluationMode }), form);
   const selectionKey = JSON.stringify(selection);
@@ -50,7 +50,7 @@ export default function EvalCreate() {
     setPreview(null); setPreviewError('');
     const specialPack = selection?.specialPack || 'default';
     const timer = window.setTimeout(() => {
-      fetch('/api/runs/preview', { method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dimensionIds: selection?.dimensionIds || [], difficultyIds: selection?.difficultyIds || [], config: { specialPack, evaluationMode: specialPack === 'default' ? (selection?.evaluationMode || 'development') : 'development' } }) })
+      fetch('/api/runs/preview', { method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dimensionIds: selection?.dimensionIds || [], difficultyIds: selection?.difficultyIds || [], config: { specialPack, evaluationMode: 'official' } }) })
         .then(r => r.json()).then(r => { if (!controller.signal.aborted) { if (r.success) setPreview(r.data); else setPreviewError(r.error); } })
         .catch(e => { if (!controller.signal.aborted) setPreviewError(String(e)); });
     }, 200);
@@ -83,9 +83,8 @@ export default function EvalCreate() {
   const onFinish = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
-      const useStructuredPack = values.structuredPack === 'mixed' || values.structuredPack === 'all';
       const useMigrationPack = values.structuredPack === 'migration-189';
-      const useSpecialPack = useStructuredPack || useMigrationPack;
+      const useSpecialPack = useMigrationPack;
       // 思考/输出约束（反拖尾）：任一约束项开启时组装 constraints
       const constraints: Record<string, unknown> = {};
       if (values.answerFirst) {
@@ -100,7 +99,7 @@ export default function EvalCreate() {
       const config = {
         specialPack: values.structuredPack || 'default',
         difficultyFilter: values.difficultyIds || [],
-        evaluationMode: values.evaluationMode || 'development',
+        evaluationMode: values.evaluationMode || 'official',
         maxTokens: values.maxTokens || 8192,
         temperature: values.temperature ?? null,
         runsPerQuestion: values.runsPerQuestion || 1,
@@ -113,7 +112,7 @@ export default function EvalCreate() {
         parallelMode: values.parallelMode || 'global',
         ...(Object.keys(constraints).length > 0 ? { constraints } : {}),
         ...(useSpecialPack ? {
-          evaluationMode: 'development', runsPerQuestion: 1,
+          evaluationMode: 'official', runsPerQuestion: 1,
           judgeEnabled: false, escalationEnabled: false, structuredOutputEnabled: false,
         } : {}),
       };
@@ -276,10 +275,8 @@ export default function EvalCreate() {
           {/* ===== 评测维度选择 ===== */}
           <Form.Item label="专项题组" name="structuredPack" initialValue="default">
             <Select options={[
-              { value: 'default', label: '使用常规题库和下方维度选择' },
-              { value: 'mixed', label: '开发题组：已有通过与失败差异的 4 题' },
-              { value: 'all', label: '开发题组：全部 19 题（八类任务）' },
-              { value: 'migration-189', label: '新迁移执行题组：189 道源题、306 个执行实例' },
+              { value: 'default', label: '九模型题集：803 道来源题（920 次执行，可按维度筛选）' },
+              { value: 'migration-189', label: '九模型迁移部分：189 道来源题、306 个执行实例' },
             ]} />
           </Form.Item>
           {structuredPack && structuredPack !== 'default' && (
@@ -287,12 +284,12 @@ export default function EvalCreate() {
               message={structuredPack === 'migration-189'
                 ? '本次评测 189 道源题对应的 306 个执行实例，每个实例生成一次并按执行结果判分。'
                 : '本次只评测所选结构化输出开发题组，每题生成一次，使用规则判分。'}
-              description="专项题组在开发评测中显式启用；下方维度、发布模式和重复次数将由题组设置覆盖。" />
+              description="按来源题归并计分，每道来源题保留原难度权重。专项题组将覆盖下方维度与重复次数。" />
           )}
           <Form.Item
             label={t('eval.dimensions')}
             name="dimensionIds"
-            tooltip="选择本次评测覆盖的维度。不选则跑全部 10 个维度；只选部分维度可大幅缩短耗时，适合针对性复测或补测"
+            tooltip="选择本次评测覆盖的维度。不选则跑九模型题集全部 11 个维度。"
           >
             <Select
               mode="multiple"
@@ -310,7 +307,7 @@ export default function EvalCreate() {
           <Form.Item name="difficultyIds" label="难度筛选" tooltip="留空表示全部难度；专项题组使用固定题集，忽略维度和难度筛选。">
             <Select mode="multiple" allowClear disabled={Boolean(structuredPack && structuredPack !== 'default')} options={['easy', 'medium', 'hard', 'adversarial'].map(value => ({ value, label: ({ easy: '简单', medium: '中等', hard: '困难', adversarial: '对抗' } as Record<string, string>)[value] }))} />
           </Form.Item>
-          <Alert type={previewError ? 'warning' : 'info'} style={{ marginBottom: 16 }} message={previewError || (preview ? ('预计 ' + preview.count + ' 道执行实例；服务端预览与创建共用同一选题规则') : '正在预览题集…')} description={structuredPack && structuredPack !== 'default' ? '专项题组固定，不按维度或难度裁剪；迁移实例不增加默认源题总数。' : '维度和难度留空表示全部可用默认题，开发影子题仅显式选择或专项运行。'} />
+          <Alert type={previewError ? 'warning' : 'info'} style={{ marginBottom: 16 }} message={previewError || (preview ? ('预计 ' + preview.sourceQuestionCount + ' 道来源题 / ' + preview.count + ' 个执行实例') : '正在预览题集…')} description={structuredPack && structuredPack !== 'default' ? '专项题组固定，不按维度或难度裁剪；迁移实例不增加默认源题总数。' : '维度和难度留空即选择完整九模型题包：614 道普通题与 306 个迁移执行实例，按 803 道来源题计分。'} />
           {selectedModelReasoning && (
             <Alert
               message={mode === 'batch' ? '已选模型中包含推理模型' : '推理模型已选择'}
@@ -334,8 +331,8 @@ export default function EvalCreate() {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label="评测发布模式" name="evaluationMode" initialValue="development">
-                <Select options={[{ value: 'development', label: '开发评测（允许未审核题）' }, { value: 'official', label: '正式评测（必须通过金标准审核门槛）' }]} />
+              <Form.Item label="评测发布模式" name="evaluationMode" initialValue="official">
+                <Select options={[{ value: 'official', label: '九模型发行题集（冻结内容与执行契约）' }]} />
               </Form.Item>
               <Form.Item label={t('eval.runsPerQuestion')} name="runsPerQuestion" initialValue={1} tooltip="真实重复调用被测模型，按次数增加 token 与耗时；Judge 重复判分另行统计。">
                 <InputNumber min={1} max={10} style={{ width: '100%' }} />

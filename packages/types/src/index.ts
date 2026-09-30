@@ -44,6 +44,12 @@ export interface AcceptablePatch {
 /** 题目完整定义 */
 export interface Scenario {
   id: string;
+  /** Frozen source identity/weight for released execution-instance grouping. */
+  benchmarkSource?: {
+    releaseId: string; id: string; scenarioHash: string; dimension: string;
+    difficulty: Difficulty; category: string; requirements?: { attackLevel?: string | null };
+    taskCount: number;
+  };
   dimension: string;           // 如 "bug_finding", "code_repair", "structured_output"
   category: string;            // 如 "business_logic", "async_concurrency"
   difficulty: Difficulty;

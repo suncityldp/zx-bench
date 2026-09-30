@@ -2,6 +2,15 @@
 
 All notable changes to ZxBench are documented here.
 
+## [0.2.5] — 2026-09-30
+
+### Default question-bank correction
+
+- Make the adopted nine-model catalogue the default: 614 ordinary questions and 306 execution instances representing 189 migrated sources, for 803 source questions in total.
+- Remove superseded original migration prompts and unrelated definitions from the active catalogue. Importing the released bank removes online definitions outside this catalogue while preserving historical runs and answers.
+- Freeze exact released contracts, reject missing definitions/hash drift before inference, and use the same selector for preview, single runs and batches.
+- Average migration instances within each original source before applying its difficulty/category/attack weight. Preserve historic frozen-run scoring and retain the newer selection filters and candidate Token metrics.
+
 ## [0.2.4] — 2026-09-29
 
 ### Scoring and reports

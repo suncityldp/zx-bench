@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "version": "runtime-source-2026-09-30",
-  "applicationVersion": "0.2.4",
-  "baselineCommit": "909881fcd52ec394e9f2254d217ad0e677bd3e53",
+  "applicationVersion": "0.2.5",
+  "baselineCommit": "86d436b19a48c26f7f9d02294420031772272daa",
   "purpose": "Current runtime fingerprint; historical audit and production-task snapshots remain unchanged",
   "independentHumanGold": false,
   "historicalRescoring": false,
@@ -18,9 +18,9 @@
     }
   },
   "sourceHashes": {
-    "apps/server/src/routes/index.ts": "1bec31869c19e10b5069809293a6f6ebfe4ba66dfa6b5528dba33cec045793a2",
+    "apps/server/src/routes/index.ts": "915b5164f0d62f0486768b79fb1c3b9aa7bdbd947301b124bcd5bb0281601e5b",
     "docs/execution-all-single-file-v4.14.md": "bd1aa05cd3e544c6fb11cbf4a4282eb493814a60de19a9d7e4599b9d3b20b0eb",
-    "packages/core/package.json": "f3da3435bc1877d29507d5261d2baf220d96e16bef0cf1b1922b4da9013d691e",
+    "packages/core/package.json": "cf46db659fff6d6be66de72b207e59709d97c7def835f455117923dbba3da8d4",
     "packages/core/src/contracts/canonicalize.ts": "ccd64df33206ed620043981fc974e34313b60703d6b121080e571bd56359bdf6",
     "packages/core/src/contracts/registry.ts": "846e720a1c2d22317bd395859b9eb74d096b3f721142fa9c761571550ea35ae5",
     "packages/core/src/evaluationLab/deepAdversarial.ts": "6e3592c0b01c8a76f5c357d35fb8d1b6fa9385d0b658c3e8907a2081516728fe",

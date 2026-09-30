@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { readFileSync } from 'node:fs';
 import { registerRoutes } from './index.js';
 import { createBenchmarkPack, runMultipleEvaluations, verifyBenchmarkPack } from '@zxbench/core';
 
@@ -14,10 +15,11 @@ vi.mock('../calibration/store.js', () => ({ getCalibrationStore: vi.fn() }));
 vi.mock('../calibration/intake.js', () => ({ intakeRuns: vi.fn() }));
 vi.mock('@zxbench/core', async importOriginal => ({ ...await importOriginal<object>(), runMultipleEvaluations: vi.fn() }));
 const model = { id: 'mock', name: 'mock', provider: 'openai', baseUrl: 'https://example.invalid', defaultParams: '{}', apiKey: null };
-const row = { id: 'IF-fixture', dimension: 'instruction_following', category: 'test', difficulty: 'easy',
-  language: 'general', locale: 'zh-CN', status: 'valid', tier: 'public_dev', promptTemplate: 'original task',
-  grader: 'instruction_checklist', graderVersion: 'instruction_checklist_v4', scoring: '{"type":"instruction_checklist"}',
-  requirements: '{"constraints":[]}', scenarioHash: 'legacy', scenarioVersion: '1', reviewStatus: 'unreviewed' };
+const releasedFixture = JSON.parse(readFileSync('data/scenarios/benchmark.json','utf8'))
+  .find((s: any) => s.id === 'IF-CN-001');
+const row = { ...releasedFixture, scoring: JSON.stringify(releasedFixture.scoring),
+  requirements: JSON.stringify(releasedFixture.requirements), hiddenTests: JSON.stringify(releasedFixture.hiddenTests),
+  tags: JSON.stringify(releasedFixture.tags) };
 let app: FastifyInstance;
 let saved: Map<string, Record<string, any>>;
 beforeEach(async () => {
@@ -57,11 +59,12 @@ describe('audited run API without network or real database', () => {
   });
   it('preview and single/batch creation freeze the same difficulty-selected IDs and hash', async () => {
     db.modelConfig.findMany.mockResolvedValue([model, { ...model, id: 'mock2' }]);
-    db.scenarioDefinition.findMany.mockResolvedValue([row, { ...row, id: 'hard', difficulty: 'hard' }]);
-    const payload = { difficultyIds: ['hard'], dimensionIds: [], modelConfigId: 'mock', modelConfigIds: ['mock', 'mock2'] };
+    const hard = JSON.parse(readFileSync('data/scenarios/benchmark.json','utf8')).find((s: any) => s.dimension === 'instruction_following' && s.difficulty === 'hard');
+    db.scenarioDefinition.findMany.mockResolvedValue([row, { ...hard, scoring: JSON.stringify(hard.scoring), requirements: JSON.stringify(hard.requirements) }]);
+    const payload = { config: { scenarioIds: [hard.id] }, difficultyIds: ['hard'], dimensionIds: [], modelConfigId: 'mock', modelConfigIds: ['mock', 'mock2'] };
     const preview = await app.inject({ method: 'POST', url: '/api/runs/preview', payload });
     expect(preview.statusCode).toBe(200);
-    expect(preview.json().data.scenarioIds).toEqual(['hard']);
+    expect(preview.json().data.scenarioIds).toEqual([hard.id]);
     const single = await app.inject({ method: 'POST', url: '/api/runs', payload });
     expect(single.statusCode).toBe(200);
     await vi.waitFor(() => expect(saved.get(single.json().data.id)?.status).toBe('completed'));
@@ -107,7 +110,7 @@ describe('audited run API without network or real database', () => {
       goldVerifiedAt: s.goldVerifiedAt ? new Date(s.goldVerifiedAt) : null,
     })));
     const response = await app.inject({ method: 'POST', url: '/api/runs', payload: {
-      modelConfigId: 'mock', config: { evaluationMode: 'official' },
+      modelConfigId: 'mock', config: { evaluationMode: 'official', scenarioIds: additions.map((s: any) => s.id) },
     } });
     expect(response.statusCode, response.body).toBe(200);
     const id = response.json().data.id;
@@ -128,7 +131,7 @@ describe('audited run API without network or real database', () => {
       goldVerifiedAt: s.goldVerifiedAt ? new Date(s.goldVerifiedAt) : null,
     })));
     const response = await app.inject({ method: 'POST', url: '/api/runs', payload: {
-      modelConfigId: 'mock', config: { evaluationMode: 'official' },
+      modelConfigId: 'mock', config: { evaluationMode: 'official', scenarioIds: projects.map((s: any) => s.id) },
     } });
     expect(response.statusCode, response.body).toBe(200);
     const id = response.json().data.id;
@@ -152,7 +155,7 @@ describe('audited run API without network or real database', () => {
       ...await evaluate(...args), environmentError: true,
       evidence: ['ENVIRONMENT_ERROR: docker daemon unreachable'],
     }));
-    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock' } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', scenarioIds: [row.id] } });
     const id = res.json().data.id;
     await vi.waitFor(() => expect(saved.get(id)?.status).toBe('paused'));
     expect(db.scenarioResult.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ modelOutput: 'answer', environmentError: true }) }));
@@ -165,7 +168,7 @@ describe('audited run API without network or real database', () => {
   it('keeps a Docker-blocked question in the queue and retries it after resume', async () => {
     const evaluate = vi.mocked(runMultipleEvaluations).getMockImplementation()!;
     vi.mocked(runMultipleEvaluations).mockRejectedValueOnce(new Error('DOCKER_NOT_READY: startup failed')).mockImplementation(evaluate);
-    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock' } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', scenarioIds: [row.id] } });
     const id = res.json().data.id;
     await vi.waitFor(() => expect(saved.get(id)?.status).toBe('paused'));
     expect(db.scenarioResult.create).not.toHaveBeenCalled();
@@ -190,7 +193,7 @@ describe('audited run API without network or real database', () => {
       requirements: JSON.stringify(released.requirements), hiddenTests: JSON.stringify(released.hiddenTests),
       tags: JSON.stringify(released.tags), goldVerifiedAt: released.goldVerifiedAt ? new Date(released.goldVerifiedAt) : null };
     db.scenarioDefinition.findMany.mockResolvedValue([frozen]);
-    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', config: { evaluationMode: 'official' } } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', config: { evaluationMode: 'official', scenarioIds: [released.id] } } });
     expect(res.statusCode).toBe(200);
     const id = res.json().data.id;
     await vi.waitFor(() => expect(saved.get(id)?.status).toBe('completed'));
@@ -203,7 +206,7 @@ describe('audited run API without network or real database', () => {
       requirements: JSON.stringify(released.requirements), hiddenTests: JSON.stringify(released.hiddenTests),
       tags: JSON.stringify(released.tags), goldVerifiedAt: released.goldVerifiedAt ? new Date(released.goldVerifiedAt) : null };
     db.scenarioDefinition.findMany.mockResolvedValue([dbReleased, { ...row, id: 'CR2-STALE-001' }]);
-    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', config: { evaluationMode: 'official' } } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', config: { evaluationMode: 'official', scenarioIds: [released.id] } } });
     expect(res.statusCode).toBe(200);
     const id = res.json().data.id;
     await vi.waitFor(() => expect(saved.get(id)?.status).toBe('completed'));
@@ -218,7 +221,18 @@ describe('audited run API without network or real database', () => {
       hiddenTests: JSON.stringify(released.hiddenTests), tags: JSON.stringify(released.tags),
       goldVerifiedAt: released.goldVerifiedAt ? new Date(released.goldVerifiedAt) : null }]);
     const res = await app.inject({ method: 'POST', url: '/api/runs', payload: {
-      modelConfigId: 'mock', config: { evaluationMode: 'official' },
+      modelConfigId: 'mock', config: { evaluationMode: 'official', scenarioIds: [released.id] },
+    } });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toContain('out of sync');
+    expect(db.evalRun.create).not.toHaveBeenCalled();
+  });
+  it('rejects an explicit migrated development task whose database hash is stale', async () => {
+    db.scenarioDefinition.findMany.mockResolvedValue([{ ...row, id: 'CLI-CN-002-DOCKER',
+      scenarioHash: 'obsolete-hash', requirements: '{"developmentShadow":true}' }]);
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: {
+      modelConfigId: 'mock', scenarioIds: ['CLI-CN-002-DOCKER'],
+      config: { evaluationMode: 'development' },
     } });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toContain('out of sync');
@@ -232,31 +246,31 @@ describe('audited run API without network or real database', () => {
     expect(db.evalRun.create).not.toHaveBeenCalled();
   });
   it('persists a verified content hash before generation and honors selected repeats', async () => {
-    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', config: { runsPerQuestion: 2 } } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', scenarioIds: [row.id], config: { runsPerQuestion: 2 } } });
     expect(res.statusCode).toBe(200);
     const id = res.json().data.id;
     await vi.waitFor(() => expect(saved.get(id)?.status).toBe('completed'));
     const manifest = JSON.parse(saved.get(id)!.manifest);
     expect(() => verifyBenchmarkPack(manifest.benchmarkPack)).not.toThrow();
-    expect(runMultipleEvaluations).toHaveBeenCalledWith(expect.objectContaining({ promptTemplate: 'original task' }), expect.objectContaining({ runsPerQuestion: 2 }));
+    expect(runMultipleEvaluations).toHaveBeenCalledWith(expect.objectContaining({ promptTemplate: row.promptTemplate }), expect.objectContaining({ runsPerQuestion: 2 }));
     const patch = await app.inject({ method: 'PATCH', url: `/api/runs/${id}/config`, payload: { maxTokens: 10000 } });
     expect(patch.statusCode).toBe(409);
   });
-  it('excludes development-shadow tasks by default but allows an explicit run', async () => {
+  it('excludes unrelated shadow tasks and rejects an explicit old selection', async () => {
     const shadow = { ...row, id: 'shadow', dimension: 'program', grader: 'project_repair', requirements: '{"files":[],"developmentShadow":true}' };
     db.scenarioDefinition.findMany.mockResolvedValue([row, shadow]);
-    const ordinary = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock' } });
+    const ordinary = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', scenarioIds: [row.id] } });
     await vi.waitFor(() => expect(saved.get(ordinary.json().data.id)?.status).toBe('completed'));
     expect(runMultipleEvaluations).toHaveBeenCalledTimes(1);
     expect(runMultipleEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ id: row.id }), expect.anything());
 
     vi.mocked(runMultipleEvaluations).mockClear();
     const explicit = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', scenarioIds: ['shadow'] } });
-    await vi.waitFor(() => expect(saved.get(explicit.json().data.id)?.status).toBe('completed'));
-    expect(runMultipleEvaluations).toHaveBeenCalledTimes(1);
-    expect(runMultipleEvaluations).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'shadow' }), expect.anything());
+    expect(explicit.statusCode).toBe(400);
+    expect(runMultipleEvaluations).not.toHaveBeenCalled();
   });
   it('shows eligibility failures without rewriting review status', async () => {
+    db.scenarioDefinition.findMany.mockResolvedValue([{ ...row, scenarioHash: 'stale-hash' }]);
     const res = await app.inject({ method: 'GET', url: '/api/scenarios/eligibility' });
     expect(res.statusCode).toBe(200);
     expect(res.json().data[0]).toMatchObject({ id: row.id, eligible: false });
@@ -269,13 +283,13 @@ describe('audited run API without network or real database', () => {
       manifest.benchmarkPack.scenarios[0].promptTemplate = 'tampered task';
       return { ...run, manifest: JSON.stringify(manifest) };
     });
-    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock' } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs', payload: { modelConfigId: 'mock', scenarioIds: [row.id] } });
     await vi.waitFor(() => expect(saved.get(res.json().data.id)?.status).toBe('failed'));
     expect(runMultipleEvaluations).not.toHaveBeenCalled();
   });
   it('freezes one shared benchmark pack for all models in a batch', async () => {
     db.modelConfig.findMany.mockResolvedValue([model, { ...model, id: 'mock2', name: 'mock2' }]);
-    const res = await app.inject({ method: 'POST', url: '/api/runs/batch', payload: { modelConfigIds: ['mock', 'mock2'] } });
+    const res = await app.inject({ method: 'POST', url: '/api/runs/batch', payload: { modelConfigIds: ['mock', 'mock2'], config: { scenarioIds: [row.id] } } });
     expect(res.statusCode).toBe(200);
     await vi.waitFor(() => expect([...saved.values()].every(run => run.status === 'completed')).toBe(true));
     const packs = [...saved.values()].map(run => JSON.parse(run.manifest).benchmarkPack.hash);

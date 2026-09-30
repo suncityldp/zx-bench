@@ -114,7 +114,7 @@ describe('restored math independent oracles', () => {
     expect(metadata.retiredCount).toBe(bank.filter(s => s.status === 'retired').length);
     expect(metadata.archivedRetiredCount).toBe(archive.length);
     expect(metadata.totalCount).toBe(bank.length + archive.length);
-    expect(metadata.defaultRunCount).toBe(validBank.filter(s => !(s.requirements as any)?.developmentShadow).length);
+    expect(metadata.defaultRunCount).toBe(validBank.filter(s => !(s.requirements as any)?.developmentShadow || s.benchmarkSource).length);
     expect(metadata.ambiguousCount).toBe(0);
     expect(metadata.reviewCount).toBe(0);
     expect(metadata.dimensions).toEqual(dimCounts);

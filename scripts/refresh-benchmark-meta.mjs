@@ -23,7 +23,7 @@ const before = {
 
 const archive = JSON.parse(readFileSync(new URL('data/scenarios/archive/benchmark-retired.json', root), 'utf8'));
 Object.assign(meta, benchmarkCounts(pack, archive));
-meta.countSemantics = { currentRecordCount: 'All records in benchmark.json (valid and retired)', retiredCount: 'Retired records retained in benchmark.json', archivedRetiredCount: 'Disjoint retired records in archive/benchmark-retired.json', totalCount: 'currentRecordCount + archivedRetiredCount', defaultRunCount: 'Valid current records excluding developmentShadow; execution migration instances excluded' };
+meta.countSemantics = { currentRecordCount: 'All records in benchmark.json (valid and retired)', retiredCount: 'Retired records retained in benchmark.json', archivedRetiredCount: 'Disjoint retired records in archive/benchmark-retired.json', totalCount: 'currentRecordCount + archivedRetiredCount', defaultRunCount: 'Execution instances selected from the adopted nine-model release; includes its 306 promoted migration instances', sourceQuestionCount: 'Unique source identities after grouping adopted migration instances', executionInstanceCount: 'Default execution instances before source grouping' };
 
 writeFileSync(metaPath, `${JSON.stringify(meta, null, 1)}\n`, 'utf8');
 console.log(JSON.stringify({ totalRecords: pack.length, valid: valid.length, before, after: {

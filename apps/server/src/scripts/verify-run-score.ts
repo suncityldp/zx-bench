@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import {
   computeDifficultyWeightedDimAvgs,
+  computeSourceQuestionDimAvgs,
   computeWeightedTotal,
   LONG_TASK_WEIGHT,
   analyzeRunQuality,
@@ -57,7 +58,9 @@ try {
   }
 
   const engineeringStats = createDimAvgExclusionStats();
-  const dimensionAverages = computeDifficultyWeightedDimAvgs(
+  const dimensionAverages = pack.scenarios.some(s => s.benchmarkSource)
+    ? computeSourceQuestionDimAvgs(selected,pack.scenarios,engineeringStats)
+    : computeDifficultyWeightedDimAvgs(
     selected.map((row) => ({
       scenarioId: row.scenarioId,
       dimension: row.dimension,

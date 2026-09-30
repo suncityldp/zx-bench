@@ -13,7 +13,7 @@ const snapshot = {
   schemaVersion: 1,
   version: 'runtime-source-2026-09-30',
   applicationVersion: JSON.parse(read('package.json')).version,
-  baselineCommit: '909881fcd52ec394e9f2254d217ad0e677bd3e53',
+  baselineCommit: '86d436b19a48c26f7f9d02294420031772272daa',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',
   independentHumanGold: false,
   historicalRescoring: false,

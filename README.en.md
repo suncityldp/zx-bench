@@ -4,7 +4,7 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench is a locally deployed LLM evaluation platform with a versioned question bank, isolated Docker execution, deterministic grading and an optional AI Judge, live monitoring, resume, reports, and leaderboards. The current released bank is **1.59.0**: **829 valid definitions across 11 dimensions**. Of these, **26 development-shadow questions** are excluded from default and official runs, leaving **803 source questions in a complete default selection**. Definition counts are neither completed-run counts nor Docker instance counts, and they do not certify independent gold review or cross-model discrimination for every question.
+ZxBench is a local evaluation platform with Docker execution, rule scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. The released bank **1.60.0 / v0.2.5** defaults to the adopted nine-model question set: **803 source questions**, comprising **614 ordinary questions + 306 execution instances for 189 migrated sources**. The 920 execution instances are grouped by source for scoring.
 
 Recent updates move execution-oriented questions in five dimensions toward resettable Docker task packs and improve frozen question packs, progressive multi-part context, execution evidence, and score audits. **v0.2.4** also adds optional semantic Judge review of strict execution-task final answers. It is considered only after the other checks pass, preserves the literal rule score and audit trail, and sends invalid Judge output to manual review.
 
@@ -20,28 +20,28 @@ pnpm build
 pnpm --filter server start
 ```
 
-Open <http://127.0.0.1:3001>. Windows users can also use `start.bat`; use the pnpm commands on macOS/Linux. On first use and after bank updates, run `node scripts/seed-benchmark.mjs` to import `data/scenarios/benchmark.json`. Importing preserves custom questions and historical results. Official runs select released IDs and content hashes and reject same-ID database drift. **Updating GitHub does not update an online database or alter a running evaluation's frozen questions**; see the [bank update note](docs/question-refresh-2026-09-28.md) for publication and sync details.
+Open <http://127.0.0.1:3001>. Windows users can also use `start.bat`; use the pnpm commands on macOS/Linux. On first use and after bank updates, run `node scripts/seed-benchmark.mjs` to import `data/scenarios/benchmark.json`. Importing removes online question definitions outside this release and preserves historical runs and answers. New runs select released IDs and content hashes and reject same-ID database drift. **Updating GitHub does not update an online database or alter a running evaluation's frozen questions**; see the [bank update note](docs/question-refresh-2026-09-28.md) for publication and sync details.
 
 ## Question bank and scoring
 
-The table shows valid definitions from `data/scenarios/benchmark-meta.json`, including development-shadow questions. A complete default selection excludes 26 of them: 17 structured-output development questions and nine mathematics development questions. Dimension filters, explicit question selection, and interrupted runs change actual coverage.
+The table distinguishes source questions from execution instances in the default adopted release. Dimension/difficulty filters and explicit released-ID selections can reduce the scope.
 
-| Dimension | Valid definitions | Composite weight |
-|---|---:|---:|
-| `program` | 150 | 0.17 |
-| `hallucination_resistance` | 134 | 0.12 |
-| `reasoning_math` | 115 | 0.12 |
-| `data_extraction` | 104 | 0.07 |
-| `structured_output` | 77 | 0.05 |
-| `tool_cli_workflow` | 55 | 0.07 |
-| `cli_deep_tasks` | 52 | 0.07 |
-| `safety_authority` | 50 | 0.10 |
-| `agent_workflow` | 45 | 0.08 |
-| `instruction_following` | 42 | 0.12 |
-| `agent_loop` | 5 | 0.03 |
-| **Total** | **829** | **1.00** |
+| Dimension | Source questions | Execution instances | Weight |
+|---|---:|---:|---:|
+| `program` | 150 | 150 | 0.17 |
+| `hallucination_resistance` | 134 | 134 | 0.12 |
+| `reasoning_math` | 106 | 106 | 0.12 |
+| `data_extraction` | 104 | 104 | 0.07 |
+| `structured_output` | 60 | 60 | 0.05 |
+| `tool_cli_workflow` | 55 | 98 | 0.07 |
+| `cli_deep_tasks` | 52 | 56 | 0.07 |
+| `safety_authority` | 50 | 78 | 0.10 |
+| `agent_workflow` | 45 | 87 | 0.08 |
+| `instruction_following` | 42 | 42 | 0.12 |
+| `agent_loop` | 5 | 5 | 0.03 |
+| **Total** | **803** | **920** | **1.00** |
 
-Questions are weighted by difficulty (easy 1, medium 1.5, hard 2, adversarial 2.5); `long_task_*` programming questions have an explicit **3.0** override. Scores are averaged within dimensions and then combined using the table weights. Rule graders verify deterministic conditions; an AI Judge can handle question-specific semantic checks. Environment errors, model mistakes, Judge failures, and rule/Judge conflicts have separate evidence. Runs with `scoringComplete=false` stay off the leaderboard. Retries use the latest eligible result in an attempt chain. Totals from different bank versions, selections, or run conditions are not directly comparable.
+Questions are weighted by difficulty (easy 1, medium 1.5, hard 2, adversarial 2.5); `long_task_*` programming questions have an explicit **3.0** override. Migration instances are first averaged within each original source using that source’s original weight. Scores are then averaged within dimensions and then combined using the table weights. Rule graders verify deterministic conditions; an AI Judge can handle question-specific semantic checks. Environment errors, model mistakes, Judge failures, and rule/Judge conflicts have separate evidence. Runs with `scoringComplete=false` stay off the leaderboard. Retries use the latest eligible result in an attempt chain. Totals from different bank versions, selections, or run conditions are not directly comparable.
 
 Exact-answer math questions also record `content_accuracy` when substance can be verified separately from `ANSWER:` or other format requirements. This diagnostic **does not affect the composite score**; format violations still incur the official penalty. It is available only when the content is independently checkable and the question hash matches.
 
@@ -53,7 +53,7 @@ The [September bank update](docs/question-refresh-2026-09-28.md) provides **306 
 - **Probe long workflows and recovery.** Cases include prerequisite reads, permission checks, partial success, timeouts, and lost responses. After partial email delivery, an agent must recheck state and send only to remaining recipients. After a debit commits but its response is lost, it must query status rather than retry with a new key. Email and money are synthetic local state, never real external operations.
 - **Keep a reviewable contract and evidence.** Task packs fingerprint the question, executor, verifier, and reference script. Reference actions and core wrong examples check grading boundaries. A changed question, environment, or execution contract requires a new answer; a scoring-only change can be regraded offline only when the saved evidence is sufficient. Budgets, termination causes, and environment errors are recorded separately.
 
-The mapping and task packs live in `data/execution/migration-plan.json` and `data/execution/tasks/`; see [execution task governance](docs/execution-task-governance.md) for verification commands and evidence rules. Required images must be prepared locally. Reference and negative checks cover key rules, but do not prove acceptance of every equivalent solution or stable discrimination between models.
+The mapping and task packs live in `data/scenarios/benchmark-release.json` and `data/execution/tasks/`; see [execution task governance](docs/execution-task-governance.md) for verification commands and evidence rules. Required images must be prepared locally. Reference and negative checks cover key rules, but do not prove acceptance of every equivalent solution or stable discrimination between models.
 
 ## Progressive questions: context and partial credit
 

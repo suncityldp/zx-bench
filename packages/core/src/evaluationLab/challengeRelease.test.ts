@@ -26,8 +26,9 @@ describe('lightweight challenge supplement freeze',()=>{
   });
   it('publishes exactly the five frozen questions as prospective deterministic scenarios',()=>{
     const bank=JSON.parse(readFileSync('data/scenarios/benchmark.json','utf8')) as Scenario[];
-    const promoted=bank.filter(item=>item.grader==='challenge_supplement');
-    expect(promoted.map(item=>item.id)).toEqual([...CHALLENGE_SUPPLEMENT_IDS]);
+    const archive=JSON.parse(readFileSync('data/scenarios/archive/benchmark-retired.json','utf8')) as Scenario[];
+    const promoted=[...bank,...archive].filter(item=>item.grader==='challenge_supplement');
+    expect(promoted.map(item=>item.id).sort()).toEqual([...CHALLENGE_SUPPLEMENT_IDS].sort());
     for(const item of promoted){
       const retired=CHALLENGE_SUPPLEMENT_RETIRED_IDS.includes(item.id as typeof CHALLENGE_SUPPLEMENT_RETIRED_IDS[number]);
       expect(item).toMatchObject({status:retired?'retired':'valid',reviewStatus:'verified',graderVersion:'1.0.0',maxReasoningTokens:90000});

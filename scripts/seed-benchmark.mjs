@@ -15,7 +15,7 @@ const RESET = process.argv.includes('--reset');
 // benchmark.json is the only released catalogue. Other JSON arrays in this
 // directory are development fixtures or historical subsets and must never be
 // imported into the formal database merely because they share the extension.
-const { scenarios, accidentalBundledIds } = loadBenchmarkImportScope(SCENARIOS_DIR);
+const { scenarios } = loadBenchmarkImportScope(SCENARIOS_DIR);
 console.log(`读取 benchmark.json：${scenarios.length} 道正式定义`);
 
 if (RESET) {
@@ -27,19 +27,16 @@ if (RESET) {
   }
 }
 
-let retired = 0;
+let removed = 0;
 if (!RESET) {
   const existing = await fetch(BASE + '/api/scenarios').then((r) => r.json());
-  const stale = (existing.data || []).filter((s) => s.status === 'valid' && accidentalBundledIds.has(s.id));
+  const releasedIds = new Set(scenarios.map(s => s.id));
+  const stale = (existing.data || []).filter(s => !releasedIds.has(s.id));
   for (const scenario of stale) {
-    const res = await fetch(BASE + '/api/scenarios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...scenario, status: 'retired' }),
-    });
+    const res = await fetch(BASE + '/api/scenarios/' + encodeURIComponent(scenario.id), { method: 'DELETE' });
     const body = await res.json();
-    if (!body.success) throw new Error(`退役误导入题目失败 ${scenario.id}: ${body.error}`);
-    retired++;
+    if (!body.success) throw new Error(`删除集合外题目失败 ${scenario.id}: ${body.error}`);
+    removed++;
   }
 }
 
@@ -60,5 +57,5 @@ for (const s of scenarios) {
   }
 }
 
-console.log('\n导入完成：成功 ' + ok + ' / 失败 ' + fail + ' / 正式定义 ' + scenarios.length + ' / 退役误导入题 ' + retired);
+console.log('\n导入完成：成功 ' + ok + ' / 失败 ' + fail + ' / 正式定义 ' + scenarios.length + ' / 删除集合外定义 ' + removed);
 process.exit(fail > 0 ? 1 : 0);

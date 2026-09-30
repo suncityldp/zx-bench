@@ -16,6 +16,8 @@ import {
   createDimAvgExclusionStats,
   classifyEngineeringFailure,
   DIMENSION_WEIGHTS,
+  computeSourceQuestionDimAvgs,
+  verifyBenchmarkPack,
 } from '@zxbench/core';
 
 const prisma = new PrismaClient();
@@ -47,14 +49,21 @@ async function main() {
     }
 
     const scenarioIds = [...new Set(results.map((r) => r.scenarioId))];
-    const scenarios = await prisma.scenarioDefinition.findMany({
+    let frozen: import('@zxbench/types').Scenario[] | undefined;
+    if (run.manifest) {
+      const pack = JSON.parse(run.manifest).benchmarkPack;
+      if (pack) { verifyBenchmarkPack(pack); frozen = pack.scenarios; }
+    }
+    const scenarios = frozen ?? await prisma.scenarioDefinition.findMany({
       where: { id: { in: scenarioIds } },
       select: { id: true, difficulty: true, category: true, requirements: true },
     });
     const { difficultyLookup, attackLookup, weightOverrideLookup } = buildDimAvgWeightLookups(scenarios);
 
     const engStats = createDimAvgExclusionStats();
-    const dimAvgs = computeDifficultyWeightedDimAvgsPure(
+    const dimAvgs = frozen?.some(s => s.benchmarkSource)
+      ? computeSourceQuestionDimAvgs(results,frozen,engStats)
+      : computeDifficultyWeightedDimAvgsPure(
       results.map((r) => ({
         scenarioId: r.scenarioId,
         dimension: (r as { dimension?: string }).dimension || 'unknown',

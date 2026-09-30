@@ -13,7 +13,7 @@ describe('catalogue and archive count semantics', () => {
     const archive = JSON.parse(readFileSync('data/scenarios/archive/benchmark-retired.json', 'utf8'));
     const meta = JSON.parse(readFileSync('data/scenarios/benchmark-meta.json', 'utf8'));
     const counts = benchmarkCounts(bank, archive);
-    expect(counts).toMatchObject({ currentRecordCount: 892, validCount: 829, defaultRunCount: 803, developmentShadowCount: 26, archivedRetiredCount: 78, totalCount: 970 });
+    expect(counts).toMatchObject({ currentRecordCount: 920, validCount: 920, defaultRunCount: 920, sourceQuestionCount: 803, executionInstanceCount: 920, developmentShadowCount: 306, archivedRetiredCount: 141, totalCount: 1061 });
     for (const [key, value] of Object.entries(counts)) expect(meta[key], key).toEqual(value);
   });
 });

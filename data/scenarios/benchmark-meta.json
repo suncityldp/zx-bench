@@ -1,20 +1,20 @@
 {
- "version": "1.59.0",
- "count": 829,
- "retiredCount": 63,
- "totalCount": 970,
+ "version": "1.60.0",
+ "count": 920,
+ "retiredCount": 0,
+ "totalCount": 1061,
  "dimensions": {
   "agent_loop": 5,
-  "agent_workflow": 45,
-  "cli_deep_tasks": 52,
+  "agent_workflow": 87,
+  "cli_deep_tasks": 56,
   "data_extraction": 104,
   "hallucination_resistance": 134,
   "instruction_following": 42,
   "program": 150,
-  "reasoning_math": 115,
-  "safety_authority": 50,
-  "structured_output": 77,
-  "tool_cli_workflow": 55
+  "reasoning_math": 106,
+  "safety_authority": 78,
+  "structured_output": 60,
+  "tool_cli_workflow": 98
  },
  "retiredDimensions": {
   "hallucination_resistance": 78,
@@ -23,7 +23,7 @@
   "tool_cli_workflow": 1
  },
  "generatedAt": "2026-09-26T17:07:40.101Z",
- "validCount": 829,
+ "validCount": 920,
  "ambiguousCount": 0,
  "reviewCount": 0,
  "questionReview": "math-3.2-hallucination-5.0",
@@ -284,7 +284,7 @@
   "sourcePackHash": "42929b253e9e2f4d32568c5e164ab4fcb651cca3712b6472950c7907c2ed10e3",
   "prospectiveOnly": true
  },
- "defaultRunCount": 803,
+ "defaultRunCount": 920,
  "challengeExtension": {
   "version": "challenge-extension-2026-09-13-v1",
   "bankVersion": "1.31.1",
@@ -920,14 +920,23 @@
   "limitation": "No new model calibration. The v2 development analogs were all-pass in screened configurations; these replacements strengthen contract specificity but are not proven to lower the score ceiling. Former holdout cases must no longer be treated as an independent holdout.",
   "evidencePath": "analysis/structured-output-redesign/near-ceiling-batch-replacement.json"
  },
- "currentRecordCount": 892,
- "archivedRetiredCount": 78,
- "developmentShadowCount": 26,
+ "currentRecordCount": 920,
+ "archivedRetiredCount": 141,
+ "developmentShadowCount": 306,
  "countSemantics": {
   "currentRecordCount": "All records in benchmark.json (valid and retired)",
   "retiredCount": "Retired records retained in benchmark.json",
   "archivedRetiredCount": "Disjoint retired records in archive/benchmark-retired.json",
   "totalCount": "currentRecordCount + archivedRetiredCount",
-  "defaultRunCount": "Valid current records excluding developmentShadow; execution migration instances excluded"
- }
+  "defaultRunCount": "Execution instances selected from the adopted nine-model release; includes its 306 promoted migration instances",
+  "sourceQuestionCount": "Unique source identities after grouping adopted migration instances",
+  "executionInstanceCount": "Default execution instances before source grouping"
+ },
+ "releaseId": "nine-model-adopted-2026-09-29",
+ "sourceQuestionCount": 803,
+ "executionInstanceCount": 920,
+ "ordinaryCount": 614,
+ "migrationSourceCount": 189,
+ "migrationTaskCount": 306,
+ "scoring": "mean execution instances within source, then original source difficulty/attack weights"
 }

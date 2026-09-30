@@ -7,20 +7,27 @@ import { hashScenarioShort } from '../packages/core/dist/contracts/canonicalize.
 import { validateScenario } from '../packages/core/dist/contracts/validateScenario.js';
 
 const root = path.resolve(import.meta.dirname, '..');
-const plan = JSON.parse(fs.readFileSync(path.join(root, 'data/execution/migration-plan.json'), 'utf8'));
+const adoptedFile = path.join(root, 'data/scenarios/benchmark-release.json');
+const adopted = fs.existsSync(adoptedFile) ? JSON.parse(fs.readFileSync(adoptedFile, 'utf8')) : null;
+const plan = adopted ? { sourceCount: adopted.migrationSourceCount, taskCount: adopted.migrationTaskCount,
+  migrationTasks: adopted.migrationTasks } : JSON.parse(fs.readFileSync(path.join(root, 'data/execution/migration-plan.json'), 'utf8'));
 const packNames = ['cli-original-docker-v1', 'cli-advanced-docker-v1', 'recovery-world-docker-v1',
   'cli-execution-v1', 'tool-world-v1', 'retail-docker-v1', 'shell-investigation-v1', 'special-shell-v1'];
 const byId = new Map(packNames.flatMap((name) => JSON.parse(fs.readFileSync(
   path.join(root, 'data/pilots', `${name}.json`), 'utf8'))).map((scenario) => [scenario.id, scenario]));
-// Packaged task contracts are authoritative when a reviewed fix has superseded
-// its pilot copy. The frozen plan and canonical hash checks below still apply.
-for (const task of plan.migrationTasks) {
-  const file = path.join(root, 'data/execution/tasks', task.taskId, 'scenario.json');
-  if (fs.existsSync(file)) byId.set(task.taskId, JSON.parse(fs.readFileSync(file, 'utf8')));
-}
 if (plan.sourceCount !== 189 || plan.taskCount !== 306 || plan.migrationTasks.length !== 306
   || new Set(plan.migrationTasks.map((task) => task.sourceId)).size !== 189) {
   throw Error('Frozen migration plan does not contain 189 sources and 306 task instances');
+}
+// The native task pack is the frozen source for packaged tasks. A reviewed
+// contract fix may land there before its source pilot fixture is regenerated.
+for (const task of adopted ? [] : plan.migrationTasks) {
+  const file = path.join(root, 'data/execution/tasks', task.taskId, 'scenario.json');
+  if (fs.existsSync(file)) byId.set(task.taskId, JSON.parse(fs.readFileSync(file, 'utf8')));
+}
+if (adopted) {
+  const released = JSON.parse(fs.readFileSync(path.join(root, 'data/scenarios/benchmark.json'), 'utf8'));
+  for (const s of released) if (s.benchmarkSource) byId.set(s.id, s);
 }
 const scenarios = plan.migrationTasks.map((task) => {
   const scenario = byId.get(task.taskId);
@@ -37,7 +44,7 @@ const scenarios = plan.migrationTasks.map((task) => {
 });
 const require = createRequire(new URL('../apps/server/package.json', import.meta.url));
 const { PrismaClient } = require('@prisma/client');
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'file:J:/AI/zxbench-runtime/data/zxbench.db';
+process.env.DATABASE_URL = process.env.DATABASE_URL || `file:${path.join(root, 'apps/data/zxbench.db').replaceAll('\\', '/')}`;
 const prisma = new PrismaClient();
 const jsonFields = new Set(['scoring', 'hiddenTests', 'requirements', 'tags', 'toolSchema',
   'expectedState', 'requiredInvariants', 'allowedActions', 'forbiddenActions', 'requiredOrder']);
@@ -48,7 +55,7 @@ const nullableFields = ['sourceCode', 'functionName', 'expectedVerdict', 'hidden
 function encode(scenario) {
   const data = {};
   for (const [key, value] of Object.entries(scenario)) {
-    if (key === 'id' || key === 'createdAt' || key === 'updatedAt') continue;
+    if (key === 'id' || key === 'createdAt' || key === 'updatedAt' || key === 'benchmarkSource') continue;
     data[key] = key === 'goldVerifiedAt' && value ? new Date(value)
       : jsonFields.has(key) && value != null ? JSON.stringify(value) : value;
   }
@@ -64,11 +71,15 @@ try {
     const expected = byId.get(row.id);
     return row.scenarioHash !== expected.scenarioHash || row.status !== 'valid';
   });
-  if (drift.length) throw Error(`Existing task definitions differ: ${drift.map((row) => row.id).slice(0, 8)}`);
+  const replaceDrifted = process.argv.includes('--replace-drifted');
+  if (drift.length && !replaceDrifted) {
+    throw Error(`Existing task definitions differ (${drift.length}); inspect before using --replace-drifted: ${drift.map((row) => row.id).slice(0, 8)}`);
+  }
   const missing = scenarios.filter((scenario) => !existing.some((row) => row.id === scenario.id));
   if (!process.argv.includes('--apply')) {
     console.log(JSON.stringify({ dryRun: true, sources: 189, tasks: 306,
-      alreadyPublished: existing.length, toPublish: missing.length }));
+      alreadyPublished: existing.length, toPublish: missing.length,
+      toReplace: drift.length, replaceIds: drift.map((row) => row.id) }));
   } else {
     const active = await prisma.evalRun.count({ where: { status: { in: ['running', 'pending', 'queued'] } } });
     if (active) throw Error(`Refusing publication while ${active} database evaluation(s) are active`);
@@ -79,6 +90,9 @@ try {
       for (const scenario of missing) {
         await tx.scenarioDefinition.create({ data: { id: scenario.id, ...encode(scenario) } });
       }
+      for (const row of drift) {
+        await tx.scenarioDefinition.update({ where: { id: row.id }, data: encode(byId.get(row.id)) });
+      }
     }, { timeout: 120_000 });
     const published = await prisma.scenarioDefinition.findMany({ where: { id: { in: ids } },
       select: { id: true, scenarioHash: true, status: true, requirements: true } });
@@ -88,7 +102,7 @@ try {
       throw Error('Published development task verification failed');
     }
     console.log(JSON.stringify({ published: published.length, sources: 189,
-      inserted: missing.length, retained: existing.length }));
+      inserted: missing.length, replaced: drift.length, retained: existing.length - drift.length }));
   }
 } finally {
   await prisma.$disconnect();
