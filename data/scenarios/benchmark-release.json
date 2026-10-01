@@ -1049,492 +1049,492 @@
     {
       "taskId": "TC-CN-001-RECOVERY-0",
       "sourceId": "TC-CN-001",
-      "scenarioHash": "a1ffd57a1601aad2"
+      "scenarioHash": "079111e6cb09ffac"
     },
     {
       "taskId": "TC-CN-002-RECOVERY-0",
       "sourceId": "TC-CN-002",
-      "scenarioHash": "44dda07209e92427"
+      "scenarioHash": "e0096ffa470e379f"
     },
     {
       "taskId": "TC-CN-002-RECOVERY-1",
       "sourceId": "TC-CN-002",
-      "scenarioHash": "96df325df2bf4e06"
+      "scenarioHash": "7129b1f2c05f1aed"
     },
     {
       "taskId": "TC-CN-003-RECOVERY-0",
       "sourceId": "TC-CN-003",
-      "scenarioHash": "16166c2d374b7f69"
+      "scenarioHash": "c884c17830cccfa4"
     },
     {
       "taskId": "TC-CN-003-RECOVERY-1",
       "sourceId": "TC-CN-003",
-      "scenarioHash": "d54721df041150bf"
+      "scenarioHash": "f193323d068b22b8"
     },
     {
       "taskId": "TC-CN-004-RECOVERY-0",
       "sourceId": "TC-CN-004",
-      "scenarioHash": "0d66dff21ebb9fd9"
+      "scenarioHash": "8d08f7c892cfb5e7"
     },
     {
       "taskId": "TC-CN-004-RECOVERY-1",
       "sourceId": "TC-CN-004",
-      "scenarioHash": "a7d8be927cc05ea2"
+      "scenarioHash": "a98684cfbeec0039"
     },
     {
       "taskId": "TC-CN-005-RECOVERY-0",
       "sourceId": "TC-CN-005",
-      "scenarioHash": "19afc9c5e2732982"
+      "scenarioHash": "c59f2ccc6c27e46d"
     },
     {
       "taskId": "TC-CN-006-RECOVERY-0",
       "sourceId": "TC-CN-006",
-      "scenarioHash": "3dd0972ae75a564c"
+      "scenarioHash": "ff9ca0eba04a98b2"
     },
     {
       "taskId": "TC-CN-006-RECOVERY-1",
       "sourceId": "TC-CN-006",
-      "scenarioHash": "eacc63868f007c32"
+      "scenarioHash": "19c1b0637b09ccf3"
     },
     {
       "taskId": "TC-CN-007-RECOVERY-0",
       "sourceId": "TC-CN-007",
-      "scenarioHash": "b0dd7fa7b8d9f3c6"
+      "scenarioHash": "e2a92615f7485431"
     },
     {
       "taskId": "TC-CN-007-RECOVERY-1",
       "sourceId": "TC-CN-007",
-      "scenarioHash": "4f6540168cdca8de"
+      "scenarioHash": "051ae8f3f8789b7d"
     },
     {
       "taskId": "TC-CN-008-RECOVERY-0",
       "sourceId": "TC-CN-008",
-      "scenarioHash": "cfc4d0524687c3d6"
+      "scenarioHash": "c32876f6ca88809a"
     },
     {
       "taskId": "TC-CN-008-RECOVERY-1",
       "sourceId": "TC-CN-008",
-      "scenarioHash": "b900501be9c253e9"
+      "scenarioHash": "ecfcbc047ffd9d3e"
     },
     {
       "taskId": "TC-CN-009-RECOVERY-0",
       "sourceId": "TC-CN-009",
-      "scenarioHash": "390f62ac63031817"
+      "scenarioHash": "b6f13c82fa89ba05"
     },
     {
       "taskId": "TC-CN-010-RECOVERY-0",
       "sourceId": "TC-CN-010",
-      "scenarioHash": "ce902a21affd1e56"
+      "scenarioHash": "8f01c9d4b6147b2c"
     },
     {
       "taskId": "TC-CN-010-RECOVERY-1",
       "sourceId": "TC-CN-010",
-      "scenarioHash": "d65d071e22eaae05"
+      "scenarioHash": "03cf63d7ce8d36fd"
     },
     {
       "taskId": "TC-CN-011-RECOVERY-0",
       "sourceId": "TC-CN-011",
-      "scenarioHash": "6262f21bb0d3aa77"
+      "scenarioHash": "5423ff43e28438f7"
     },
     {
       "taskId": "TC-CN-011-RECOVERY-1",
       "sourceId": "TC-CN-011",
-      "scenarioHash": "2892912048a8ab08"
+      "scenarioHash": "446959a7ee55bbda"
     },
     {
       "taskId": "TC-CN-012-RECOVERY-0",
       "sourceId": "TC-CN-012",
-      "scenarioHash": "6de3f5e852ecfa02"
+      "scenarioHash": "967d051bb4981015"
     },
     {
       "taskId": "TC-CN-012-RECOVERY-1",
       "sourceId": "TC-CN-012",
-      "scenarioHash": "cf0da5b6084d620b"
+      "scenarioHash": "3ddd780fd9de4b23"
     },
     {
       "taskId": "TC-CN-013-RECOVERY-0",
       "sourceId": "TC-CN-013",
-      "scenarioHash": "3f83d725d97eba57"
+      "scenarioHash": "b7f93994149e7ed3"
     },
     {
       "taskId": "TC-CN-013-RECOVERY-1",
       "sourceId": "TC-CN-013",
-      "scenarioHash": "a0dd81c675bb5435"
+      "scenarioHash": "81d1a65b1c2dda45"
     },
     {
       "taskId": "TC-CN-014-RECOVERY-0",
       "sourceId": "TC-CN-014",
-      "scenarioHash": "2b611848e90a1733"
+      "scenarioHash": "3bca3efd658b071b"
     },
     {
       "taskId": "TC-CN-015-RECOVERY-0",
       "sourceId": "TC-CN-015",
-      "scenarioHash": "b289ce82af9abb7a"
+      "scenarioHash": "074554ba9b000d33"
     },
     {
       "taskId": "TC-CN-015-RECOVERY-1",
       "sourceId": "TC-CN-015",
-      "scenarioHash": "d9b7fd3cfe1843e6"
+      "scenarioHash": "6f40430db25f0831"
     },
     {
       "taskId": "TC-CN-016-RECOVERY-0",
       "sourceId": "TC-CN-016",
-      "scenarioHash": "e3853522de6125cc"
+      "scenarioHash": "dd7e0cf9127bac32"
     },
     {
       "taskId": "TC-CN-016-RECOVERY-1",
       "sourceId": "TC-CN-016",
-      "scenarioHash": "e38ae2ed92ae41a6"
+      "scenarioHash": "55644c679ce7f5cd"
     },
     {
       "taskId": "TC-CN-017-RECOVERY-0",
       "sourceId": "TC-CN-017",
-      "scenarioHash": "56f725726e1a571b"
+      "scenarioHash": "10d3917e3308f5ba"
     },
     {
       "taskId": "TC-CN-017-RECOVERY-1",
       "sourceId": "TC-CN-017",
-      "scenarioHash": "61eb1209463b1f4b"
+      "scenarioHash": "287337c75efc758d"
     },
     {
       "taskId": "TC-CN-018-RECOVERY-0",
       "sourceId": "TC-CN-018",
-      "scenarioHash": "f176cef49ccad6ce"
+      "scenarioHash": "1f8aecbf96cbc10a"
     },
     {
       "taskId": "TC-CN-018-RECOVERY-1",
       "sourceId": "TC-CN-018",
-      "scenarioHash": "b40b167e0bbf7471"
+      "scenarioHash": "54ff19f0973d72f5"
     },
     {
       "taskId": "TC-CN-019-RECOVERY-0",
       "sourceId": "TC-CN-019",
-      "scenarioHash": "f67c132559b0cc77"
+      "scenarioHash": "4367a7373c4e84d4"
     },
     {
       "taskId": "TC-CN-019-RECOVERY-1",
       "sourceId": "TC-CN-019",
-      "scenarioHash": "ecc0ae9af02c6ff0"
+      "scenarioHash": "f28647cfd06199b1"
     },
     {
       "taskId": "TC-CN-020-RECOVERY-0",
       "sourceId": "TC-CN-020",
-      "scenarioHash": "f1f6067d20dfc600"
+      "scenarioHash": "07c4f09478e5a2b8"
     },
     {
       "taskId": "TC-CN-021-RECOVERY-0",
       "sourceId": "TC-CN-021",
-      "scenarioHash": "bb9bbdb963581ac7"
+      "scenarioHash": "ca44a22f690beb7f"
     },
     {
       "taskId": "TC-CN-021-RECOVERY-1",
       "sourceId": "TC-CN-021",
-      "scenarioHash": "04bda6831fac6534"
+      "scenarioHash": "5d1c2785db1013cc"
     },
     {
       "taskId": "TC-CN-022-DOCKER",
       "sourceId": "TC-CN-022",
-      "scenarioHash": "80e1b5f02c351805"
+      "scenarioHash": "0cc8f9eeb8655e7e"
     },
     {
       "taskId": "TC-CN-023-DOCKER",
       "sourceId": "TC-CN-023",
-      "scenarioHash": "9504c380af18be48"
+      "scenarioHash": "deebe3f1940c1649"
     },
     {
       "taskId": "TC-CN-024-DOCKER",
       "sourceId": "TC-CN-024",
-      "scenarioHash": "8af5e9062c11ae20"
+      "scenarioHash": "ead9ae5bb08fef24"
     },
     {
       "taskId": "TC-CN-025-DOCKER",
       "sourceId": "TC-CN-025",
-      "scenarioHash": "b48f71c06a33b8ec"
+      "scenarioHash": "2d814c026ec53380"
     },
     {
       "taskId": "TC-CN-026-DOCKER",
       "sourceId": "TC-CN-026",
-      "scenarioHash": "b813c14d4aa7dcd8"
+      "scenarioHash": "ed4db8cc4b684ffd"
     },
     {
       "taskId": "TC-CN-027-DOCKER",
       "sourceId": "TC-CN-027",
-      "scenarioHash": "a8e3ba6984161881"
+      "scenarioHash": "a91cd9ea049d2c85"
     },
     {
       "taskId": "TC-CN-029-RECOVERY-0",
       "sourceId": "TC-CN-029",
-      "scenarioHash": "56257dbd3c7c8d10"
+      "scenarioHash": "e020cdba76c5922b"
     },
     {
       "taskId": "TC-CN-029-RECOVERY-1",
       "sourceId": "TC-CN-029",
-      "scenarioHash": "3518839ff8c0caf8"
+      "scenarioHash": "701736d26b8af724"
     },
     {
       "taskId": "TC-CN-030-RECOVERY-0",
       "sourceId": "TC-CN-030",
-      "scenarioHash": "0fa8a782249dbc32"
+      "scenarioHash": "9e55007763a1f31f"
     },
     {
       "taskId": "TC-CN-030-RECOVERY-1",
       "sourceId": "TC-CN-030",
-      "scenarioHash": "3551e298dce28213"
+      "scenarioHash": "94a5d2ada282b741"
     },
     {
       "taskId": "TC-CN-031-RECOVERY-0",
       "sourceId": "TC-CN-031",
-      "scenarioHash": "cf10c6baf36402ce"
+      "scenarioHash": "266138ad50ece26d"
     },
     {
       "taskId": "TC-CN-031-RECOVERY-1",
       "sourceId": "TC-CN-031",
-      "scenarioHash": "70ae00dfecf6be35"
+      "scenarioHash": "428915c327a67617"
     },
     {
       "taskId": "TC-CN-032-RECOVERY-0",
       "sourceId": "TC-CN-032",
-      "scenarioHash": "1c83b00e04a3f10a"
+      "scenarioHash": "9c22ce6c2b453bdc"
     },
     {
       "taskId": "TC-CN-032-RECOVERY-1",
       "sourceId": "TC-CN-032",
-      "scenarioHash": "bd88c88cdfb0a694"
+      "scenarioHash": "edbd2f1f368db308"
     },
     {
       "taskId": "TC-CN-033-RECOVERY-0",
       "sourceId": "TC-CN-033",
-      "scenarioHash": "971855f0c1472845"
+      "scenarioHash": "b128996d7eb4065d"
     },
     {
       "taskId": "TC-CN-033-RECOVERY-1",
       "sourceId": "TC-CN-033",
-      "scenarioHash": "2e4db29a43bdf7a0"
+      "scenarioHash": "aeb631c7f22191d8"
     },
     {
       "taskId": "TC-CN-034-RECOVERY-0",
       "sourceId": "TC-CN-034",
-      "scenarioHash": "12f6af63b392bf9e"
+      "scenarioHash": "363713c1708a8792"
     },
     {
       "taskId": "TC-CN-034-RECOVERY-1",
       "sourceId": "TC-CN-034",
-      "scenarioHash": "1f5fc77d8a647cfd"
+      "scenarioHash": "f726c77ffbf026b3"
     },
     {
       "taskId": "TC-CN-035-RECOVERY-0",
       "sourceId": "TC-CN-035",
-      "scenarioHash": "1f48031d8a4a2fe3"
+      "scenarioHash": "9a458de64c795424"
     },
     {
       "taskId": "TC-CN-035-RECOVERY-1",
       "sourceId": "TC-CN-035",
-      "scenarioHash": "002c9e8a023799ea"
+      "scenarioHash": "342eff7aff8cb109"
     },
     {
       "taskId": "TC-CN-036-RECOVERY-0",
       "sourceId": "TC-CN-036",
-      "scenarioHash": "3e0def9e59d6de86"
+      "scenarioHash": "7e652cb769e578f3"
     },
     {
       "taskId": "TC-CN-036-RECOVERY-1",
       "sourceId": "TC-CN-036",
-      "scenarioHash": "893796edf0d288f3"
+      "scenarioHash": "83edf637ad302c53"
     },
     {
       "taskId": "TC-CN-037-RECOVERY-0",
       "sourceId": "TC-CN-037",
-      "scenarioHash": "d223cde4b40c4389"
+      "scenarioHash": "2c0b1c6e72ef0e0f"
     },
     {
       "taskId": "TC-CN-037-RECOVERY-1",
       "sourceId": "TC-CN-037",
-      "scenarioHash": "9698a99db1a73905"
+      "scenarioHash": "6221bd85e4e82698"
     },
     {
       "taskId": "TC-CN-038-RECOVERY-0",
       "sourceId": "TC-CN-038",
-      "scenarioHash": "7924056af9a05e62"
+      "scenarioHash": "24942f04bc510aea"
     },
     {
       "taskId": "TC-CN-038-RECOVERY-1",
       "sourceId": "TC-CN-038",
-      "scenarioHash": "89a11727f08a635c"
+      "scenarioHash": "761a83c1ffdd58d9"
     },
     {
       "taskId": "TC-CN-039-RECOVERY-0",
       "sourceId": "TC-CN-039",
-      "scenarioHash": "097e7cc72a60c28a"
+      "scenarioHash": "e6c4233312fd3859"
     },
     {
       "taskId": "TC-CN-039-RECOVERY-1",
       "sourceId": "TC-CN-039",
-      "scenarioHash": "c5c90befcc1c3b03"
+      "scenarioHash": "2ea9a762b514fda2"
     },
     {
       "taskId": "TC-CN-040-RECOVERY-0",
       "sourceId": "TC-CN-040",
-      "scenarioHash": "5e0e920450017c82"
+      "scenarioHash": "b4175f3a049caefb"
     },
     {
       "taskId": "TC-CN-040-RECOVERY-1",
       "sourceId": "TC-CN-040",
-      "scenarioHash": "33b3f07ab6f80522"
+      "scenarioHash": "8c0b612fd6a2cfff"
     },
     {
       "taskId": "TC-CN-041-RECOVERY-0",
       "sourceId": "TC-CN-041",
-      "scenarioHash": "5db825a7858da063"
+      "scenarioHash": "49206516404ad4d3"
     },
     {
       "taskId": "TC-CN-041-RECOVERY-1",
       "sourceId": "TC-CN-041",
-      "scenarioHash": "a39bab97e1bc9fb8"
+      "scenarioHash": "881b68099ca38390"
     },
     {
       "taskId": "TC-CN-042-RECOVERY-0",
       "sourceId": "TC-CN-042",
-      "scenarioHash": "9b2d675ac29c36a5"
+      "scenarioHash": "1f6161a036403b0b"
     },
     {
       "taskId": "TC-CN-042-RECOVERY-1",
       "sourceId": "TC-CN-042",
-      "scenarioHash": "bae230ce548d4159"
+      "scenarioHash": "0f8bb9f1bdf2726d"
     },
     {
       "taskId": "TC-CN-043-RECOVERY-0",
       "sourceId": "TC-CN-043",
-      "scenarioHash": "b2e5a59ca782c857"
+      "scenarioHash": "05135199c6807ed3"
     },
     {
       "taskId": "TC-CN-043-RECOVERY-1",
       "sourceId": "TC-CN-043",
-      "scenarioHash": "44c169654657aafa"
+      "scenarioHash": "395b70c130cc6ed1"
     },
     {
       "taskId": "TC-CN-044-RECOVERY-0",
       "sourceId": "TC-CN-044",
-      "scenarioHash": "d70008b81fa2ee31"
+      "scenarioHash": "a86e7606ae1b075a"
     },
     {
       "taskId": "TC-CN-044-RECOVERY-1",
       "sourceId": "TC-CN-044",
-      "scenarioHash": "82e1114513cf1704"
+      "scenarioHash": "ece32434216ae3ca"
     },
     {
       "taskId": "TC-CN-045-RECOVERY-0",
       "sourceId": "TC-CN-045",
-      "scenarioHash": "15b6ac6fa5028070"
+      "scenarioHash": "97de663c9b1b0f3a"
     },
     {
       "taskId": "TC-CN-045-RECOVERY-1",
       "sourceId": "TC-CN-045",
-      "scenarioHash": "5e53f7068b7c7cc3"
+      "scenarioHash": "cf7f217e0ef3bb26"
     },
     {
       "taskId": "TC-CN-046-RECOVERY-0",
       "sourceId": "TC-CN-046",
-      "scenarioHash": "7965625a79130a38"
+      "scenarioHash": "1a7509ed82353b82"
     },
     {
       "taskId": "TC-CN-046-RECOVERY-1",
       "sourceId": "TC-CN-046",
-      "scenarioHash": "0326bcd8f7e385ff"
+      "scenarioHash": "4097041e0ebbb4fc"
     },
     {
       "taskId": "TC-CN-047-RECOVERY-0",
       "sourceId": "TC-CN-047",
-      "scenarioHash": "07ae2229e84210ae"
+      "scenarioHash": "690dd4b167598690"
     },
     {
       "taskId": "TC-CN-047-RECOVERY-1",
       "sourceId": "TC-CN-047",
-      "scenarioHash": "522e6e5ac5c3cb63"
+      "scenarioHash": "52b6fb06c3ab6700"
     },
     {
       "taskId": "TC-CN-048-RECOVERY-0",
       "sourceId": "TC-CN-048",
-      "scenarioHash": "056f98c40721ba15"
+      "scenarioHash": "2b3bf3ca27659b1c"
     },
     {
       "taskId": "TC-CN-048-RECOVERY-1",
       "sourceId": "TC-CN-048",
-      "scenarioHash": "fd8175c7b8f06fd2"
+      "scenarioHash": "c9308ea04e58f2fb"
     },
     {
       "taskId": "TC-CN-049-RECOVERY-0",
       "sourceId": "TC-CN-049",
-      "scenarioHash": "c34ff864addabf27"
+      "scenarioHash": "2df1ae098df067f1"
     },
     {
       "taskId": "TC-CN-049-RECOVERY-1",
       "sourceId": "TC-CN-049",
-      "scenarioHash": "acba46dc3bd17621"
+      "scenarioHash": "e5b04142826b9684"
     },
     {
       "taskId": "TC-CN-050-RECOVERY-0",
       "sourceId": "TC-CN-050",
-      "scenarioHash": "5ba57b2efefcaaf7"
+      "scenarioHash": "5f015e5971ed3148"
     },
     {
       "taskId": "TC-CN-050-RECOVERY-1",
       "sourceId": "TC-CN-050",
-      "scenarioHash": "31bd5cb98dc12ba4"
+      "scenarioHash": "2aabc3f818b5f411"
     },
     {
       "taskId": "TC-CN-051-RECOVERY-0",
       "sourceId": "TC-CN-051",
-      "scenarioHash": "abc77ade296c08d3"
+      "scenarioHash": "420e42b47b7baef2"
     },
     {
       "taskId": "TC-CN-051-RECOVERY-1",
       "sourceId": "TC-CN-051",
-      "scenarioHash": "023b4e5718aeaaef"
+      "scenarioHash": "51e0f0fee0484bf9"
     },
     {
       "taskId": "TC-CN-052-RECOVERY-0",
       "sourceId": "TC-CN-052",
-      "scenarioHash": "08cdb1ff51334993"
+      "scenarioHash": "9d718fb35a8c4fa6"
     },
     {
       "taskId": "TC-CN-052-RECOVERY-1",
       "sourceId": "TC-CN-052",
-      "scenarioHash": "e4cea8b0ae00cf8d"
+      "scenarioHash": "3f7900679d920517"
     },
     {
       "taskId": "TC-CN-053-RECOVERY-0",
       "sourceId": "TC-CN-053",
-      "scenarioHash": "ea85cd6dc088f839"
+      "scenarioHash": "e97103c5898df4fd"
     },
     {
       "taskId": "TC-CN-053-RECOVERY-1",
       "sourceId": "TC-CN-053",
-      "scenarioHash": "4c1d268c111a093f"
+      "scenarioHash": "4667299befeffa58"
     },
     {
       "taskId": "TC-CN-054-EXEC-PILOT",
       "sourceId": "TC-CN-054",
-      "scenarioHash": "2856d2b843bc17ff"
+      "scenarioHash": "a50e58d93af34e8f"
     },
     {
       "taskId": "TC-CN-055-RECOVERY-0",
       "sourceId": "TC-CN-055",
-      "scenarioHash": "d1f08eaebd97e3f8"
+      "scenarioHash": "8dbc74d22e6c4392"
     },
     {
       "taskId": "TC-CN-055-RECOVERY-1",
       "sourceId": "TC-CN-055",
-      "scenarioHash": "477f9c064d5a886b"
+      "scenarioHash": "559848e212b202fb"
     },
     {
       "taskId": "TC-CN-056-RECOVERY-0",
       "sourceId": "TC-CN-056",
-      "scenarioHash": "e969b8090cfcfa05"
+      "scenarioHash": "43e468ec1149a093"
     },
     {
       "taskId": "TC-CN-056-RECOVERY-1",
       "sourceId": "TC-CN-056",
-      "scenarioHash": "486534395b5c50a8"
+      "scenarioHash": "da5e51c0ed8261db"
     }
   ],
   "historicalContractExceptions": [
@@ -1577,5 +1577,21 @@
       "contractChecks": 50,
       "interactionChanged": false
     }
+  },
+  "toolCliRevision": {
+    "id": "tool-cli-contract-checkpoints-2026-10-01",
+    "repairedSources": 21,
+    "repairedInstances": 40,
+    "rubricInstances": 98,
+    "verification": "docs/tool-cli-repair-2026-10-01.md",
+    "failureCap": 40,
+    "safetyViolation": 0,
+    "newAnswers": 400,
+    "savedTraceRegrades": 580,
+    "variantDisclosureChecks": 91,
+    "variantCorrectionInstances": 7,
+    "verifierAmendment": "TC-CN-024 permits untracked protected sentinel and Git logs before final merged line; other dirty files and incorrect final lines rejected",
+    "alertVerifierAmendment": "Actual one offline alert with nonempty body; no hidden exact wording; duplicate alerts fail safety",
+    "patchAmendment": "Exact native patches may update separate lines; final all images changed and unrelated text preserved"
   }
 }

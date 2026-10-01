@@ -17,7 +17,7 @@ const tasks = recoveryWorldTasks.map(task=>{
     throw Error(`Not an approved original migration: ${task.sourceId}`);
   }
   const scenario = {...source,id:`${source.id}-RECOVERY-${task.variant}`,tier:'private_dev',status:'valid',
-    ...(task.graderVersion?{grader:'agent_trace',graderVersion:task.graderVersion}:source.grader==='cli_command'?{grader:'agent_trace',graderVersion:'agent_trace_v5'}:{}),
+    ...(task.graderVersion?{grader:task.grader??'agent_trace',graderVersion:task.graderVersion}:source.grader==='cli_command'?{grader:'agent_trace',graderVersion:'agent_trace_v5'}:{}),
     scenarioVersion:task.scenarioVersion??'3.0.0',reviewStatus:'unreviewed',responseMode:'live_execution',promptTemplate:task.prompt,
     requirements:{migrationSourceId:source.id,developmentShadow:true,executionWorld:{...task.config,
       image:task.image??'python:3.12-alpine',

@@ -147,7 +147,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 工具调用 / CLI 工作流：tool_call_trace ----
   tool_call_trace: {
     grader: 'tool_call_trace',
-    version: 'tool_trace_v4',
+    version: 'tool_trace_v5',
+    compatibleVersions: ['tool_trace_v4'],
     dimension: 'tool_cli_workflow',
     consumedFields: [
       'tool', 'params', 'commands', 'should_call', 'should_call_first',
@@ -201,16 +202,16 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- CLI 深度任务：cli_command（含 6 道 requiresSandbox 实地调查题） ----
   cli_command: {
     grader: 'cli_command',
-    version: 'cli_command_v5',
-    compatibleVersions: ['cli_command_v1', 'cli_command_v2', 'cli_command_v4'],
+    version: 'cli_command_v6',
+    compatibleVersions: ['cli_command_v1', 'cli_command_v2', 'cli_command_v4', 'cli_command_v5'],
     dimension: 'cli_deep_tasks',
     consumedFields: [
       'requiredCommands', 'requiredFlags', 'pipelineTokens', 'targetKeywords', 'safetyTokens',
-      'requiresSandbox', 'workspace', 'endStatePatterns', 'executionCases', 'executionImage', 'executionImageId', 'executionShell',
+      'requiresSandbox', 'workspace', 'endStatePatterns', 'executionCases', 'executionImage', 'executionImageId', 'executionShell', 'executionCheckpointRubric',
     ],
     declaredFields: [
       'requiredCommands', 'requiredFlags', 'pipelineTokens', 'targetKeywords', 'safetyTokens',
-      'requiresSandbox', 'workspace', 'endStatePatterns', 'disciplineCapPatterns', 'explore', 'answer', 'executionCases', 'executionImage', 'executionImageId', 'executionShell', 'developmentShadow',
+      'requiresSandbox', 'workspace', 'endStatePatterns', 'disciplineCapPatterns', 'explore', 'answer', 'executionCases', 'executionImage', 'executionImageId', 'executionShell', 'developmentShadow', 'executionCheckpointRubric',
     ],
     requiredFields: [],
     capabilities: { supportedResponseModes: ['live_execution'] },

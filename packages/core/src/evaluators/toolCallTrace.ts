@@ -96,7 +96,8 @@ function commandHit(output: string, cmd: string): boolean {
 
 export const toolCallTraceEvaluator: Evaluator = {
   name: 'tool_call_trace',
-  version: 'tool_trace_v4',
+  version: 'tool_trace_v5',
+  compatibleVersions: ['tool_trace_v4'],
   aliases: ['tool_trace_v3'],
 
   async evaluate(

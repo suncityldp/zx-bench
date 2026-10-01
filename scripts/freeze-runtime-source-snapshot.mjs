@@ -9,12 +9,13 @@ const read = path => readFileSync(new URL(path, root), 'utf8').replaceAll('\r\n'
 const historicalPaths = ['data/scenarios/execution-review-manifest.json', 'data/scenarios/pr-witness-development.json'];
 const historical = historicalPaths.map(path => [path, JSON.parse(read(path))]);
 const workflowPaths = ['packages/core/src/audit.ts','packages/core/src/contracts/eligibility.ts','packages/core/src/contracts/knownDefects.ts','packages/core/src/evaluators/worldTrace.ts','packages/core/src/evaluators/worldCheckpoints.ts','packages/core/src/evaluators/semanticFinalAnswer.ts','packages/core/src/execution/worldLoop.ts','packages/types/src/index.ts','scripts/lib/workflow-checkpoints.mjs','scripts/lib/workflow-contract-repairs.mjs','scripts/lib/workflow-read-verification.mjs','scripts/prepare-workflow-runtime.mjs','docker/workflow-contracts/runtime.json','data/scenarios/benchmark.json','data/scenarios/benchmark-meta.json','data/scenarios/benchmark-release.json'];
-const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths])].sort();
+const toolPaths = ['packages/core/src/evaluators/toolCallTrace.ts','packages/core/src/evaluators/cliCommand.ts','scripts/lib/tool-contract-repairs.mjs','scripts/lib/tool-checkpoints.mjs','scripts/lib/tool-cli-checkpoints.mjs','scripts/lib/execution-task-pack.mjs','scripts/lib/recovery-world-tasks.mjs'];
+const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths])].sort();
 const snapshot = {
   schemaVersion: 1,
-  version: 'runtime-source-2026-10-01-workflow-repair',
+  version: 'runtime-source-2026-10-01-tool-cli-repair',
   applicationVersion: JSON.parse(read('package.json')).version,
-  baselineCommit: '71635c2e2a21c1e5a7ca9e53c95e61df9328702b',
+  baselineCommit: '0dafc912c1ccfd67954f385938ebb6138e9656a3',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',
   independentHumanGold: false,
   historicalRescoring: false,

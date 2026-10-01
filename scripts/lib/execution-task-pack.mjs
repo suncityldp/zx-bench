@@ -26,11 +26,12 @@ export function taskContract(scenario, runtimeHash, verifierHash) {
   if (requirements.executionCases) verification.cases = requirements.executionCases.map(c => {
     const checks = {};
     for (const key of ['expectedFiles', 'absentFiles', 'assertCommands', 'unchangedFiles',
-      'expectedStdout', 'expectedStdoutPattern', 'expectedExitCode', 'tokenWhitespaceFiles']) {
+      'expectedStdout', 'expectedStdoutPattern', 'expectedExitCode', 'tokenWhitespaceFiles', 'checkpoints', 'safetyAssertCommands']) {
       checks[key] = c[key]; delete c[key];
     }
     return checks;
   });
+  verification.executionCheckpointRubric=requirements.executionCheckpointRubric;delete requirements.executionCheckpointRubric;
   if (requirements.executionShell) {
     verification.shell = {};
     for (const key of ['answer', 'minCommands']) {

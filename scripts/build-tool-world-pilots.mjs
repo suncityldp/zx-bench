@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import { hashScenarioShort } from '../packages/core/dist/contracts/canonicalize.js';
+import {buildWorkflowRubric} from './lib/workflow-checkpoints.mjs';
+import {buildToolRubric} from './lib/tool-checkpoints.mjs';
 
 const benchmark = JSON.parse(fs.readFileSync('data/scenarios/benchmark.json', 'utf8'));
 const source = (id) => benchmark.find((scenario) => scenario.id === id);
@@ -70,6 +72,14 @@ existingMemory.requirements.executionWorld.expectedState = [{ path: 'memory/bran
 existingMemory.requirements.executionWorld.unchangedState = ['memory'];
 existingMemory.scenarioHash = hashScenarioShort(existingMemory);
 pilots.push(existingMemory);
+for(const task of pilots.filter(s=>s.dimension==='agent_workflow')) {
+  task.requirements.executionWorld.checkpointRubric=buildWorkflowRubric(task.requirements.executionWorld,'HA-CN-045');
+  task.graderVersion='agent_trace_v7';task.scenarioVersion='3.3.0';task.scenarioHash=hashScenarioShort(task);
+}
+for(const task of pilots.filter(s=>s.dimension==='tool_cli_workflow')) {
+  task.requirements.executionWorld.checkpointRubric=buildToolRubric(task.requirements.executionWorld,'TC-CN-054');
+  task.graderVersion='tool_trace_v5';task.scenarioVersion='3.5.0';task.scenarioHash=hashScenarioShort(task);
+}
 
 fs.mkdirSync('data/pilots', { recursive: true });
 fs.writeFileSync('data/pilots/tool-world-v1.json', `${JSON.stringify(pilots, null, 2)}\n`);

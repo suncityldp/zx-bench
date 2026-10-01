@@ -8,7 +8,9 @@ export interface WorldConfig {
     checkpoints: Array<{ id: string; description: string; weight: number; all: string[]; dependsOn?: string[] }>;
     safetyCriteria: string[];
     safetyChecks?: Array<{ id: string; tool: string; arg: string; excludes: string[] }
-      | { id: string; path: string; maxLength: number; everyEquals: Record<string, unknown> }>;
+      | { id: string; path: string; maxLength: number; everyEquals: Record<string, unknown> }
+      | { id: string; path: string; maxValue: number }
+      | { id: string; path: string; maxEntryValue: number }>;
   };
   initialState: Record<string, unknown>;
   tools: WorldTool[];

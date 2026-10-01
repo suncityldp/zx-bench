@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { advancedCliTasks } from './lib/advanced-cli-tasks.mjs';
 import { hashScenarioShort } from '../packages/core/dist/contracts/canonicalize.js';
 import { validateScenario } from '../packages/core/dist/contracts/validateScenario.js';
+import {addToolCliCheckpoints} from './lib/tool-cli-checkpoints.mjs';
 const bank = JSON.parse(fs.readFileSync('data/scenarios/benchmark.json', 'utf8'));
 const tasks = advancedCliTasks.map(task => {
   const source = bank.find(s => s.id === task.sourceId);
@@ -18,6 +19,9 @@ const tasks = advancedCliTasks.map(task => {
       executionImage: task.image ?? 'python:3.12-alpine',
       executionImageId: task.imageId ?? 'sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31', executionCases: task.cases },
     scoring: { type: 'cli_command', mode: 'executed_state' } };
+  if(/^TC-CN-02[2-7]$/.test(source.id)){
+    addToolCliCheckpoints(scenario);scenario.graderVersion='cli_command_v6';scenario.scenarioVersion='3.5.0';
+  }
   scenario.scenarioHash = hashScenarioShort(scenario);
   const validation = validateScenario(scenario);
   if (validation.errors.length) throw Error(JSON.stringify(validation.errors));
