@@ -4,9 +4,11 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则评分与可选 AI Judge、实时监控、冻结题集、报告和排行榜。发布题库 **1.60.0 / v0.2.5** 默认采用九模型实际使用的题包：**803 道来源题**，由 **614 道普通题 + 189 道来源题的 306 个迁移执行实例**组成。全量执行 920 个实例，计分归并回来源题。
+ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则评分与可选 AI Judge、实时监控、冻结题集、报告和排行榜。发布题库 **1.60.0 / v0.2.6** 默认采用九模型实际使用的题包：**803 道来源题**，由 **614 道普通题 + 189 道来源题的 306 个迁移执行实例**组成。全量执行 920 个实例，计分归并回来源题。
 
 最近的更新把五个执行相关维度的题目逐步迁到可重置的 Docker 任务包，并改进了冻结题集、渐进式多问上下文、执行证据与评分审计。**v0.2.4** 还加入严格执行题最终答复的可选语义 Judge 复核：它只在其他检查通过后参与判定，保留原规则分和审计记录；无效 Judge 输出进入人工复核。
+
+**v0.2.6** 修复工作流题目契约、只读确认规则和 `ANSWER/SAY` 最终答复解析；87 个智能体实例采用检查点 rubric，最终未通过最高 40 分，安全违规为 0 分。详见[修复与验收说明](docs/workflow-repair-2026-10-01.md)。
 
 ## 快速开始
 
@@ -19,6 +21,8 @@ pnpm --filter server prisma:generate
 pnpm build
 pnpm --filter server start
 ```
+
+工作流技能题还需要发布时冻结的 PyYAML 镜像。运行 `pnpm runtime:workflow`，自动下载 v0.2.6 镜像资产并校验 SHA-256 与 Docker image ID。离线可用 `pnpm runtime:workflow --archive /path/to/image.tar.gz`。镜像为 Linux amd64；Windows Docker Desktop 需使用 Linux 容器。
 
 打开 <http://127.0.0.1:3001>。Windows 也可使用 `start.bat`；macOS/Linux 使用上面的 pnpm 命令。首次使用或题库更新后，运行 `node scripts/seed-benchmark.mjs` 导入 `data/scenarios/benchmark.json`。导入会清理发行集合外的在线题目定义，保留历史运行和答卷；新建运行按发布题目 ID 与内容哈希选择，数据库中同 ID 定义漂移会报错。**GitHub 更新不会自动更新在线数据库，也不会改变运行中任务的冻结题目**；发布与数据库同步步骤见[题库更新说明](docs/question-refresh-2026-09-28.md)。
 

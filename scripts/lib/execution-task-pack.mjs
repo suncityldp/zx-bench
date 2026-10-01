@@ -40,7 +40,7 @@ export function taskContract(scenario, runtimeHash, verifierHash) {
   if (requirements.executionWorld) {
     verification.world = {};
     for (const key of ['requiredCalls', 'forbiddenCalls', 'expectedState', 'unchangedState',
-      'allowedErrors', 'requireFinalMessage', 'finalMessageMustContain', 'finalMessageMustContainAny', 'finalMessageMustNotContain', 'scoreMode']) {
+      'allowedErrors', 'requireFinalMessage', 'finalMessageMustContain', 'finalMessageMustContainAny', 'finalMessageMustNotContain', 'scoreMode','checkpointRubric']) {
       verification.world[key] = requirements.executionWorld[key]; delete requirements.executionWorld[key];
     }
   }

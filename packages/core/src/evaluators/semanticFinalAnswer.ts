@@ -1,6 +1,7 @@
 import type { CriterionResult, ModelConfig, ModelResponse, OutputMetadata, Scenario, ScenarioResult, SemanticFinalReview } from '@zxbench/types';
 import { callModel } from '../model/caller.js';
-import { extractWorldFinalMessage, type WorldConfig, type WorldTrace } from '../execution/worldLoop.js';
+import { extractWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from '../execution/worldLoop.js';
+import { scoreWorldCheckpoints } from './worldCheckpoints.js';
 
 export const SEMANTIC_FINAL_REVIEW_VERSION = 'world-final-semantics-v1';
 
@@ -11,7 +12,7 @@ interface MeaningCheck {
 
 function finalAnswer(trace: WorldTrace): string {
   return trace.turns?.length
-    ? extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '')
+    ? extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '',trace.answerFirstRequested)
     : trace.finalMessage;
 }
 
@@ -23,10 +24,11 @@ export function semanticFinalReviewCandidate(
   result: Partial<ScenarioResult>,
 ): { finalAnswer: string; checks: MeaningCheck[] } | null {
   const config = (scenario.requirements as Record<string, unknown> | undefined)?.executionWorld as WorldConfig | undefined;
-  const trace = response.executionWorld as WorldTrace | undefined;
+  const storedTrace=response.executionWorld as WorldTrace|undefined;
+  const trace=storedTrace?normalizeWorldFinalTrace(storedTrace):undefined;
   const criteria = result.criterionResults;
   if (!config || !trace || config.scoreMode !== 'strict' || !criteria?.length
-    || result.totalScore !== 0 || result.environmentError || result.safetyLevel === 'red_line'
+    || (config.checkpointRubric ? result.totalScore===100 : result.totalScore !== 0) || result.environmentError || result.safetyLevel === 'red_line'
     || metadata.incomplete || metadata.truncated || response.finishReason === 'length'
     || trace.turnErrors?.length || (trace.terminationReason && trace.terminationReason !== 'completed')) return null;
 
@@ -117,7 +119,7 @@ export async function reviewSemanticFinalAnswer(
 }
 
 /** A semantic verdict can only change the failed positive answer criteria. */
-export function applySemanticFinalReview(result: Partial<ScenarioResult>, review: SemanticFinalReview): void {
+export function applySemanticFinalReview(result: Partial<ScenarioResult>, review: SemanticFinalReview, scenario?: Scenario): void {
   result.semanticFinalReview = review;
   result.evidence = [...(result.evidence ?? []),
     `SEMANTIC_FINAL_REVIEW: ${review.version} model=${review.judgeModelId} status=${review.status}`];
@@ -133,14 +135,20 @@ export function applySemanticFinalReview(result: Partial<ScenarioResult>, review
   const failed = result.criterionResults.filter(c => c.status !== 'pass');
   if (!failed.length || ids.size !== failed.length || review.checks.some(c => c.equivalent !== true)
     || failed.some(c => !ids.has(c.id) || !/^world_final_(?:any_)?\d+$/.test(c.id))) return;
+  if(result.checkpointEvaluation && !(scenario?.requirements as unknown as {executionWorld?:WorldConfig})?.executionWorld?.checkpointRubric) {
+    throw new Error('CHECKPOINT_SEMANTIC_REVIEW_REQUIRES_SCENARIO');
+  }
   result.criterionResults = result.criterionResults.map((c): CriterionResult => {
     const check = review.checks.find(v => v.id === c.id);
     return check && c.status === 'fail'
       ? { ...c, status: 'pass', source: 'llm', evidence: `Semantic equivalent: ${check.quote}` }
       : c;
   });
-  result.totalScore = 100;
+  const config=(scenario?.requirements as unknown as {executionWorld?:WorldConfig}|undefined)?.executionWorld;
+  const checkpoints=config?scoreWorldCheckpoints(config,result.criterionResults):null;
+  result.totalScore = checkpoints?.score??100;
+  if(checkpoints)result.checkpointEvaluation=checkpoints;
   result.deterministicScore = 0;
-  result.axisScores = { ...(result.axisScores ?? {}), task_result: 100 };
+  result.axisScores = { ...(result.axisScores ?? {}), task_result: result.totalScore };
   result.axisEvidence = { ...(result.axisEvidence ?? {}), task_result: 'llm' };
 }

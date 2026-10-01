@@ -1,4 +1,6 @@
 import { repairWorldTask } from './execution-review-repairs.mjs';
+import { repairWorkflowContract } from './workflow-contract-repairs.mjs';
+import { buildWorkflowRubric } from './workflow-checkpoints.mjs';
 const read = (name, path, requiredArgs = {}, description = '') => ({ name, path, requiredArgs, description, kind: 'read' });
 const script = (name, requiredArgs, code, description) => ({ name, kind: 'script', path: 'business', requiredArgs, script: code, description });
 const call = (tool, args = {}) => ({ tool, args });
@@ -443,7 +445,8 @@ if not state['initialized']:
   add('HA-CN-004',variant,'把历史会话中上次使用的 Docker 网络修复方法应用到当前 compose.yml。先检索历史修复记录并读取当前文件；只使用检索到的补丁修改文件，保留其他配置。',{
     initialState:{fixes:{network:{patch:{old,new:next}}},sourceFile:`services:\n  web:\n    ${old}    image: demo:v1\n`,
       currentFile:`services:\n  web:\n    ${old}    image: demo:v1\n`,initialized:false,lastSearch:null,readCurrent:false,otherFile:'keep'},
-    tools:[script('session_search',{query:'string'},init+`if 'network' not in args['query'].lower(): raise ValueError('NO_MATCH')
+    tools:[script('session_search',{query:'string'},init+`query=args['query'].casefold()
+if not any(term in query for term in ('network','网络','網路')): raise ValueError('NO_MATCH')
 state['lastSearch']=state['fixes']['network']; result=state['lastSearch']`, '从历史会话返回上次的网络修复补丁。'),
       {...script('fs.read',{path:'string'},init+`if args['path']!='compose.yml': raise ValueError('UNKNOWN_PATH')
 state['readCurrent']=True; result=file.read_text()`, '读取当前 compose 文件。'),requirePriorCall:{tool:'session_search'}},
@@ -2476,3 +2479,8 @@ state['sms'].append(args); result={'sent':True}`, '记录合成短信。'),requi
 [call('send_sms',{phone:'13800009999',message:'明天会议改到下午3点'})]);
 
 recoveryWorldTasks.forEach(repairWorldTask);
+recoveryWorldTasks.forEach(repairWorkflowContract);
+for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('HA-CN-'))) {
+  task.config.checkpointRubric=buildWorkflowRubric(task.config,task.sourceId);
+  task.scenarioVersion='3.3.0';task.graderVersion='agent_trace_v7';
+}

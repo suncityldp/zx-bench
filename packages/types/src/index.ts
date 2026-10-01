@@ -338,6 +338,15 @@ export interface SemanticFinalReview {
   error?: string;
 }
 
+export interface WorkflowCheckpointEvaluation {
+  version: string;
+  progress: number;
+  fullSuccess: boolean;
+  safetyViolation: boolean;
+  score: number;
+  checkpoints: Array<{id:string;description:string;weight:number;all:string[];dependsOn?:string[];passed:boolean;awarded:number}>;
+}
+
 export interface EvaluationAudit {
   version: 1;
   scenarioHash: string;
@@ -346,6 +355,7 @@ export interface EvaluationAudit {
   graderVersion?: string;
   criterionResults?: CriterionResult[];
   semanticFinalReview?: SemanticFinalReview;
+  checkpointEvaluation?: WorkflowCheckpointEvaluation;
   structuredContractMetrics?: StructuredContractMetrics;
   judgeScoreHistory?: number[];
   multiRunStats?: MultiRunStats;
@@ -379,6 +389,7 @@ export interface ScenarioResult {
   totalScore: number;
   criterionResults?: CriterionResult[];
   semanticFinalReview?: SemanticFinalReview;
+  checkpointEvaluation?: WorkflowCheckpointEvaluation;
   structuredContractMetrics?: StructuredContractMetrics;
   deterministicScore?: number;
   judgeScore?: number;

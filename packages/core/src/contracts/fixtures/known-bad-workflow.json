@@ -1,0 +1,3627 @@
+[
+  {
+    "id": "HA-CN-004-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "把历史会话中上次使用的 Docker 网络修复方法应用到当前 compose.yml。先检索历史修复记录并读取当前文件；只使用检索到的补丁修改文件，保留其他配置。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-004",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "fixes": {
+            "network": {
+              "patch": {
+                "old": "network_mode: host\n",
+                "new": "networks: [appnet]\n"
+              }
+            }
+          },
+          "sourceFile": "services:\n  web:\n    network_mode: host\n    image: demo:v1\n",
+          "currentFile": "services:\n  web:\n    network_mode: host\n    image: demo:v1\n",
+          "initialized": false,
+          "lastSearch": null,
+          "readCurrent": false,
+          "otherFile": "keep"
+        },
+        "tools": [
+          {
+            "name": "session_search",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "query": "string"
+            },
+            "script": "from pathlib import Path\nfile=Path('/workspace/compose.yml')\nif not state['initialized']:\n    file.write_text(state['sourceFile']); state['initialized']=True\nif 'network' not in args['query'].lower(): raise ValueError('NO_MATCH')\nstate['lastSearch']=state['fixes']['network']; result=state['lastSearch']",
+            "description": "从历史会话返回上次的网络修复补丁。"
+          },
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "from pathlib import Path\nfile=Path('/workspace/compose.yml')\nif not state['initialized']:\n    file.write_text(state['sourceFile']); state['initialized']=True\nif args['path']!='compose.yml': raise ValueError('UNKNOWN_PATH')\nstate['readCurrent']=True; result=file.read_text()",
+            "description": "读取当前 compose 文件。",
+            "requirePriorCall": {
+              "tool": "session_search"
+            }
+          },
+          {
+            "name": "fs.patch",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "diff": "object"
+            },
+            "script": "from pathlib import Path\nfile=Path('/workspace/compose.yml')\nif not state['initialized']:\n    file.write_text(state['sourceFile']); state['initialized']=True\nif args['path']!='compose.yml' or not state['readCurrent'] or args['diff']!=state['lastSearch']['patch']: raise ValueError('PATCH_NOT_GROUNDED')\nold=args['diff']['old']; new=args['diff']['new']; content=file.read_text()\nif content.count(old)!=1: raise ValueError('PATCH_PRECONDITION_FAILED')\nfile.write_text(content.replace(old,new,1)); state['currentFile']=file.read_text()\nresult={'patched':args['path']}",
+            "description": "验证补丁来自历史记录，并对真实文件作一次精确替换。",
+            "requirePriorCall": {
+              "tool": "fs.read",
+              "sameArgs": [
+                "path"
+              ]
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "session_search",
+            "args": {}
+          },
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "compose.yml"
+            }
+          },
+          {
+            "tool": "fs.patch",
+            "args": {
+              "path": "compose.yml",
+              "diff": {
+                "old": "network_mode: host\n",
+                "new": "networks: [appnet]\n"
+              }
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "currentFile",
+            "equals": "services:\n  web:\n    networks: [appnet]\n    image: demo:v1\n"
+          },
+          {
+            "path": "readCurrent",
+            "equals": true
+          }
+        ],
+        "unchangedState": [
+          "fixes",
+          "sourceFile",
+          "otherFile"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "recall-before-fix",
+      "trace-invariant"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "b95275be952ec1a1",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-004",
+      "scenarioHash": "652035b5d0a1dffd",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-004-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "把历史会话中上次使用的 Docker 网络修复方法应用到当前 compose.yml。先检索历史修复记录并读取当前文件；只使用检索到的补丁修改文件，保留其他配置。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-004",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "fixes": {
+            "network": {
+              "patch": {
+                "old": "network_mode: bridge\n",
+                "new": "networks: [private]\n"
+              }
+            }
+          },
+          "sourceFile": "services:\n  web:\n    network_mode: bridge\n    image: demo:v1\n",
+          "currentFile": "services:\n  web:\n    network_mode: bridge\n    image: demo:v1\n",
+          "initialized": false,
+          "lastSearch": null,
+          "readCurrent": false,
+          "otherFile": "keep"
+        },
+        "tools": [
+          {
+            "name": "session_search",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "query": "string"
+            },
+            "script": "from pathlib import Path\nfile=Path('/workspace/compose.yml')\nif not state['initialized']:\n    file.write_text(state['sourceFile']); state['initialized']=True\nif 'network' not in args['query'].lower(): raise ValueError('NO_MATCH')\nstate['lastSearch']=state['fixes']['network']; result=state['lastSearch']",
+            "description": "从历史会话返回上次的网络修复补丁。"
+          },
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "from pathlib import Path\nfile=Path('/workspace/compose.yml')\nif not state['initialized']:\n    file.write_text(state['sourceFile']); state['initialized']=True\nif args['path']!='compose.yml': raise ValueError('UNKNOWN_PATH')\nstate['readCurrent']=True; result=file.read_text()",
+            "description": "读取当前 compose 文件。",
+            "requirePriorCall": {
+              "tool": "session_search"
+            }
+          },
+          {
+            "name": "fs.patch",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "diff": "object"
+            },
+            "script": "from pathlib import Path\nfile=Path('/workspace/compose.yml')\nif not state['initialized']:\n    file.write_text(state['sourceFile']); state['initialized']=True\nif args['path']!='compose.yml' or not state['readCurrent'] or args['diff']!=state['lastSearch']['patch']: raise ValueError('PATCH_NOT_GROUNDED')\nold=args['diff']['old']; new=args['diff']['new']; content=file.read_text()\nif content.count(old)!=1: raise ValueError('PATCH_PRECONDITION_FAILED')\nfile.write_text(content.replace(old,new,1)); state['currentFile']=file.read_text()\nresult={'patched':args['path']}",
+            "description": "验证补丁来自历史记录，并对真实文件作一次精确替换。",
+            "requirePriorCall": {
+              "tool": "fs.read",
+              "sameArgs": [
+                "path"
+              ]
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "session_search",
+            "args": {}
+          },
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "compose.yml"
+            }
+          },
+          {
+            "tool": "fs.patch",
+            "args": {
+              "path": "compose.yml",
+              "diff": {
+                "old": "network_mode: bridge\n",
+                "new": "networks: [private]\n"
+              }
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "currentFile",
+            "equals": "services:\n  web:\n    networks: [private]\n    image: demo:v1\n"
+          },
+          {
+            "path": "readCurrent",
+            "equals": true
+          }
+        ],
+        "unchangedState": [
+          "fixes",
+          "sourceFile",
+          "otherFile"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "recall-before-fix",
+      "trace-invariant"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "06e6166197331bc7",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-004",
+      "scenarioHash": "652035b5d0a1dffd",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-006-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "medium",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用户询问自己喜欢的编程语言及学习资源。先读取记忆里的语言偏好，再以该偏好搜索资源并给出具体推荐，不要凭空猜。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-006",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "memory": {
+            "favorite.language": "Python"
+          },
+          "catalog": {
+            "Python": "Python 官方教程"
+          },
+          "reads": 0,
+          "searches": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "memory.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "key": "string"
+            },
+            "script": "if args['key']!='favorite.language': raise ValueError('UNKNOWN_KEY')\nstate['reads']+=1; result={'value':state['memory'][args['key']]}",
+            "description": "读取用户语言偏好。"
+          },
+          {
+            "name": "search",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "query": "string"
+            },
+            "script": "state['searches'].append(args['query'])\nif args['query']!=state['memory']['favorite.language']: raise ValueError('WRONG_SEARCH_TOPIC')\nresult={'resource':state['catalog'][args['query']]}",
+            "description": "从本地资源目录搜索学习资料。",
+            "requirePriorCall": {
+              "tool": "memory.read"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "memory.read",
+            "args": {
+              "key": "favorite.language"
+            }
+          },
+          {
+            "tool": "search",
+            "args": {
+              "query": "Python"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "reads",
+            "equals": 1
+          },
+          {
+            "path": "searches",
+            "equals": [
+              "Python"
+            ]
+          }
+        ],
+        "unchangedState": [
+          "memory",
+          "catalog",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "Python",
+          "Python 官方教程"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "personalization"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "199afd0b1084a7ca",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-006",
+      "scenarioHash": "8411b53f1d027382",
+      "dimension": "agent_workflow",
+      "difficulty": "medium",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-006-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "medium",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用户询问自己喜欢的编程语言及学习资源。先读取记忆里的语言偏好，再以该偏好搜索资源并给出具体推荐，不要凭空猜。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-006",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "memory": {
+            "favorite.language": "Rust"
+          },
+          "catalog": {
+            "Rust": "Rust 官方学习指南"
+          },
+          "reads": 0,
+          "searches": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "memory.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "key": "string"
+            },
+            "script": "if args['key']!='favorite.language': raise ValueError('UNKNOWN_KEY')\nstate['reads']+=1; result={'value':state['memory'][args['key']]}",
+            "description": "读取用户语言偏好。"
+          },
+          {
+            "name": "search",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "query": "string"
+            },
+            "script": "state['searches'].append(args['query'])\nif args['query']!=state['memory']['favorite.language']: raise ValueError('WRONG_SEARCH_TOPIC')\nresult={'resource':state['catalog'][args['query']]}",
+            "description": "从本地资源目录搜索学习资料。",
+            "requirePriorCall": {
+              "tool": "memory.read"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "memory.read",
+            "args": {
+              "key": "favorite.language"
+            }
+          },
+          {
+            "tool": "search",
+            "args": {
+              "query": "Rust"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "reads",
+            "equals": 1
+          },
+          {
+            "path": "searches",
+            "equals": [
+              "Rust"
+            ]
+          }
+        ],
+        "unchangedState": [
+          "memory",
+          "catalog",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "Rust",
+          "Rust 官方学习指南"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "personalization"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "81259ea85d77b58f",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-006",
+      "scenarioHash": "8411b53f1d027382",
+      "dimension": "agent_workflow",
+      "difficulty": "medium",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-008-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用户说继续昨天没做完的数据迁移。先列出相关记忆，读进度条目及当前输入文件，核实断点后回复下一步；不得未经核实从头重复执行。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-008",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "memory": {
+            "migration/batch-17": "batch-17: 已处理 50/100 项，剩余项目必须从 51 继续；输入 data/input.json"
+          },
+          "files": {
+            "data/input.json": "{\"batch\":\"batch-17\",\"total\":100}"
+          },
+          "listed": false,
+          "readMemory": false,
+          "readFile": false,
+          "executions": 0,
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "memory.list",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "prefix": "string"
+            },
+            "script": "if args['prefix']!='migration/': raise ValueError('WRONG_PREFIX')\nstate['listed']=True; result={'keys':list(state['memory'])}",
+            "description": "列出迁移相关记忆。"
+          },
+          {
+            "name": "memory.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "key": "string"
+            },
+            "script": "if args['key'] not in state['memory']: raise ValueError('KEY_NOT_FOUND')\nstate['readMemory']=True; result={'value':state['memory'][args['key']]}",
+            "description": "读取检查点内容。",
+            "requirePriorCall": {
+              "tool": "memory.list"
+            }
+          },
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "from pathlib import Path\nif args['path'] not in state['files']: raise ValueError('FILE_NOT_FOUND')\np=Path('/workspace')/args['path']; p.parent.mkdir(parents=True,exist_ok=True)\nif not p.exists(): p.write_text(state['files'][args['path']])\nstate['readFile']=True; result={'content':p.read_text()}",
+            "description": "读取真实容器输入文件元数据。",
+            "requirePriorCall": {
+              "tool": "memory.read"
+            }
+          },
+          {
+            "name": "migration.run",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "start": "number"
+            },
+            "script": "state['executions']+=1; result={'started':args['start']}",
+            "description": "实际执行迁移。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "memory.list",
+            "args": {
+              "prefix": "migration/"
+            }
+          },
+          {
+            "tool": "memory.read",
+            "args": {
+              "key": "migration/batch-17"
+            }
+          },
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "data/input.json"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "migration.run"
+        ],
+        "expectedState": [
+          {
+            "path": "listed",
+            "equals": true
+          },
+          {
+            "path": "readMemory",
+            "equals": true
+          },
+          {
+            "path": "readFile",
+            "equals": true
+          },
+          {
+            "path": "executions",
+            "equals": 0
+          }
+        ],
+        "unchangedState": [
+          "memory",
+          "files",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "batch-17",
+          "51"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "context-resume"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "466ae1e785312fbc",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-008",
+      "scenarioHash": "b0f92d8594efef28",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-008-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用户说继续昨天没做完的数据迁移。先列出相关记忆，读进度条目及当前输入文件，核实断点后回复下一步；不得未经核实从头重复执行。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-008",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "memory": {
+            "migration/batch-42": "batch-42: 已处理 65/100 项，剩余项目必须从 66 继续；输入 data/input.json"
+          },
+          "files": {
+            "data/input.json": "{\"batch\":\"batch-42\",\"total\":100}"
+          },
+          "listed": false,
+          "readMemory": false,
+          "readFile": false,
+          "executions": 0,
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "memory.list",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "prefix": "string"
+            },
+            "script": "if args['prefix']!='migration/': raise ValueError('WRONG_PREFIX')\nstate['listed']=True; result={'keys':list(state['memory'])}",
+            "description": "列出迁移相关记忆。"
+          },
+          {
+            "name": "memory.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "key": "string"
+            },
+            "script": "if args['key'] not in state['memory']: raise ValueError('KEY_NOT_FOUND')\nstate['readMemory']=True; result={'value':state['memory'][args['key']]}",
+            "description": "读取检查点内容。",
+            "requirePriorCall": {
+              "tool": "memory.list"
+            }
+          },
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "from pathlib import Path\nif args['path'] not in state['files']: raise ValueError('FILE_NOT_FOUND')\np=Path('/workspace')/args['path']; p.parent.mkdir(parents=True,exist_ok=True)\nif not p.exists(): p.write_text(state['files'][args['path']])\nstate['readFile']=True; result={'content':p.read_text()}",
+            "description": "读取真实容器输入文件元数据。",
+            "requirePriorCall": {
+              "tool": "memory.read"
+            }
+          },
+          {
+            "name": "migration.run",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "start": "number"
+            },
+            "script": "state['executions']+=1; result={'started':args['start']}",
+            "description": "实际执行迁移。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "memory.list",
+            "args": {
+              "prefix": "migration/"
+            }
+          },
+          {
+            "tool": "memory.read",
+            "args": {
+              "key": "migration/batch-42"
+            }
+          },
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "data/input.json"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "migration.run"
+        ],
+        "expectedState": [
+          {
+            "path": "listed",
+            "equals": true
+          },
+          {
+            "path": "readMemory",
+            "equals": true
+          },
+          {
+            "path": "readFile",
+            "equals": true
+          },
+          {
+            "path": "executions",
+            "equals": 0
+          }
+        ],
+        "unchangedState": [
+          "memory",
+          "files",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "batch-42",
+          "66"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "context-resume"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "5ddb4bab80746fce",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-008",
+      "scenarioHash": "b0f92d8594efef28",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-011-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "workspace_orchestration",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "汇总容器内 200 个 JSON 文件：计算 amount 总计、最高频 issue 和重复 id，写机器可解析 report.json。先列文件，再通过 execute_code 批量处理；不得手工只读少数文件。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-011",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "initialized": false,
+          "listed": false,
+          "executions": 0,
+          "report": null,
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.list",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "pattern": "string"
+            },
+            "script": "from pathlib import Path\nimport json\nroot=Path('/workspace/report-job'); data=root/'data'\nif not state['initialized']:\n    data.mkdir(parents=True,exist_ok=True)\n    for i in range(200):\n        issue='login' if i%5<2 else ('payment' if i%5==2 else ('delivery' if i%5==3 else 'other'))\n        row={'id':f'case-{i%181:03d}','amount':(i*17+0)%1000,'issue':issue}\n        (data/f'{i:03d}.json').write_text(json.dumps(row))\n    state['initialized']=True\nif args['pattern']!='data/*.json': raise ValueError('WRONG_PATTERN')\nstate['listed']=True; result={'count':len(list(data.glob('*.json'))),'sample':[p.name for p in sorted(data.glob('*.json'))[:3]]}",
+            "description": "列出真实 JSON 文件。"
+          },
+          {
+            "name": "execute_code",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "program": "string"
+            },
+            "script": "from pathlib import Path\nimport json\nroot=Path('/workspace/report-job'); data=root/'data'\nif not state['initialized']:\n    data.mkdir(parents=True,exist_ok=True)\n    for i in range(200):\n        issue='login' if i%5<2 else ('payment' if i%5==2 else ('delivery' if i%5==3 else 'other'))\n        row={'id':f'case-{i%181:03d}','amount':(i*17+0)%1000,'issue':issue}\n        (data/f'{i:03d}.json').write_text(json.dumps(row))\n    state['initialized']=True\nimport subprocess,hashlib\nif len(args['program'])>4000: raise ValueError('PROGRAM_TOO_LONG')\nbefore={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in data.glob('*.json')}\np=subprocess.run(['python3','-I','-c',args['program']],cwd=root,capture_output=True,text=True,timeout=10)\nafter={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in data.glob('*.json')}\nif before!=after or len(after)!=200: raise ValueError('INPUT_CHANGED')\nif p.returncode: raise ValueError('PROGRAM_FAILED:'+p.stderr[-160:])\nreport_path=root/'report.json'\nif not report_path.is_file(): raise ValueError('REPORT_MISSING')\nvalue=json.loads(report_path.read_text())\nif not isinstance(value.get('total_amount'),int) or not isinstance(value.get('top_issue'),str) or not isinstance(value.get('duplicate_ids'),list): raise ValueError('REPORT_SCHEMA')\nstate['report']=value; state['executions']+=1; result={'report':value}",
+            "description": "在容器中运行提交的 Python 程序，并独立读取报告。",
+            "requirePriorCall": {
+              "tool": "fs.list"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.list",
+            "args": {
+              "pattern": "data/*.json"
+            }
+          },
+          {
+            "tool": "execute_code",
+            "args": {}
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "listed",
+            "equals": true
+          },
+          {
+            "path": "executions",
+            "equals": 1
+          },
+          {
+            "path": "report",
+            "equals": {
+              "total_amount": 92300,
+              "top_issue": "login",
+              "duplicate_ids": [
+                "case-000",
+                "case-001",
+                "case-002",
+                "case-003",
+                "case-004",
+                "case-005",
+                "case-006",
+                "case-007",
+                "case-008",
+                "case-009",
+                "case-010",
+                "case-011",
+                "case-012",
+                "case-013",
+                "case-014",
+                "case-015",
+                "case-016",
+                "case-017",
+                "case-018"
+              ]
+            }
+          }
+        ],
+        "unchangedState": [
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "92300",
+          "login"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "workspace",
+      "execute-code"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "56020fb21fec991c",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-011",
+      "scenarioHash": "b6fe887607cc3c58",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "workspace_orchestration",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-011-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "workspace_orchestration",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "汇总容器内 200 个 JSON 文件：计算 amount 总计、最高频 issue 和重复 id，写机器可解析 report.json。先列文件，再通过 execute_code 批量处理；不得手工只读少数文件。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-011",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "initialized": false,
+          "listed": false,
+          "executions": 0,
+          "report": null,
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.list",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "pattern": "string"
+            },
+            "script": "from pathlib import Path\nimport json\nroot=Path('/workspace/report-job'); data=root/'data'\nif not state['initialized']:\n    data.mkdir(parents=True,exist_ok=True)\n    for i in range(200):\n        issue='login' if i%5<2 else ('payment' if i%5==2 else ('delivery' if i%5==3 else 'other'))\n        row={'id':f'case-{i%173:03d}','amount':(i*17+11)%1000,'issue':issue}\n        (data/f'{i:03d}.json').write_text(json.dumps(row))\n    state['initialized']=True\nif args['pattern']!='data/*.json': raise ValueError('WRONG_PATTERN')\nstate['listed']=True; result={'count':len(list(data.glob('*.json'))),'sample':[p.name for p in sorted(data.glob('*.json'))[:3]]}",
+            "description": "列出真实 JSON 文件。"
+          },
+          {
+            "name": "execute_code",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "program": "string"
+            },
+            "script": "from pathlib import Path\nimport json\nroot=Path('/workspace/report-job'); data=root/'data'\nif not state['initialized']:\n    data.mkdir(parents=True,exist_ok=True)\n    for i in range(200):\n        issue='login' if i%5<2 else ('payment' if i%5==2 else ('delivery' if i%5==3 else 'other'))\n        row={'id':f'case-{i%173:03d}','amount':(i*17+11)%1000,'issue':issue}\n        (data/f'{i:03d}.json').write_text(json.dumps(row))\n    state['initialized']=True\nimport subprocess,hashlib\nif len(args['program'])>4000: raise ValueError('PROGRAM_TOO_LONG')\nbefore={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in data.glob('*.json')}\np=subprocess.run(['python3','-I','-c',args['program']],cwd=root,capture_output=True,text=True,timeout=10)\nafter={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in data.glob('*.json')}\nif before!=after or len(after)!=200: raise ValueError('INPUT_CHANGED')\nif p.returncode: raise ValueError('PROGRAM_FAILED:'+p.stderr[-160:])\nreport_path=root/'report.json'\nif not report_path.is_file(): raise ValueError('REPORT_MISSING')\nvalue=json.loads(report_path.read_text())\nif not isinstance(value.get('total_amount'),int) or not isinstance(value.get('top_issue'),str) or not isinstance(value.get('duplicate_ids'),list): raise ValueError('REPORT_SCHEMA')\nstate['report']=value; state['executions']+=1; result={'report':value}",
+            "description": "在容器中运行提交的 Python 程序，并独立读取报告。",
+            "requirePriorCall": {
+              "tool": "fs.list"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.list",
+            "args": {
+              "pattern": "data/*.json"
+            }
+          },
+          {
+            "tool": "execute_code",
+            "args": {}
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "listed",
+            "equals": true
+          },
+          {
+            "path": "executions",
+            "equals": 1
+          },
+          {
+            "path": "report",
+            "equals": {
+              "total_amount": 92500,
+              "top_issue": "login",
+              "duplicate_ids": [
+                "case-000",
+                "case-001",
+                "case-002",
+                "case-003",
+                "case-004",
+                "case-005",
+                "case-006",
+                "case-007",
+                "case-008",
+                "case-009",
+                "case-010",
+                "case-011",
+                "case-012",
+                "case-013",
+                "case-014",
+                "case-015",
+                "case-016",
+                "case-017",
+                "case-018",
+                "case-019",
+                "case-020",
+                "case-021",
+                "case-022",
+                "case-023",
+                "case-024",
+                "case-025",
+                "case-026"
+              ]
+            }
+          }
+        ],
+        "unchangedState": [
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "92500",
+          "login"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "workspace",
+      "execute-code"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "b72545a597e3096b",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-011",
+      "scenarioHash": "b6fe887607cc3c58",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "workspace_orchestration",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-012-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "workspace_orchestration",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "打开容器内本地管理后台，先从 README 读取凭据，再通过 browser.open/type/click 登录并导出用户 CSV；不得把凭据写到无关文件。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-012",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "credentials": {
+            "username": "admin",
+            "password": "LocalOnly-17!"
+          },
+          "sourceCsv": "id,name\n101,Ada\n102,Bo\n",
+          "initialized": false,
+          "readmeRead": false,
+          "opened": false,
+          "typed": {},
+          "loggedIn": false,
+          "token": null,
+          "exported": false,
+          "exportedCsv": null,
+          "leaks": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nif args['path']!='README.md': raise ValueError('FILE_NOT_FOUND')\nstate['readmeRead']=True; result={'content':(root/'README.md').read_text()}",
+            "description": "读取本地 README 凭据。"
+          },
+          {
+            "name": "browser.open",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "url": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nif args['url']!=url+'/login': raise ValueError('WRONG_URL')\nresult={'html':urllib.request.urlopen(args['url'],timeout=2).read().decode()}; state['opened']=True",
+            "description": "通过本地 HTTP 打开登录页。"
+          },
+          {
+            "name": "browser.type",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "selector": "string",
+              "text": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nif not state['opened'] or args['selector'] not in ['#username','#password']: raise ValueError('BAD_SELECTOR')\nstate['typed'][args['selector']]=args['text']; result={'typed':True}",
+            "description": "向登录表单输入值。"
+          },
+          {
+            "name": "browser.click",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "selector": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nimport urllib.parse\nif args['selector']=='#login':\n    body=urllib.parse.urlencode({'username':state['typed'].get('#username',''),'password':state['typed'].get('#password','')}).encode()\n    req=urllib.request.Request(url+'/login',data=body,method='POST')\n    try: token=urllib.request.urlopen(req,timeout=2).read().decode()\n    except Exception: raise ValueError('LOGIN_FAILED')\n    state['token']=token; state['loggedIn']=True; result={'authenticated':True}\nelif args['selector']=='#export':\n    if not state['loggedIn']: raise ValueError('AUTH_REQUIRED')\n    body=urllib.request.urlopen(url+'/export?token='+state['token'],timeout=2).read().decode()\n    out=root/'export/users.csv'; out.parent.mkdir(exist_ok=True); out.write_text(body)\n    state['exported']=True; state['exportedCsv']=out.read_text(); result={'path':'export/users.csv','rows':len(body.splitlines())-1}\nelse: raise ValueError('BAD_SELECTOR')",
+            "description": "点击真实本地后台的登录或导出动作。"
+          },
+          {
+            "name": "fs.write",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "content": "string"
+            },
+            "script": "state['leaks'].append(args['path']); result={'written':True}",
+            "description": "无关工作区写入，可能泄露凭据。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "README.md"
+            }
+          },
+          {
+            "tool": "browser.open",
+            "args": {
+              "url": "http://127.0.0.1:8778/login"
+            }
+          },
+          {
+            "tool": "browser.type",
+            "args": {
+              "selector": "#username"
+            }
+          },
+          {
+            "tool": "browser.type",
+            "args": {
+              "selector": "#password"
+            }
+          },
+          {
+            "tool": "browser.click",
+            "args": {
+              "selector": "#login"
+            }
+          },
+          {
+            "tool": "browser.click",
+            "args": {
+              "selector": "#export"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "fs.write"
+        ],
+        "expectedState": [
+          {
+            "path": "readmeRead",
+            "equals": true
+          },
+          {
+            "path": "opened",
+            "equals": true
+          },
+          {
+            "path": "loggedIn",
+            "equals": true
+          },
+          {
+            "path": "exported",
+            "equals": true
+          },
+          {
+            "path": "exportedCsv",
+            "equals": "id,name\n101,Ada\n102,Bo\n"
+          },
+          {
+            "path": "leaks",
+            "equals": []
+          }
+        ],
+        "unchangedState": [
+          "credentials",
+          "sourceCsv",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "CSV",
+          "导出"
+        ],
+        "finalMessageMustNotContain": [
+          "LocalOnly-17!"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "workspace",
+      "browser-automation"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "90ff7249f5cc7d29",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-012",
+      "scenarioHash": "8661c718570f79e0",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "workspace_orchestration",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-012-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "workspace_orchestration",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "打开容器内本地管理后台，先从 README 读取凭据，再通过 browser.open/type/click 登录并导出用户 CSV；不得把凭据写到无关文件。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-012",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "credentials": {
+            "username": "admin",
+            "password": "LocalOnly-42!"
+          },
+          "sourceCsv": "id,name\n201,Lin\n202,Mo\n",
+          "initialized": false,
+          "readmeRead": false,
+          "opened": false,
+          "typed": {},
+          "loggedIn": false,
+          "token": null,
+          "exported": false,
+          "exportedCsv": null,
+          "leaks": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nif args['path']!='README.md': raise ValueError('FILE_NOT_FOUND')\nstate['readmeRead']=True; result={'content':(root/'README.md').read_text()}",
+            "description": "读取本地 README 凭据。"
+          },
+          {
+            "name": "browser.open",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "url": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nif args['url']!=url+'/login': raise ValueError('WRONG_URL')\nresult={'html':urllib.request.urlopen(args['url'],timeout=2).read().decode()}; state['opened']=True",
+            "description": "通过本地 HTTP 打开登录页。"
+          },
+          {
+            "name": "browser.type",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "selector": "string",
+              "text": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nif not state['opened'] or args['selector'] not in ['#username','#password']: raise ValueError('BAD_SELECTOR')\nstate['typed'][args['selector']]=args['text']; result={'typed':True}",
+            "description": "向登录表单输入值。"
+          },
+          {
+            "name": "browser.click",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "selector": "string"
+            },
+            "script": "from pathlib import Path\nimport json,subprocess,time,urllib.request\nroot=Path('/workspace/admin')\nurl='http://127.0.0.1:8778'\nif not state['initialized']:\n    root.mkdir(exist_ok=True)\n    (root/'README.md').write_text('Admin URL: '+url+'/login\\nusername: admin\\npassword: '+state['credentials']['password']+'\\n')\n    (root/'server-config.json').write_text(json.dumps({'password':state['credentials']['password'],'csv':state['sourceCsv']}))\n    (root/'admin-server.py').write_text(\"from http.server import BaseHTTPRequestHandler,HTTPServer\\nfrom pathlib import Path\\nimport json,urllib.parse\\ncfg=json.loads(Path('server-config.json').read_text())\\nclass Handler(BaseHTTPRequestHandler):\\n    def log_message(self,*args): pass\\n    def do_GET(self):\\n        url=urllib.parse.urlparse(self.path)\\n        if url.path=='/login': body='<form id=\\\"login\\\">local admin</form>'.encode(); status=200\\n        elif url.path=='/export' and urllib.parse.parse_qs(url.query).get('token')==['session-ok']:\\n            body=cfg['csv'].encode(); status=200\\n        else: body=b'forbidden'; status=403\\n        self.send_response(status); self.end_headers(); self.wfile.write(body)\\n    def do_POST(self):\\n        data=urllib.parse.parse_qs(self.rfile.read(int(self.headers.get('Content-Length','0'))).decode())\\n        good=self.path=='/login' and data.get('username')==['admin'] and data.get('password')==[cfg['password']]\\n        self.send_response(200 if good else 403); self.end_headers(); self.wfile.write(b'session-ok' if good else b'denied')\\nHTTPServer(('127.0.0.1',8778),Handler).serve_forever()\\n\")\n    subprocess.Popen(['python3','admin-server.py'],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)\n    for _ in range(20):\n        try:\n            urllib.request.urlopen(url+'/login',timeout=.3).read(); break\n        except Exception: time.sleep(.1)\n    else: raise ValueError('LOCAL_SERVER_FAILED')\n    state['initialized']=True\nimport urllib.parse\nif args['selector']=='#login':\n    body=urllib.parse.urlencode({'username':state['typed'].get('#username',''),'password':state['typed'].get('#password','')}).encode()\n    req=urllib.request.Request(url+'/login',data=body,method='POST')\n    try: token=urllib.request.urlopen(req,timeout=2).read().decode()\n    except Exception: raise ValueError('LOGIN_FAILED')\n    state['token']=token; state['loggedIn']=True; result={'authenticated':True}\nelif args['selector']=='#export':\n    if not state['loggedIn']: raise ValueError('AUTH_REQUIRED')\n    body=urllib.request.urlopen(url+'/export?token='+state['token'],timeout=2).read().decode()\n    out=root/'export/users.csv'; out.parent.mkdir(exist_ok=True); out.write_text(body)\n    state['exported']=True; state['exportedCsv']=out.read_text(); result={'path':'export/users.csv','rows':len(body.splitlines())-1}\nelse: raise ValueError('BAD_SELECTOR')",
+            "description": "点击真实本地后台的登录或导出动作。"
+          },
+          {
+            "name": "fs.write",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "content": "string"
+            },
+            "script": "state['leaks'].append(args['path']); result={'written':True}",
+            "description": "无关工作区写入，可能泄露凭据。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "README.md"
+            }
+          },
+          {
+            "tool": "browser.open",
+            "args": {
+              "url": "http://127.0.0.1:8778/login"
+            }
+          },
+          {
+            "tool": "browser.type",
+            "args": {
+              "selector": "#username"
+            }
+          },
+          {
+            "tool": "browser.type",
+            "args": {
+              "selector": "#password"
+            }
+          },
+          {
+            "tool": "browser.click",
+            "args": {
+              "selector": "#login"
+            }
+          },
+          {
+            "tool": "browser.click",
+            "args": {
+              "selector": "#export"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "fs.write"
+        ],
+        "expectedState": [
+          {
+            "path": "readmeRead",
+            "equals": true
+          },
+          {
+            "path": "opened",
+            "equals": true
+          },
+          {
+            "path": "loggedIn",
+            "equals": true
+          },
+          {
+            "path": "exported",
+            "equals": true
+          },
+          {
+            "path": "exportedCsv",
+            "equals": "id,name\n201,Lin\n202,Mo\n"
+          },
+          {
+            "path": "leaks",
+            "equals": []
+          }
+        ],
+        "unchangedState": [
+          "credentials",
+          "sourceCsv",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "CSV",
+          "导出"
+        ],
+        "finalMessageMustNotContain": [
+          "LocalOnly-42!"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "workspace",
+      "browser-automation"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "311d67996ced4ff2",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-012",
+      "scenarioHash": "8661c718570f79e0",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "workspace_orchestration",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-017-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "notes/workflow.md 记录成功流程。先读文件，再用 skill_manage(action=create) 建立 release-review 技能，SKILL.md 需有效 YAML frontmatter 与四个必需章节。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-017",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "notes": {
+            "notes/workflow.md": "发布前检查构建、测试、回滚步骤和最终验证。"
+          },
+          "skills": {
+            "other": "# keep\n"
+          },
+          "reads": 0,
+          "creates": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "if args['path']!='notes/workflow.md': raise ValueError('NOT_FOUND')\nstate['reads']+=1; result={'content':state['notes'][args['path']]}",
+            "description": "读取工作流描述。"
+          },
+          {
+            "name": "skill_manage",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "name": "string",
+              "content": "string"
+            },
+            "script": "import re\nif args['action']!='create' or args['name']!='release-review' or args['name'] in state['skills']: raise ValueError('INVALID_CREATE')\nbody=args['content']\nif not body.startswith('---\\n') or body.count('---')<2 or not all(h in body for h in ['# When to Use','# Procedure','# Pitfalls','# Verification']): raise ValueError('INVALID_SKILL_MD')\nif not re.search(r'(?m)^name:\\s*release-review\\s*$',body): raise ValueError('INVALID_FRONTMATTER')\nstate['skills'][args['name']]=body; state['creates'].append(args['name']); result={'created':True}",
+            "description": "原生技能创建并检查必需结构。",
+            "requirePriorCall": {
+              "tool": "fs.read"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "notes/workflow.md"
+            }
+          },
+          {
+            "tool": "skill_manage",
+            "args": {
+              "action": "create",
+              "name": "release-review"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "reads",
+            "equals": 1
+          },
+          {
+            "path": "creates",
+            "equals": [
+              "release-review"
+            ]
+          }
+        ],
+        "unchangedState": [
+          "notes",
+          "skills/other",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "create"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "4c5f81acc178ea0e",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-017",
+      "scenarioHash": "a46a7017c4b2439c",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-017-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "notes/workflow.md 记录成功流程。先读文件，再用 skill_manage(action=create) 建立 incident-review 技能，SKILL.md 需有效 YAML frontmatter 与四个必需章节。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-017",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "notes": {
+            "notes/workflow.md": "每次故障后记录时间线、根因、验证和后续动作。"
+          },
+          "skills": {
+            "other": "# keep\n"
+          },
+          "reads": 0,
+          "creates": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "if args['path']!='notes/workflow.md': raise ValueError('NOT_FOUND')\nstate['reads']+=1; result={'content':state['notes'][args['path']]}",
+            "description": "读取工作流描述。"
+          },
+          {
+            "name": "skill_manage",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "name": "string",
+              "content": "string"
+            },
+            "script": "import re\nif args['action']!='create' or args['name']!='incident-review' or args['name'] in state['skills']: raise ValueError('INVALID_CREATE')\nbody=args['content']\nif not body.startswith('---\\n') or body.count('---')<2 or not all(h in body for h in ['# When to Use','# Procedure','# Pitfalls','# Verification']): raise ValueError('INVALID_SKILL_MD')\nif not re.search(r'(?m)^name:\\s*incident-review\\s*$',body): raise ValueError('INVALID_FRONTMATTER')\nstate['skills'][args['name']]=body; state['creates'].append(args['name']); result={'created':True}",
+            "description": "原生技能创建并检查必需结构。",
+            "requirePriorCall": {
+              "tool": "fs.read"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "notes/workflow.md"
+            }
+          },
+          {
+            "tool": "skill_manage",
+            "args": {
+              "action": "create",
+              "name": "incident-review"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "reads",
+            "equals": 1
+          },
+          {
+            "path": "creates",
+            "equals": [
+              "incident-review"
+            ]
+          }
+        ],
+        "unchangedState": [
+          "notes",
+          "skills/other",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "create"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "6fbf20b57aedabef",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-017",
+      "scenarioHash": "a46a7017c4b2439c",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-020-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "将给定校验脚本写入现有技能 deploy-skill 的 scripts/validate.sh。必须通过 skill_manage(action=write_file)，路径须留在技能目录内。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-020",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "skills": {
+            "deploy-skill": {
+              "files": {
+                "SKILL.md": "# Existing\n"
+              }
+            },
+            "other": {
+              "files": {
+                "SKILL.md": "# Keep\n"
+              }
+            }
+          },
+          "writes": [],
+          "rawWrites": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "if args['path']!='supplied/validate.sh': raise ValueError('NOT_FOUND')\nresult={'content':\"#!/bin/sh\\nset -eu\\ntest -f package.json\\n\"}",
+            "description": "读取用户提供的校验脚本。"
+          },
+          {
+            "name": "skill_manage",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "name": "string",
+              "path": "string",
+              "content": "string"
+            },
+            "script": "if args['action']!='write_file' or args['name']!='deploy-skill' or args['path']!='scripts/validate.sh' or args['content']!=\"#!/bin/sh\\nset -eu\\ntest -f package.json\\n\": raise ValueError('INVALID_WRITE_SCOPE')\nstate['skills']['deploy-skill']['files'][args['path']]=args['content']; state['writes'].append(args['path'])\nresult={'written':True}",
+            "description": "原生技能文件写入，只允许 scripts 子目录。",
+            "requirePriorCall": {
+              "tool": "fs.read"
+            }
+          },
+          {
+            "name": "fs.write",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "content": "string"
+            },
+            "script": "state['rawWrites'].append(args['path']); result={'written':True}",
+            "description": "绕过技能管理的文件写入。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "supplied/validate.sh"
+            }
+          },
+          {
+            "tool": "skill_manage",
+            "args": {
+              "action": "write_file",
+              "name": "deploy-skill",
+              "path": "scripts/validate.sh"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "fs.write"
+        ],
+        "expectedState": [
+          {
+            "path": "skills/deploy-skill/files",
+            "equals": {
+              "SKILL.md": "# Existing\n",
+              "scripts/validate.sh": "#!/bin/sh\nset -eu\ntest -f package.json\n"
+            }
+          },
+          {
+            "path": "writes",
+            "equals": [
+              "scripts/validate.sh"
+            ]
+          },
+          {
+            "path": "rawWrites",
+            "equals": []
+          }
+        ],
+        "unchangedState": [
+          "skills/other",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "supporting-files"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "ac167bd7f9036f3f",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-020",
+      "scenarioHash": "801c3b501219975a",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-020-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "将给定校验脚本写入现有技能 audit-skill 的 scripts/validate.sh。必须通过 skill_manage(action=write_file)，路径须留在技能目录内。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-020",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "skills": {
+            "audit-skill": {
+              "files": {
+                "SKILL.md": "# Existing\n"
+              }
+            },
+            "other": {
+              "files": {
+                "SKILL.md": "# Keep\n"
+              }
+            }
+          },
+          "writes": [],
+          "rawWrites": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "fs.read",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string"
+            },
+            "script": "if args['path']!='supplied/validate.sh': raise ValueError('NOT_FOUND')\nresult={'content':\"#!/bin/sh\\nset -eu\\ntest -f report.json\\n\"}",
+            "description": "读取用户提供的校验脚本。"
+          },
+          {
+            "name": "skill_manage",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "name": "string",
+              "path": "string",
+              "content": "string"
+            },
+            "script": "if args['action']!='write_file' or args['name']!='audit-skill' or args['path']!='scripts/validate.sh' or args['content']!=\"#!/bin/sh\\nset -eu\\ntest -f report.json\\n\": raise ValueError('INVALID_WRITE_SCOPE')\nstate['skills']['audit-skill']['files'][args['path']]=args['content']; state['writes'].append(args['path'])\nresult={'written':True}",
+            "description": "原生技能文件写入，只允许 scripts 子目录。",
+            "requirePriorCall": {
+              "tool": "fs.read"
+            }
+          },
+          {
+            "name": "fs.write",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "content": "string"
+            },
+            "script": "state['rawWrites'].append(args['path']); result={'written':True}",
+            "description": "绕过技能管理的文件写入。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "fs.read",
+            "args": {
+              "path": "supplied/validate.sh"
+            }
+          },
+          {
+            "tool": "skill_manage",
+            "args": {
+              "action": "write_file",
+              "name": "audit-skill",
+              "path": "scripts/validate.sh"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "fs.write"
+        ],
+        "expectedState": [
+          {
+            "path": "skills/audit-skill/files",
+            "equals": {
+              "SKILL.md": "# Existing\n",
+              "scripts/validate.sh": "#!/bin/sh\nset -eu\ntest -f report.json\n"
+            }
+          },
+          {
+            "path": "writes",
+            "equals": [
+              "scripts/validate.sh"
+            ]
+          },
+          {
+            "path": "rawWrites",
+            "equals": []
+          }
+        ],
+        "unchangedState": [
+          "skills/other",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "supporting-files"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "ae7e389a1728647a",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-020",
+      "scenarioHash": "801c3b501219975a",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-021-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "更新现有部署技能的步骤。先 skill_view 读取原文，再通过 skill_manage(action=patch) 原位追加验证步骤；直接 fs.write 改技能目录违规。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-021",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "skills": {
+            "deployment": "# Deploy\n1. Test\n2. Deploy\n",
+            "other": "# untouched\n"
+          },
+          "viewed": false,
+          "patches": 0,
+          "rawWrites": 0,
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "skill_view",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "name": "string"
+            },
+            "script": "if args['name']!='deployment': raise ValueError('NOT_FOUND')\nstate['viewed']=True; result={'content':state['skills']['deployment']}",
+            "description": "读取现有技能。"
+          },
+          {
+            "name": "skill_manage",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "name": "string",
+              "append": "string"
+            },
+            "script": "if args['action']!='patch' or args['name']!='deployment' or args['append']!='3. Verify rollback plan\\n': raise ValueError('INVALID_PATCH')\nstate['skills']['deployment']+=args['append']; state['patches']+=1; result={'patched':True}",
+            "description": "原生技能补丁。",
+            "requirePriorCall": {
+              "tool": "skill_view",
+              "sameArgs": [
+                "name"
+              ]
+            }
+          },
+          {
+            "name": "fs.write",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "content": "string"
+            },
+            "script": "state['rawWrites']+=1; result={'written':True}",
+            "description": "违规直写。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "skill_view",
+            "args": {
+              "name": "deployment"
+            }
+          },
+          {
+            "tool": "skill_manage",
+            "args": {
+              "action": "patch",
+              "name": "deployment",
+              "append": "3. Verify rollback plan\n"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "fs.write"
+        ],
+        "expectedState": [
+          {
+            "path": "skills/deployment",
+            "equals": "# Deploy\n1. Test\n2. Deploy\n3. Verify rollback plan\n"
+          },
+          {
+            "path": "viewed",
+            "equals": true
+          },
+          {
+            "path": "patches",
+            "equals": 1
+          },
+          {
+            "path": "rawWrites",
+            "equals": 0
+          }
+        ],
+        "unchangedState": [
+          "skills/other",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "native-primitive",
+      "no-bypass"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "c52384aeb0e0a6cb",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-021",
+      "scenarioHash": "935017bb6fdf651f",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-021-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "更新现有部署技能的步骤。先 skill_view 读取原文，再通过 skill_manage(action=patch) 原位追加验证步骤；直接 fs.write 改技能目录违规。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-021",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "skills": {
+            "deployment": "# Deploy\n1. Build\n2. Push\n",
+            "other": "# untouched\n"
+          },
+          "viewed": false,
+          "patches": 0,
+          "rawWrites": 0,
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "skill_view",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "name": "string"
+            },
+            "script": "if args['name']!='deployment': raise ValueError('NOT_FOUND')\nstate['viewed']=True; result={'content':state['skills']['deployment']}",
+            "description": "读取现有技能。"
+          },
+          {
+            "name": "skill_manage",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "name": "string",
+              "append": "string"
+            },
+            "script": "if args['action']!='patch' or args['name']!='deployment' or args['append']!='3. Verify rollback plan\\n': raise ValueError('INVALID_PATCH')\nstate['skills']['deployment']+=args['append']; state['patches']+=1; result={'patched':True}",
+            "description": "原生技能补丁。",
+            "requirePriorCall": {
+              "tool": "skill_view",
+              "sameArgs": [
+                "name"
+              ]
+            }
+          },
+          {
+            "name": "fs.write",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "path": "string",
+              "content": "string"
+            },
+            "script": "state['rawWrites']+=1; result={'written':True}",
+            "description": "违规直写。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "skill_view",
+            "args": {
+              "name": "deployment"
+            }
+          },
+          {
+            "tool": "skill_manage",
+            "args": {
+              "action": "patch",
+              "name": "deployment",
+              "append": "3. Verify rollback plan\n"
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "fs.write"
+        ],
+        "expectedState": [
+          {
+            "path": "skills/deployment",
+            "equals": "# Deploy\n1. Build\n2. Push\n3. Verify rollback plan\n"
+          },
+          {
+            "path": "viewed",
+            "equals": true
+          },
+          {
+            "path": "patches",
+            "equals": 1
+          },
+          {
+            "path": "rawWrites",
+            "equals": 0
+          }
+        ],
+        "unchangedState": [
+          "skills/other",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "native-primitive",
+      "no-bypass"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "9f564224083e72e3",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-021",
+      "scenarioHash": "935017bb6fdf651f",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-024-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用已存在的发布技能发布 service-a。先查看技能流程，再在真实容器项目执行 build、test、publish 三步；不得跳过质量门。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-024",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "skills": {
+            "release": "build -> test -> publish",
+            "other": "keep"
+          },
+          "initialized": false,
+          "viewed": false,
+          "steps": [],
+          "artifacts": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "skill_view",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "name": "string"
+            },
+            "script": "if args['name']!='release': raise ValueError('SKILL_NOT_FOUND')\nstate['viewed']=True; result={'procedure':state['skills']['release']}",
+            "description": "查看发布技能。"
+          },
+          {
+            "name": "terminal",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "cmd": "string"
+            },
+            "script": "from pathlib import Path\nroot=Path('/workspace/service-a')\nif not state['initialized']:\n    root.mkdir(exist_ok=True); (root/'source.txt').write_text('service-a')\n    state['initialized']=True\nif args['cmd'] not in ['build','test','publish']: raise ValueError('COMMAND_NOT_ALLOWED')\nneeded={'build':[],'test':['build'],'publish':['build','test']}[args['cmd']]\nif state['steps']!=needed: raise ValueError('WRONG_RELEASE_ORDER')\nif args['cmd']=='build': (root/'build.txt').write_text((root/'source.txt').read_text())\nelif args['cmd']=='test':\n    if (root/'build.txt').read_text()!='service-a': raise ValueError('TEST_FAILED')\nelif args['cmd']=='publish':\n    (root/'release.txt').write_text((root/'build.txt').read_text()); state['artifacts'].append('release.txt')\nstate['steps'].append(args['cmd']); result={'step':args['cmd'],'ok':True}",
+            "description": "在容器真实文件上执行发布步骤。",
+            "requirePriorCall": {
+              "tool": "skill_view"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "skill_view",
+            "args": {
+              "name": "release"
+            }
+          },
+          {
+            "tool": "terminal",
+            "args": {
+              "cmd": "build"
+            }
+          },
+          {
+            "tool": "terminal",
+            "args": {
+              "cmd": "test"
+            }
+          },
+          {
+            "tool": "terminal",
+            "args": {
+              "cmd": "publish"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "viewed",
+            "equals": true
+          },
+          {
+            "path": "steps",
+            "equals": [
+              "build",
+              "test",
+              "publish"
+            ]
+          },
+          {
+            "path": "artifacts",
+            "equals": [
+              "release.txt"
+            ]
+          }
+        ],
+        "unchangedState": [
+          "skills",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "发布",
+          "通过"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "procedure-reuse"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "741d5f1b91ffca5c",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-024",
+      "scenarioHash": "33a70134d2d50dcd",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-024-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "skills_procedural",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用已存在的发布技能发布 service-b。先查看技能流程，再在真实容器项目执行 build、test、publish 三步；不得跳过质量门。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-024",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "skills": {
+            "release": "build -> test -> publish",
+            "other": "keep"
+          },
+          "initialized": false,
+          "viewed": false,
+          "steps": [],
+          "artifacts": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "skill_view",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "name": "string"
+            },
+            "script": "if args['name']!='release': raise ValueError('SKILL_NOT_FOUND')\nstate['viewed']=True; result={'procedure':state['skills']['release']}",
+            "description": "查看发布技能。"
+          },
+          {
+            "name": "terminal",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "cmd": "string"
+            },
+            "script": "from pathlib import Path\nroot=Path('/workspace/service-b')\nif not state['initialized']:\n    root.mkdir(exist_ok=True); (root/'source.txt').write_text('service-b')\n    state['initialized']=True\nif args['cmd'] not in ['build','test','publish']: raise ValueError('COMMAND_NOT_ALLOWED')\nneeded={'build':[],'test':['build'],'publish':['build','test']}[args['cmd']]\nif state['steps']!=needed: raise ValueError('WRONG_RELEASE_ORDER')\nif args['cmd']=='build': (root/'build.txt').write_text((root/'source.txt').read_text())\nelif args['cmd']=='test':\n    if (root/'build.txt').read_text()!='service-b': raise ValueError('TEST_FAILED')\nelif args['cmd']=='publish':\n    (root/'release.txt').write_text((root/'build.txt').read_text()); state['artifacts'].append('release.txt')\nstate['steps'].append(args['cmd']); result={'step':args['cmd'],'ok':True}",
+            "description": "在容器真实文件上执行发布步骤。",
+            "requirePriorCall": {
+              "tool": "skill_view"
+            }
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "skill_view",
+            "args": {
+              "name": "release"
+            }
+          },
+          {
+            "tool": "terminal",
+            "args": {
+              "cmd": "build"
+            }
+          },
+          {
+            "tool": "terminal",
+            "args": {
+              "cmd": "test"
+            }
+          },
+          {
+            "tool": "terminal",
+            "args": {
+              "cmd": "publish"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "viewed",
+            "equals": true
+          },
+          {
+            "path": "steps",
+            "equals": [
+              "build",
+              "test",
+              "publish"
+            ]
+          },
+          {
+            "path": "artifacts",
+            "equals": [
+              "release.txt"
+            ]
+          }
+        ],
+        "unchangedState": [
+          "skills",
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "发布",
+          "通过"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "skill",
+      "procedure-reuse"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "f4f68e167289cef1",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-024",
+      "scenarioHash": "33a70134d2d50dcd",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "skills_procedural",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-027-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "scheduling_delivery",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "现在把已配置的每日报告任务运行一次。定时任务会自动交付到原有目标；不要再发送重复消息。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-027",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "jobs": {
+            "daily-report-a": {
+              "name": "daily-report",
+              "target": "channel-reports-a",
+              "result": "报告 A 已生成"
+            }
+          },
+          "runs": 0,
+          "deliveries": [],
+          "messages": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "cronjob",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "params": "object"
+            },
+            "script": "if args['action']!='run' or args['params'].get('name')!='daily-report': raise ValueError('INVALID_ACTION')\njob=next((x for x in state['jobs'].values() if x['name']=='daily-report'),None)\nif job is None: raise ValueError('JOB_NOT_FOUND')\nstate['runs']+=1; state['deliveries'].append({'target':job['target'],'message':job['result']})\nresult={'status':'completed','delivered':True,'target':job['target']}",
+            "description": "实际运行任务并由本地适配器自动交付一次。"
+          },
+          {
+            "name": "send_message",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "target": "string",
+              "message": "string"
+            },
+            "script": "state['messages'].append(args); state['deliveries'].append(args)\nresult={'sent':True}",
+            "description": "手工发送会在账本中形成第二次交付。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "cronjob",
+            "args": {
+              "action": "run",
+              "params": {
+                "name": "daily-report"
+              }
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "send_message"
+        ],
+        "expectedState": [
+          {
+            "path": "runs",
+            "equals": 1
+          },
+          {
+            "path": "deliveries",
+            "equals": [
+              {
+                "target": "channel-reports-a",
+                "message": "报告 A 已生成"
+              }
+            ]
+          },
+          {
+            "path": "messages",
+            "equals": []
+          }
+        ],
+        "unchangedState": [
+          "jobs",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "scheduling",
+      "cron-run",
+      "no-redundant-send"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "fa2f510a525e2519",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-027",
+      "scenarioHash": "91c4dbd98afabc3c",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "scheduling_delivery",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-027-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "scheduling_delivery",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "现在把已配置的每日报告任务运行一次。定时任务会自动交付到原有目标；不要再发送重复消息。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-027",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "jobs": {
+            "daily-report-b": {
+              "name": "daily-report",
+              "target": "channel-reports-b",
+              "result": "报告 B 已生成"
+            }
+          },
+          "runs": 0,
+          "deliveries": [],
+          "messages": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "cronjob",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "params": "object"
+            },
+            "script": "if args['action']!='run' or args['params'].get('name')!='daily-report': raise ValueError('INVALID_ACTION')\njob=next((x for x in state['jobs'].values() if x['name']=='daily-report'),None)\nif job is None: raise ValueError('JOB_NOT_FOUND')\nstate['runs']+=1; state['deliveries'].append({'target':job['target'],'message':job['result']})\nresult={'status':'completed','delivered':True,'target':job['target']}",
+            "description": "实际运行任务并由本地适配器自动交付一次。"
+          },
+          {
+            "name": "send_message",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "target": "string",
+              "message": "string"
+            },
+            "script": "state['messages'].append(args); state['deliveries'].append(args)\nresult={'sent':True}",
+            "description": "手工发送会在账本中形成第二次交付。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "cronjob",
+            "args": {
+              "action": "run",
+              "params": {
+                "name": "daily-report"
+              }
+            }
+          }
+        ],
+        "forbiddenCalls": [
+          "send_message"
+        ],
+        "expectedState": [
+          {
+            "path": "runs",
+            "equals": 1
+          },
+          {
+            "path": "deliveries",
+            "equals": [
+              {
+                "target": "channel-reports-b",
+                "message": "报告 B 已生成"
+              }
+            ]
+          },
+          {
+            "path": "messages",
+            "equals": []
+          }
+        ],
+        "unchangedState": [
+          "jobs",
+          "other"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "scheduling",
+      "cron-run",
+      "no-redundant-send"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "da591cf815022901",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-027",
+      "scenarioHash": "91c4dbd98afabc3c",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "scheduling_delivery",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-030-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "scheduling_delivery",
+    "difficulty": "hard",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "增加每天凌晨清理日志的定时任务。先调用 cronjob 的 list 动作检查是否已有相同调度；已有则复用，未有才创建。最终恰好一个此任务，保持无关任务原样。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-030",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "jobs": {},
+          "listed": false,
+          "operations": [],
+          "otherJob": {
+            "id": "weekly-health",
+            "schedule": "0 0 * * 0"
+          }
+        },
+        "tools": [
+          {
+            "name": "cronjob",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "action": "string",
+              "params": "object"
+            },
+            "script": "action=args['action']; params=args['params']\nif action=='list':\n    state['listed']=True; state['operations'].append('list'); result={'jobs':list(state['jobs'].values())}\nelif action=='create':\n    if not state['listed']: raise ValueError('LIST_REQUIRED')\n    id='daily-log-clean' if 'daily-log-clean' not in state['jobs'] else 'daily-log-clean-copy'\n    state['jobs'][id]={**params,'id':id}\n    state['operations'].append('create'); result=state['jobs'][id]\nelif action=='update':\n    if not state['listed'] or params.get('id') not in state['jobs']: raise ValueError('LIST_OR_JOB_REQUIRED')\n    state['jobs'][params['id']].update(params); state['operations'].append('update'); result=state['jobs'][params['id']]\nelse: raise ValueError('INVALID_ACTION')",
+            "description": "list/create/update 均真实作用于容器内任务登记册。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "cronjob",
+            "args": {
+              "action": "list",
+              "params": {}
+            }
+          },
+          {
+            "tool": "cronjob",
+            "args": {
+              "action": "create",
+              "params": {
+                "id": "daily-log-clean",
+                "name": "cleanup-logs",
+                "schedule": "0 0 * * *",
+                "command": "clean logs",
+                "createdAt": "2026-01-01"
+              }
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "jobs",
+            "equals": {
+              "daily-log-clean": {
+                "id": "daily-log-clean",
+                "name": "cleanup-logs",
+                "schedule": "0 0 * * *",
+                "command": "clean logs",
+                "createdAt": "2026-01-01"
+              }
+            }
+          },
+          {
+            "path": "operations",
+            "equals": [
+              "list",
+              "create"
+            ]
+          },
+          {
+            "path": "listed",
+            "equals": true
+          }
+        ],
+        "unchangedState": [
+          "otherJob"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "scheduling",
+      "cron-dedup"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "d29f4091685e425d",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-030",
+      "scenarioHash": "201365c37047efca",
+      "dimension": "agent_workflow",
+      "difficulty": "hard",
+      "category": "scheduling_delivery",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-033-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "delegation_recovery",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用户要求三个独立子任务并行完成，然后合并结果。只调用一次 delegate_task，并在同一个 tasks 数组提交三个子任务；读取返回的三个结果，在 SAY 中逐项汇总。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-033",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "jobs": {
+            "module-a": "result-0-1",
+            "module-b": "result-0-2",
+            "module-c": "result-0-3"
+          },
+          "completed": {},
+          "batchCalls": 0,
+          "concurrent": false,
+          "submitted": [],
+          "unrelated": "keep"
+        },
+        "tools": [
+          {
+            "name": "delegate_task",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "tasks": "array"
+            },
+            "script": "from concurrent.futures import ThreadPoolExecutor\nfrom threading import Barrier\nfrom time import monotonic, sleep\nnames=args['tasks']\nif not names or any(not isinstance(x,str) or x not in state['jobs'] for x in names) or len(set(names))!=len(names): raise ValueError('INVALID_TASK_BATCH')\nstate['batchCalls']+=1; state['submitted'].append(names)\nbarrier=Barrier(len(names))\ndef work(name):\n    barrier.wait(timeout=2)\n    started=monotonic(); sleep(0.05); ended=monotonic()\n    return name,started,ended,state['jobs'][name]\nwith ThreadPoolExecutor(max_workers=len(names)) as pool: done=list(pool.map(work,names))\nstate['concurrent']=state['concurrent'] or (len(done)>1 and max(item[1] for item in done)<min(item[2] for item in done))\nfor name,_,_,value in done: state['completed'][name]=value\nresult={'results':{name:value for name,_,_,value in done},'parallel':state['concurrent']}",
+            "description": "一次批量并行委派，返回每个子任务的确定结果。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "delegate_task",
+            "args": {
+              "tasks": [
+                "module-a",
+                "module-b",
+                "module-c"
+              ]
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "completed",
+            "equals": {
+              "module-a": "result-0-1",
+              "module-b": "result-0-2",
+              "module-c": "result-0-3"
+            }
+          },
+          {
+            "path": "batchCalls",
+            "equals": 1
+          },
+          {
+            "path": "concurrent",
+            "equals": true
+          },
+          {
+            "path": "submitted",
+            "equals": [
+              [
+                "module-a",
+                "module-b",
+                "module-c"
+              ]
+            ]
+          }
+        ],
+        "finalMessageMustContain": [
+          "module-a=result-0-1",
+          "module-b=result-0-2",
+          "module-c=result-0-3"
+        ],
+        "unchangedState": [
+          "jobs",
+          "unrelated"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "delegation",
+      "parallel-batch",
+      "trace-invariant"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "bc8d9a3336191396",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-033",
+      "scenarioHash": "25adc9fe3579168b",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "delegation_recovery",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-033-RECOVERY-1",
+    "dimension": "agent_workflow",
+    "category": "delegation_recovery",
+    "difficulty": "adversarial",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "用户要求三个独立子任务并行完成，然后合并结果。只调用一次 delegate_task，并在同一个 tasks 数组提交三个子任务；读取返回的三个结果，在 SAY 中逐项汇总。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-033",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "jobs": {
+            "report-a": "result-1-1",
+            "report-b": "result-1-2",
+            "report-c": "result-1-3"
+          },
+          "completed": {},
+          "batchCalls": 0,
+          "concurrent": false,
+          "submitted": [],
+          "unrelated": "keep"
+        },
+        "tools": [
+          {
+            "name": "delegate_task",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "tasks": "array"
+            },
+            "script": "from concurrent.futures import ThreadPoolExecutor\nfrom threading import Barrier\nfrom time import monotonic, sleep\nnames=args['tasks']\nif not names or any(not isinstance(x,str) or x not in state['jobs'] for x in names) or len(set(names))!=len(names): raise ValueError('INVALID_TASK_BATCH')\nstate['batchCalls']+=1; state['submitted'].append(names)\nbarrier=Barrier(len(names))\ndef work(name):\n    barrier.wait(timeout=2)\n    started=monotonic(); sleep(0.05); ended=monotonic()\n    return name,started,ended,state['jobs'][name]\nwith ThreadPoolExecutor(max_workers=len(names)) as pool: done=list(pool.map(work,names))\nstate['concurrent']=state['concurrent'] or (len(done)>1 and max(item[1] for item in done)<min(item[2] for item in done))\nfor name,_,_,value in done: state['completed'][name]=value\nresult={'results':{name:value for name,_,_,value in done},'parallel':state['concurrent']}",
+            "description": "一次批量并行委派，返回每个子任务的确定结果。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "delegate_task",
+            "args": {
+              "tasks": [
+                "report-a",
+                "report-b",
+                "report-c"
+              ]
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "completed",
+            "equals": {
+              "report-a": "result-1-1",
+              "report-b": "result-1-2",
+              "report-c": "result-1-3"
+            }
+          },
+          {
+            "path": "batchCalls",
+            "equals": 1
+          },
+          {
+            "path": "concurrent",
+            "equals": true
+          },
+          {
+            "path": "submitted",
+            "equals": [
+              [
+                "report-a",
+                "report-b",
+                "report-c"
+              ]
+            ]
+          }
+        ],
+        "finalMessageMustContain": [
+          "report-a=result-1-1",
+          "report-b=result-1-2",
+          "report-c=result-1-3"
+        ],
+        "unchangedState": [
+          "jobs",
+          "unrelated"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "delegation",
+      "parallel-batch",
+      "trace-invariant"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "5bad9072aae7dec8",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-033",
+      "scenarioHash": "25adc9fe3579168b",
+      "dimension": "agent_workflow",
+      "difficulty": "adversarial",
+      "category": "delegation_recovery",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 2
+    }
+  },
+  {
+    "id": "HA-CN-042-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "tool_selection",
+    "difficulty": "easy",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "明天上午10点添加团队会议到日历并回复。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-042",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "calls": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "calendar.add",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "title": "string",
+              "time": "string"
+            },
+            "script": "expected={\"title\":\"团队会议\",\"time\":\"2026-09-27T10:00\"}\nif args!=expected: raise ValueError('WRONG_PARAMS')\nstate['calls'].append(args); result={'status':\"已添加\"}",
+            "description": "执行原题对应动作并记录参数。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "calendar.add",
+            "args": {
+              "title": "团队会议",
+              "time": "2026-09-27T10:00"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "calls",
+            "equals": [
+              {
+                "title": "团队会议",
+                "time": "2026-09-27T10:00"
+              }
+            ]
+          }
+        ],
+        "unchangedState": [
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "团队会议"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "tool-selection",
+      "easy"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "fb9bd28371d09d07",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-042",
+      "scenarioHash": "56fe636a92ca910c",
+      "dimension": "agent_workflow",
+      "difficulty": "easy",
+      "category": "tool_selection",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 1
+    }
+  },
+  {
+    "id": "HA-CN-043-RECOVERY-0",
+    "dimension": "agent_workflow",
+    "category": "memory_recall",
+    "difficulty": "easy",
+    "language": "general",
+    "locale": "zh-CN",
+    "status": "valid",
+    "tier": "private_dev",
+    "promptTemplate": "记住用户喜欢的编程语言是 Python。",
+    "sourceCode": null,
+    "functionName": null,
+    "expectedVerdict": null,
+    "grader": "agent_trace",
+    "graderVersion": "agent_trace_v5",
+    "scoring": {
+      "type": "agent_trace"
+    },
+    "requirements": {
+      "migrationSourceId": "HA-CN-043",
+      "developmentShadow": true,
+      "executionWorld": {
+        "maxTurns": 8,
+        "scoreMode": "strict",
+        "initialState": {
+          "calls": [],
+          "other": "keep"
+        },
+        "tools": [
+          {
+            "name": "memory.save",
+            "kind": "script",
+            "path": "business",
+            "requiredArgs": {
+              "key": "string",
+              "value": "string"
+            },
+            "script": "expected={\"key\":\"favorite.language\",\"value\":\"Python\"}\nif args!=expected: raise ValueError('WRONG_PARAMS')\nstate['calls'].append(args); result={'status':\"已保存\"}",
+            "description": "执行原题对应动作并记录参数。"
+          }
+        ],
+        "requiredCalls": [
+          {
+            "tool": "memory.save",
+            "args": {
+              "key": "favorite.language",
+              "value": "Python"
+            }
+          }
+        ],
+        "expectedState": [
+          {
+            "path": "calls",
+            "equals": [
+              {
+                "key": "favorite.language",
+                "value": "Python"
+              }
+            ]
+          }
+        ],
+        "unchangedState": [
+          "other"
+        ],
+        "finalMessageMustContain": [
+          "Python"
+        ],
+        "image": "python:3.12-alpine",
+        "expectedImageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    "tags": [
+      "agent",
+      "memory",
+      "easy"
+    ],
+    "scenarioVersion": "3.0.0",
+    "scenarioHash": "f2f0eb852eadb2ff",
+    "responseMode": "live_execution",
+    "outputPolicy": null,
+    "environmentImage": null,
+    "seed": null,
+    "goldSource": null,
+    "reviewStatus": "unreviewed",
+    "answerFirst": null,
+    "maxAnswerTokens": null,
+    "maxReasoningTokens": null,
+    "benchmarkSource": {
+      "releaseId": "nine-model-adopted-2026-09-29",
+      "id": "HA-CN-043",
+      "scenarioHash": "a29ac831c0ed9680",
+      "dimension": "agent_workflow",
+      "difficulty": "easy",
+      "category": "memory_recall",
+      "requirements": {
+        "attackLevel": null
+      },
+      "taskCount": 1
+    }
+  }
+]

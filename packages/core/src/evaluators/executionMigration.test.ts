@@ -155,4 +155,31 @@ describe('execution migration regressions', () => {
     expect(result.outputMetadata.shellExecutionTrace).toEqual(trace);
     expect(result.outputMetadata.executionTraceSha256).toMatch(/^[a-f0-9]{64}$/);
   });
+
+  it('grades saved Docker world evidence when the final SAY is missing', async () => {
+    registerEvaluator(toolCallTraceEvaluator);
+    const s = { ...scenario('TC-empty-final', { executionWorld: {
+      initialState: { done: false }, tools: [], maxTurns: 2,
+      requiredCalls: [{ tool: 'apply_fix' }],
+      expectedState: [{ path: 'done', equals: true }],
+      requireFinalMessage: true, scoreMode: 'strict',
+    } }, 'tool_call_trace', 'tool_cli_workflow'),
+    scenarioVersion: '1', scenarioHash: 'saved-world-fixture' } as Scenario;
+    const trace = { initialState: { done: false }, finalState: { done: true },
+      turns: [{ turn: 1, userMessage: '修复', assistantRaw: 'CALL apply_fix {}', calls: [] }],
+      events: [{ ordinal: 0, tool: 'apply_fix', args: {}, ok: true, result: { done: true } }],
+      finalMessage: '', turnErrors: [], elapsedMs: 10 };
+    const result = await orchestrateEvaluation({ scenario: s,
+      modelConfig: { id: 'fixture', name: 'fixture', provider: 'openai', baseUrl: 'http://localhost', defaultParams: {} },
+      modelParams: { maxTokens: 100 }, evalConfig: {} as never,
+      savedCandidate: { response: { content: '', finishReason: 'stop', usage: { inputTokens: 1,
+        outputTokens: 2, totalTokens: 3 }, latencyMs: 10, executionWorld: trace }, metadata: meta } });
+    expect(result.totalScore).toBe(0);
+    expect(result.criterionResults?.find((c) => c.id === 'world_required_0')?.status).toBe('pass');
+    expect(result.criterionResults?.find((c) => c.id === 'world_state_0')?.status).toBe('pass');
+    expect(result.criterionResults?.find((c) => c.id === 'world_final_message')?.status).toBe('fail');
+    expect(result.outputMetadata.executionWorldTrace).toEqual({ ...trace, answerFirstRequested: false });
+    expect(result.outputMetadata.retryChainExhausted).toBeUndefined();
+    expect(result.evidence?.join(' ')).not.toContain('Model returned empty response');
+  });
 });

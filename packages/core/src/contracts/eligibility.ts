@@ -10,13 +10,14 @@
 import type { Scenario, ScenarioEligibility } from '@zxbench/types';
 import { validateScenario } from './validateScenario.js';
 import { hashScenario, hashScenarioShort } from './canonicalize.js';
+import { knownScenarioDefects } from './knownDefects.js';
 
 /**
  * 判定题目是否可进入公开发行的正式运行。
  * 依据是可执行的发行契约，不把不存在的私有题库当成前置条件。
  */
 export function checkScenarioEligibility(scenario: Scenario): ScenarioEligibility {
-  const reasons: string[] = [];
+  const reasons: string[] = [...knownScenarioDefects(scenario)];
   const report = validateScenario(scenario);
 
   if (report.errors.length > 0) {

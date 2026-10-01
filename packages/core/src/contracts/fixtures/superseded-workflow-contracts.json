@@ -1,0 +1,92 @@
+[
+  {
+    "id": "HA-CN-003-RECOVERY-0",
+    "scenarioHash": "7330dbf834a677e8",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-003-RECOVERY-1",
+    "scenarioHash": "bed71d3f7f185033",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-005-RECOVERY-0",
+    "scenarioHash": "ca81c2408351f8fb",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-005-RECOVERY-1",
+    "scenarioHash": "4c5209816717d91d",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-006-RECOVERY-0",
+    "scenarioHash": "6972d121f15c76ef",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-006-RECOVERY-1",
+    "scenarioHash": "28d3f159ccc3523c",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-007-RECOVERY-0",
+    "scenarioHash": "924bfd10f409c158",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-007-RECOVERY-1",
+    "scenarioHash": "5e5622872df6bf44",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-017-RECOVERY-0",
+    "scenarioHash": "b58ff8c7c37727aa",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-017-RECOVERY-1",
+    "scenarioHash": "3877d33bbb521a16",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-026-RECOVERY-0",
+    "scenarioHash": "629b6ae0caf12290",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-026-RECOVERY-1",
+    "scenarioHash": "47bd18957d42dfe8",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-030-RECOVERY-0",
+    "scenarioHash": "9526fa337ea9db44",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-030-RECOVERY-1",
+    "scenarioHash": "1351e32e8c2e4736",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-044-RECOVERY-0",
+    "scenarioHash": "e1b53b890266a9ee",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-044-RECOVERY-1",
+    "scenarioHash": "1a2ba3ec4d635cd6",
+    "reason": "READ_CONFIRMATION_OVERCONSTRAINT"
+  },
+  {
+    "id": "HA-CN-008-RECOVERY-0",
+    "scenarioHash": "3d693c4b905406d4",
+    "reason": "MIGRATION_PERMISSION_AMBIGUITY"
+  },
+  {
+    "id": "HA-CN-008-RECOVERY-1",
+    "scenarioHash": "a39204899a56aac0",
+    "reason": "MIGRATION_PERMISSION_AMBIGUITY"
+  }
+]

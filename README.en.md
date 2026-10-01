@@ -4,9 +4,11 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench is a local evaluation platform with Docker execution, rule scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. The released bank **1.60.0 / v0.2.5** defaults to the adopted nine-model question set: **803 source questions**, comprising **614 ordinary questions + 306 execution instances for 189 migrated sources**. The 920 execution instances are grouped by source for scoring.
+ZxBench is a local evaluation platform with Docker execution, rule scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. The released bank **1.60.0 / v0.2.6** defaults to the adopted nine-model question set: **803 source questions**, comprising **614 ordinary questions + 306 execution instances for 189 migrated sources**. The 920 execution instances are grouped by source for scoring.
 
 Recent updates move execution-oriented questions in five dimensions toward resettable Docker task packs and improve frozen question packs, progressive multi-part context, execution evidence, and score audits. **v0.2.4** also adds optional semantic Judge review of strict execution-task final answers. It is considered only after the other checks pass, preserves the literal rule score and audit trail, and sends invalid Judge output to manual review.
+
+**v0.2.6** repairs workflow task contracts, repeated read verification, and requested `ANSWER/SAY` final-answer parsing. All 87 agent workflow instances use objective checkpoints; failed final delivery is capped at 40 and safety violations score 0. See the [repair and validation notes](docs/workflow-repair-2026-10-01.md).
 
 ## Quick start
 
@@ -19,6 +21,8 @@ pnpm --filter server prisma:generate
 pnpm build
 pnpm --filter server start
 ```
+
+Workflow skill tasks require the frozen PyYAML image. Run `pnpm runtime:workflow` to download the v0.2.6 image asset and verify both archive SHA-256 and Docker image ID. For offline installation use `pnpm runtime:workflow --archive /path/to/image.tar.gz`. The image targets Linux amd64; Docker Desktop on Windows must use Linux containers.
 
 Open <http://127.0.0.1:3001>. Windows users can also use `start.bat`; use the pnpm commands on macOS/Linux. On first use and after bank updates, run `node scripts/seed-benchmark.mjs` to import `data/scenarios/benchmark.json`. Importing removes online question definitions outside this release and preserves historical runs and answers. New runs select released IDs and content hashes and reject same-ID database drift. **Updating GitHub does not update an online database or alter a running evaluation's frozen questions**; see the [bank update note](docs/question-refresh-2026-09-28.md) for publication and sync details.
 

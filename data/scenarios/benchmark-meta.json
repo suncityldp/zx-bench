@@ -1,942 +1,2530 @@
 {
- "version": "1.60.0",
- "count": 920,
- "retiredCount": 0,
- "totalCount": 1061,
- "dimensions": {
-  "agent_loop": 5,
-  "agent_workflow": 87,
-  "cli_deep_tasks": 56,
-  "data_extraction": 104,
-  "hallucination_resistance": 134,
-  "instruction_following": 42,
-  "program": 150,
-  "reasoning_math": 106,
-  "safety_authority": 78,
-  "structured_output": 60,
-  "tool_cli_workflow": 98
- },
- "retiredDimensions": {
-  "hallucination_resistance": 78,
-  "cli_deep_tasks": 4,
-  "structured_output": 25,
-  "tool_cli_workflow": 1
- },
- "generatedAt": "2026-09-26T17:07:40.101Z",
- "validCount": 920,
- "ambiguousCount": 0,
- "reviewCount": 0,
- "questionReview": "math-3.2-hallucination-5.0",
- "dataExtractionReview": "json-atomic-v3-56-reviewed",
- "executionReview": "code-4.14-pr-executable-evidence-1.0",
- "executionIsolation": {
-  "protocols": [
-   "isolated-json-v1",
-   "isolated-json-v2",
-   "isolated-json-v3",
-   "isolated-php-json-v1",
-   "isolated-php-json-v2",
-   "isolated-python-json-v1",
-   "isolated-javascript-json-v1",
-   "isolated-sql-json-v1",
-   "isolated-typescript-json-v1",
-   "isolated-typescript-type-v1",
-   "isolated-fixture-exit-v1",
-   "isolated-java-json-v1",
-   "isolated-java-json-v2",
-   "isolated-csharp-json-v1",
-   "isolated-csharp-json-v2",
-   "isolated-go-json-v1",
-   "isolated-go-json-v2",
-   "quickjs-observation-v1",
-   "quickjs-observation-v2"
-  ],
-  "pilots": [
-   "CP-L2-PHP-001",
-   "CP-L3-SEM-PHP-001",
-   "CP-L3-SEM-PHP-002",
-   "CP-L3-SEM-PHP-003",
-   "PH-001",
-   "CP-L2-PY-004",
-   "CP-L2-TD-PY-002",
-   "CP-L2-PY-001",
-   "CP-L1-JS-001",
-   "CP-L1-TS-001",
-   "CP-L1-PY-002",
-   "CP-L2-TD-JS-002",
-   "CP-L2-TD-JS-003",
-   "CP-L2-PY-002",
-   "CP-L2-TD-PY-001",
-   "CP-L2-TD-PY-003",
-   "CP-L2-JV-002",
-   "CP-L3-CONC-JV-001",
-   "CP-L3-JV-006",
-   "CP-L3-JV-004",
-   "CP-L3-JV-005",
-   "CP-L1-JV-001",
-   "CP-L2-JV-001",
-   "CP-L3-SEM-JV-001",
-   "CP-L3-SEM-JV-002",
-   "CP-L3-SEM-JV-003",
-   "CP-L3-CS-003",
-   "CP-L3-CS-004",
-   "CP-L3-SEM-CS-001",
-   "CP-L3-SEM-CS-002",
-   "CP-L3-SEM-CS-003",
-   "CS-001",
-   "CP-L2-CS-001",
-   "CP-L3-GO-003",
-   "CP-L3-GO-004",
-   "CP-L3-CONC-GO-001",
-   "CP-L1-GO-001",
-   "CP-L2-GO-001",
-   "CP-L2-GO-002",
-   "CP-L2-TD-GO-001",
-   "CP-L3-PHP-003",
-   "CP-L3-PHP-004",
-   "CP-L3-PY-009",
-   "CP-L3-PY-011",
-   "CP-L3-PERF-PY-001",
-   "CP-L3-PY-010",
-   "CP-L3-PY-012",
-   "CP-L3-SEC-PY-001",
-   "CP-L3-SEC-PY-002",
-   "CP-L1-PY-001",
-   "CP-L1-PY-003",
-   "CP-L2-PY-003",
-   "CP-L2-TD-PY-004",
-   "CP-L3-AW-PY-001",
-   "CP-L3-AW-PY-002",
-   "CP-L1-JS-003",
-   "CP-L2-JS-001",
-   "CP-L2-JS-002",
-   "CP-L2-JS-003",
-   "CP-L2-TD-JS-004",
-   "CP-L3-CONC-JS-001",
-   "CP-L3-PERF-JS-001",
-   "CP-L3-AW-JS-001",
-   "CP-L3-AW-JS-002",
-   "CP-L3-SEC-JS-001",
-   "PR-ELITE-003",
-   "PR-ELITE-006",
-   "PR-ELITE-007",
-   "CP-L2-SQL-001",
-   "CP-L3-PERF-SQL-001",
-   "CP-L3-SQL-003",
-   "CP-L3-SQL-004",
-   "CP-L3-SQL-005",
-   "CP-L3-SQL-006",
-   "CP-L2-TS-001",
-   "CP-L3-TS-005",
-   "CP-L3-TS-006",
-   "CP-L3-TS-003",
-   "CP-L3-TS-004",
-   "CP-L3-TS-007",
-   "CP-L2-CC-001",
-   "CR2-CC-001",
-   "CR2-CC-002",
-   "CR2-CC-003",
-   "CP-L3-CC-003",
-   "CP-L3-CC-004",
-   "CP-L3-CC-005",
-   "CP-L2-RS-001",
-   "CP-L3-RS-001",
-   "CP-L3-RS-002",
-   "CP-L3-RS-003",
-   "CP-L3-JS-010",
-   "CP-L3-PY-013",
-   "CP-L3-SH-001",
-   "CP-L3-SH-002",
-   "CP-L3-SH-003",
-   "CP-L3-SH-004",
-   "CP-L3-SH-005",
-   "CR2-SH-001",
-   "SH-001",
-   "CP-L3-AW-JS-004",
-   "CP-L3-AW-JS-003",
-   "CP-L3-SEC-JS-002",
-   "CP-L1-JS-002",
-   "CP-L2-TD-JS-001",
-   "CP-L2-JS-004",
-   "CP-L3-AW-JS-005"
-  ],
-  "pendingCodeRepair": 0,
-  "fullAcceptance": false,
-  "independentHumanGold": false
- },
- "prReview": {
-  "version": "1.0.0",
-  "automaticOnly": true,
-  "judgeWeight": 0,
-  "humanReviewRequired": false,
-  "scenarios": [
-   "PR-ELITE-012",
-   "PR-ELITE-013"
-  ],
-  "protocols": [
-   "pr-witness-sql-v1",
-   "pr-witness-sharding-v1"
-  ]
- },
- "lightweightReleasePolicy": {
-  "version": "1.0.0",
-  "principle": "reproducible_scores_without_requiring_research_lab_certification",
-  "officialMainScore": {
-   "requiresVerifiedTierAndFrozenGold": true,
-   "environmentErrorsAreUnmeasured": true,
-   "judgeCannotOverrideDeterministicFailures": true
+  "version": "1.60.0",
+  "count": 920,
+  "retiredCount": 0,
+  "totalCount": 1061,
+  "dimensions": {
+    "agent_loop": 5,
+    "agent_workflow": 87,
+    "cli_deep_tasks": 56,
+    "data_extraction": 104,
+    "hallucination_resistance": 134,
+    "instruction_following": 42,
+    "program": 150,
+    "reasoning_math": 106,
+    "safety_authority": 78,
+    "structured_output": 60,
+    "tool_cli_workflow": 98
   },
-  "projectRepair": {
-   "status": "formal_with_disclosed_audit_limitations",
-   "count": 20,
-   "officialScoreEligible": 20,
-   "maintainerRiskSample": [
-    "CP-L4-JS-001",
-    "CP-L4-PY-002",
-    "CP-L4-GO-001",
-    "CP-L4-CS-001",
-    "CP-L4-RS-001",
-    "CP-L4-SQL-001"
-   ],
-   "sampleAcceptance": "original workspace fails a relevant hidden test and a maintainer-approved fix passes; environment failures remain unmeasured",
-   "negativeBaselineAudit": {
-    "checkedAt": "2026-09-13",
-    "checkedIds": [
-     "CP-L4-JS-001",
-     "CP-L4-PY-002",
-     "CP-L4-GO-001",
-     "CP-L4-SQL-001"
-    ],
-    "allOriginalWorkspacesRejected": true,
-    "positiveGoldPending": true
-   },
-   "positiveGoldAudit": {
-    "checkedAt": "2026-09-13",
-    "artifact": "data/gold/project-repair-maintainer-sample-v1.json",
-    "verifiedIds": [
-     "CP-L4-JS-001",
-     "CP-L4-PY-002",
-     "CP-L4-GO-001"
-    ],
-    "pendingIds": [
-     "CP-L4-CS-001",
-     "CP-L4-RS-001",
-     "CP-L4-SQL-001"
-    ],
-    "acceptance": "original workspace rejected and frozen positive answer passes every hidden test without environment error"
-   },
-   "defaultRunEligible": true,
-   "explicitRunOnly": false
+  "retiredDimensions": {
+    "hallucination_resistance": 78,
+    "cli_deep_tasks": 4,
+    "structured_output": 25,
+    "tool_cli_workflow": 1
   },
-  "challengeDiscrimination": {
-   "minimumDistinctModelFamilies": 3,
-   "minimumScoreSpreadPoints": 8,
-   "minimumSeparatingItemRate": 0.25,
-   "maximumFoundationItemRate": 0.2,
-   "allPassDisposition": "bounded_foundation_or_experimental",
-   "allFailDisposition": "revise_or_experimental",
-   "automaticPromotion": false,
-   "currentPilot": {
-    "source": "reports/challenge-citation-regrade-2026-09-10-v1.3.0/regrade.json",
-    "models": [
-     "gsq-rco-iq3s",
-     "ornith15-q4km",
-     "deepseek-v4-flash"
+  "generatedAt": "2026-09-26T17:07:40.101Z",
+  "validCount": 920,
+  "ambiguousCount": 0,
+  "reviewCount": 0,
+  "questionReview": "math-3.2-hallucination-5.0",
+  "dataExtractionReview": "json-atomic-v3-56-reviewed",
+  "executionReview": "code-4.14-pr-executable-evidence-1.0",
+  "executionIsolation": {
+    "protocols": [
+      "isolated-json-v1",
+      "isolated-json-v2",
+      "isolated-json-v3",
+      "isolated-php-json-v1",
+      "isolated-php-json-v2",
+      "isolated-python-json-v1",
+      "isolated-javascript-json-v1",
+      "isolated-sql-json-v1",
+      "isolated-typescript-json-v1",
+      "isolated-typescript-type-v1",
+      "isolated-fixture-exit-v1",
+      "isolated-java-json-v1",
+      "isolated-java-json-v2",
+      "isolated-csharp-json-v1",
+      "isolated-csharp-json-v2",
+      "isolated-go-json-v1",
+      "isolated-go-json-v2",
+      "quickjs-observation-v1",
+      "quickjs-observation-v2"
     ],
-    "distinctModelFamilies": 3,
-    "hallucinationResistance": {
-     "scoreSpreadPoints": 25,
-     "separatingItemRate": 0.25,
-     "ready": true
+    "pilots": [
+      "CP-L2-PHP-001",
+      "CP-L3-SEM-PHP-001",
+      "CP-L3-SEM-PHP-002",
+      "CP-L3-SEM-PHP-003",
+      "PH-001",
+      "CP-L2-PY-004",
+      "CP-L2-TD-PY-002",
+      "CP-L2-PY-001",
+      "CP-L1-JS-001",
+      "CP-L1-TS-001",
+      "CP-L1-PY-002",
+      "CP-L2-TD-JS-002",
+      "CP-L2-TD-JS-003",
+      "CP-L2-PY-002",
+      "CP-L2-TD-PY-001",
+      "CP-L2-TD-PY-003",
+      "CP-L2-JV-002",
+      "CP-L3-CONC-JV-001",
+      "CP-L3-JV-006",
+      "CP-L3-JV-004",
+      "CP-L3-JV-005",
+      "CP-L1-JV-001",
+      "CP-L2-JV-001",
+      "CP-L3-SEM-JV-001",
+      "CP-L3-SEM-JV-002",
+      "CP-L3-SEM-JV-003",
+      "CP-L3-CS-003",
+      "CP-L3-CS-004",
+      "CP-L3-SEM-CS-001",
+      "CP-L3-SEM-CS-002",
+      "CP-L3-SEM-CS-003",
+      "CS-001",
+      "CP-L2-CS-001",
+      "CP-L3-GO-003",
+      "CP-L3-GO-004",
+      "CP-L3-CONC-GO-001",
+      "CP-L1-GO-001",
+      "CP-L2-GO-001",
+      "CP-L2-GO-002",
+      "CP-L2-TD-GO-001",
+      "CP-L3-PHP-003",
+      "CP-L3-PHP-004",
+      "CP-L3-PY-009",
+      "CP-L3-PY-011",
+      "CP-L3-PERF-PY-001",
+      "CP-L3-PY-010",
+      "CP-L3-PY-012",
+      "CP-L3-SEC-PY-001",
+      "CP-L3-SEC-PY-002",
+      "CP-L1-PY-001",
+      "CP-L1-PY-003",
+      "CP-L2-PY-003",
+      "CP-L2-TD-PY-004",
+      "CP-L3-AW-PY-001",
+      "CP-L3-AW-PY-002",
+      "CP-L1-JS-003",
+      "CP-L2-JS-001",
+      "CP-L2-JS-002",
+      "CP-L2-JS-003",
+      "CP-L2-TD-JS-004",
+      "CP-L3-CONC-JS-001",
+      "CP-L3-PERF-JS-001",
+      "CP-L3-AW-JS-001",
+      "CP-L3-AW-JS-002",
+      "CP-L3-SEC-JS-001",
+      "PR-ELITE-003",
+      "PR-ELITE-006",
+      "PR-ELITE-007",
+      "CP-L2-SQL-001",
+      "CP-L3-PERF-SQL-001",
+      "CP-L3-SQL-003",
+      "CP-L3-SQL-004",
+      "CP-L3-SQL-005",
+      "CP-L3-SQL-006",
+      "CP-L2-TS-001",
+      "CP-L3-TS-005",
+      "CP-L3-TS-006",
+      "CP-L3-TS-003",
+      "CP-L3-TS-004",
+      "CP-L3-TS-007",
+      "CP-L2-CC-001",
+      "CR2-CC-001",
+      "CR2-CC-002",
+      "CR2-CC-003",
+      "CP-L3-CC-003",
+      "CP-L3-CC-004",
+      "CP-L3-CC-005",
+      "CP-L2-RS-001",
+      "CP-L3-RS-001",
+      "CP-L3-RS-002",
+      "CP-L3-RS-003",
+      "CP-L3-JS-010",
+      "CP-L3-PY-013",
+      "CP-L3-SH-001",
+      "CP-L3-SH-002",
+      "CP-L3-SH-003",
+      "CP-L3-SH-004",
+      "CP-L3-SH-005",
+      "CR2-SH-001",
+      "SH-001",
+      "CP-L3-AW-JS-004",
+      "CP-L3-AW-JS-003",
+      "CP-L3-SEC-JS-002",
+      "CP-L1-JS-002",
+      "CP-L2-TD-JS-001",
+      "CP-L2-JS-004",
+      "CP-L3-AW-JS-005"
+    ],
+    "pendingCodeRepair": 0,
+    "fullAcceptance": false,
+    "independentHumanGold": false
+  },
+  "prReview": {
+    "version": "1.0.0",
+    "automaticOnly": true,
+    "judgeWeight": 0,
+    "humanReviewRequired": false,
+    "scenarios": [
+      "PR-ELITE-012",
+      "PR-ELITE-013"
+    ],
+    "protocols": [
+      "pr-witness-sql-v1",
+      "pr-witness-sharding-v1"
+    ]
+  },
+  "lightweightReleasePolicy": {
+    "version": "1.0.0",
+    "principle": "reproducible_scores_without_requiring_research_lab_certification",
+    "officialMainScore": {
+      "requiresVerifiedTierAndFrozenGold": true,
+      "environmentErrorsAreUnmeasured": true,
+      "judgeCannotOverrideDeterministicFailures": true
     },
-    "reasoningMath": {
-     "scoreSpreadPoints": 16.6666666667,
-     "separatingItemRate": 0.25,
-     "ready": true
+    "projectRepair": {
+      "status": "formal_with_disclosed_audit_limitations",
+      "count": 20,
+      "officialScoreEligible": 20,
+      "maintainerRiskSample": [
+        "CP-L4-JS-001",
+        "CP-L4-PY-002",
+        "CP-L4-GO-001",
+        "CP-L4-CS-001",
+        "CP-L4-RS-001",
+        "CP-L4-SQL-001"
+      ],
+      "sampleAcceptance": "original workspace fails a relevant hidden test and a maintainer-approved fix passes; environment failures remain unmeasured",
+      "negativeBaselineAudit": {
+        "checkedAt": "2026-09-13",
+        "checkedIds": [
+          "CP-L4-JS-001",
+          "CP-L4-PY-002",
+          "CP-L4-GO-001",
+          "CP-L4-SQL-001"
+        ],
+        "allOriginalWorkspacesRejected": true,
+        "positiveGoldPending": true
+      },
+      "positiveGoldAudit": {
+        "checkedAt": "2026-09-13",
+        "artifact": "data/gold/project-repair-maintainer-sample-v1.json",
+        "verifiedIds": [
+          "CP-L4-JS-001",
+          "CP-L4-PY-002",
+          "CP-L4-GO-001"
+        ],
+        "pendingIds": [
+          "CP-L4-CS-001",
+          "CP-L4-RS-001",
+          "CP-L4-SQL-001"
+        ],
+        "acceptance": "original workspace rejected and frozen positive answer passes every hidden test without environment error"
+      },
+      "defaultRunEligible": true,
+      "explicitRunOnly": false
     },
-    "selectedSupplement": "data/scenarios/challenge-release-manifest.json",
-    "nextRequiredAction": "run prospective model comparisons on the five frozen questions; redesign MC2-004 separately",
-    "promotedIds": [
-     "HC3-002",
-     "HC3-007",
-     "MC2-001",
-     "MC2-002",
-     "MC2-006"
-    ],
-    "promotedForProspectiveRuns": true
-   }
-  }
- },
- "challengeSupplement": {
-  "version": "challenge-supplement-2026-09-13-v1",
-  "grader": "challenge_supplement@1.0.0",
-  "count": 5,
-  "ids": [
-   "HC3-002",
-   "HC3-007",
-   "MC2-001",
-   "MC2-002",
-   "MC2-006"
-  ],
-  "judgeWeight": 0,
-  "scoring": "deterministic_binary_strict_pass",
-  "sourcePackVersion": "capability-challenge-2026-09-10-v1.3.0",
-  "sourcePackHash": "42929b253e9e2f4d32568c5e164ab4fcb651cca3712b6472950c7907c2ed10e3",
-  "prospectiveOnly": true
- },
- "defaultRunCount": 920,
- "challengeExtension": {
-  "version": "challenge-extension-2026-09-13-v1",
-  "bankVersion": "1.31.1",
-  "sourceHash": "477665fa40ce78b748365f648f9a4b360e2e74ac68436b6c61078b6e624dea03",
-  "grader": "challenge_extension@1.0.0",
-  "judgeWeight": 0,
-  "definitions": 21,
-  "defaultRunAdditions": 20,
-  "coverageIds": [
-   "HC3-001",
-   "HC3-003",
-   "HC3-004",
-   "HC3-006",
-   "HC2-005",
-   "HC2-008",
-   "MC2-003",
-   "MC2-005",
-   "MC2-007",
-   "MC2-008",
-   "MC2-009",
-   "MC2-010",
-   "MC2-011",
-   "MC2-012"
-  ],
-  "probabilityIds": [
-   "V2-c1fb0754a25d8f",
-   "V2-fa3a76cee51533",
-   "V2-595bf9608ca5bb",
-   "V2-b1aaf236796076",
-   "V2-554b8ce210b857",
-   "V2-0dd41d46f70f13"
-  ],
-  "explicitOnlyIds": [
-   "MC2-004-R1"
-  ],
-  "originalUnreleasedIds": [
-   "MC2-004"
-  ],
-  "review": "maintainer integration review plus deterministic positive/negative replay; not independent human review",
-  "limitations": [
-   "Coverage items were previously all-pass in the pilot; no new discrimination claim.",
-   "Six probability items represent two families with base/parameter/irrelevant variants, not six independent families.",
-   "MC2-004-R1 lacks a model difficulty pilot and is explicit-only.",
-   "Unparseable probability output is unmeasured, not evidence of mathematical failure."
-  ],
-  "projectRepairScopeRestored": 20,
-  "historicalScoresChanged": false
- },
- "ultraProgressiveExam": {
-  "version": "ultra-three-dimension-batch-2026-09-14-v1",
-  "definitions": 144,
-  "groups": 36,
-  "partsPerGroup": 4,
-  "defaultRunEligible": true
- },
- "structuredOutputReview": {
-  "version": "schema-compliance-2026-09-26-v6",
-  "grader": "schema_compliance@schema_compliance_v6",
-  "count": 58,
-  "discriminationBand": {
-   "ids": [
-    "SO-CN-042",
-    "SO-CN-043",
-    "SO-CN-044",
-    "SO-CN-045",
-    "SO-CN-046",
-    "SO-CN-047",
-    "SO-CN-048",
-    "SO-CN-049",
-    "SO-CN-050",
-    "SO-CN-051"
-   ],
-   "purpose": "恢复维度区分度：8 道结构严格题（显式规则，合成对照合规=100 / 偷懒=53~85）+ 2 道长时程容量题（SO-CN-050 合规输出约 17.5KB、SO-CN-051 双层累加 38 条断言）",
-   "assertionsPerQuestion": "11~29 条机器可验证断言",
-   "axisWeightsOverride": {
-    "syntax_parse": 0.1,
-    "schema_compliance": 0.1,
-    "field_constraints": 0.6,
-    "cross_field_consistency": 0.1,
-    "output_discipline": 0.05
-   }
+    "challengeDiscrimination": {
+      "minimumDistinctModelFamilies": 3,
+      "minimumScoreSpreadPoints": 8,
+      "minimumSeparatingItemRate": 0.25,
+      "maximumFoundationItemRate": 0.2,
+      "allPassDisposition": "bounded_foundation_or_experimental",
+      "allFailDisposition": "revise_or_experimental",
+      "automaticPromotion": false,
+      "currentPilot": {
+        "source": "reports/challenge-citation-regrade-2026-09-10-v1.3.0/regrade.json",
+        "models": [
+          "gsq-rco-iq3s",
+          "ornith15-q4km",
+          "deepseek-v4-flash"
+        ],
+        "distinctModelFamilies": 3,
+        "hallucinationResistance": {
+          "scoreSpreadPoints": 25,
+          "separatingItemRate": 0.25,
+          "ready": true
+        },
+        "reasoningMath": {
+          "scoreSpreadPoints": 16.6666666667,
+          "separatingItemRate": 0.25,
+          "ready": true
+        },
+        "selectedSupplement": "data/scenarios/challenge-release-manifest.json",
+        "nextRequiredAction": "run prospective model comparisons on the five frozen questions; redesign MC2-004 separately",
+        "promotedIds": [
+          "HC3-002",
+          "HC3-007",
+          "MC2-001",
+          "MC2-002",
+          "MC2-006"
+        ],
+        "promotedForProspectiveRuns": true
+      }
+    }
   },
-  "ruleLanguage": [
-   "required|type|valueEq|nonempty|count|keys|keyOrder|keysAll|reAll|maxDecimals|unique|sorted",
-   "length|chainEq|sumEq|productEq|ratioEq|runningTotal|ref|schemaValidates|schemaRejects|csvCell|order",
-   "jsonEq"
-  ],
-  "limitations": [
-   "断言全部是结构/内部一致性不变量，不涉及外部事实抽取，故与 data_extraction 维度不重叠。",
-   "JSON 数字不保留尾随零，因此小数位只能断言「不超过 n」而非「恰好 n」。",
-   "order: 规则比较的是全文首次出现位置，对 buyer 等先出现的同名元素需谨慎选择锚点。"
-  ],
-  "repairedQuestions": [
-   "SO-CN-042",
-   "SO-CN-047"
-  ],
-  "strictContractAudit": true,
-  "contractRepair": {
-   "version": "1.49.0",
-   "count": 12,
-   "ids": [
-    "SO-CN-001",
-    "SO-CN-002",
-    "SO-CN-004",
-    "SO-CN-005",
-    "SO-CN-011",
-    "SO-CN-031",
-    "SO-CN-043",
-    "SO-CN-047",
-    "SO-CN-053",
-    "SO-CN-054",
-    "SO-CN-055",
-    "SO-CN-056"
-   ],
-   "note": "Explicit constraints and external schema fixtures; SO-CN-053 ambiguity removed"
-  },
-  "contractRepairV2": {
-   "version": "1.50.0",
-   "count": 15,
-   "ids": [
-    "SO-CN-003",
-    "SO-CN-006",
-    "SO-CN-007",
-    "SO-CN-009",
-    "SO-CN-028",
-    "SO-CN-029",
-    "SO-CN-030",
-    "SO-CN-040",
-    "SO-CN-044",
-    "SO-CN-046",
-    "SO-CN-048",
-    "SO-CN-050",
-    "SO-CN-051",
-    "SO-CN-058",
-    "SO-CN-059"
-   ],
-   "note": "Fixed scorer coverage and two ambiguous prompt contracts; completed runs retain original scores"
-  },
-  "textStructure": {
-   "version": "1.51.2",
-   "count": 29,
-   "ids": [
-    "SO-CN-008",
-    "SO-CN-010",
-    "SO-CN-012",
-    "SO-CN-013",
-    "SO-CN-014",
-    "SO-CN-015",
-    "SO-CN-016",
-    "SO-CN-017",
-    "SO-CN-018",
-    "SO-CN-019",
-    "SO-CN-020",
-    "SO-CN-021",
-    "SO-CN-022",
-    "SO-CN-023",
-    "SO-CN-024",
-    "SO-CN-025",
-    "SO-CN-026",
-    "SO-CN-027",
-    "SO-CN-032",
-    "SO-CN-033",
-    "SO-CN-034",
-    "SO-CN-035",
-    "SO-CN-036",
-    "SO-CN-037",
-    "SO-CN-038",
-    "SO-CN-039",
-    "SO-CN-041",
-    "SO-CN-045",
-    "SO-CN-049"
-   ],
-   "note": "Bounded text contracts; PostgreSQL, MySQL, and Mermaid browser audits completed. Confirmed syntax defects feed versioned rules; browser layout observations are not scored beyond task requirements.",
-   "postgresRuntimeAudit": {
+  "challengeSupplement": {
+    "version": "challenge-supplement-2026-09-13-v1",
+    "grader": "challenge_supplement@1.0.0",
+    "count": 5,
     "ids": [
-     "SO-CN-013",
-     "SO-CN-034"
+      "HC3-002",
+      "HC3-007",
+      "MC2-001",
+      "MC2-002",
+      "MC2-006"
     ],
-    "fixtures": [
-     "top users versus top orders",
-     "restock conflict invariance"
+    "judgeWeight": 0,
+    "scoring": "deterministic_binary_strict_pass",
+    "sourcePackVersion": "capability-challenge-2026-09-10-v1.3.0",
+    "sourcePackHash": "42929b253e9e2f4d32568c5e164ab4fcb651cca3712b6472950c7907c2ed10e3",
+    "prospectiveOnly": true
+  },
+  "defaultRunCount": 920,
+  "challengeExtension": {
+    "version": "challenge-extension-2026-09-13-v1",
+    "bankVersion": "1.31.1",
+    "sourceHash": "477665fa40ce78b748365f648f9a4b360e2e74ac68436b6c61078b6e624dea03",
+    "grader": "challenge_extension@1.0.0",
+    "judgeWeight": 0,
+    "definitions": 21,
+    "defaultRunAdditions": 20,
+    "coverageIds": [
+      "HC3-001",
+      "HC3-003",
+      "HC3-004",
+      "HC3-006",
+      "HC2-005",
+      "HC2-008",
+      "MC2-003",
+      "MC2-005",
+      "MC2-007",
+      "MC2-008",
+      "MC2-009",
+      "MC2-010",
+      "MC2-011",
+      "MC2-012"
     ],
-    "report": "data/pilots/structured-postgres-audit.json"
-   },
-   "mysqlRuntimeAudit": {
-    "id": "SO-CN-017",
-    "image": "mysql:8.4.11",
-    "report": "data/pilots/structured-mysql-audit.json"
-   },
-   "mermaidRenderAudit": {
-    "id": "SO-CN-024",
-    "version": "11.17.2",
-    "report": "data/pilots/structured-mermaid-render-audit.json"
-   },
-   "htmlMobileAudit": {
-    "viewports": [
-     390,
-     1280
+    "probabilityIds": [
+      "V2-c1fb0754a25d8f",
+      "V2-fa3a76cee51533",
+      "V2-595bf9608ca5bb",
+      "V2-b1aaf236796076",
+      "V2-554b8ce210b857",
+      "V2-0dd41d46f70f13"
     ],
-    "report": "data/pilots/structured-html-mobile-audit.json",
-    "scored": false
-   }
+    "explicitOnlyIds": [
+      "MC2-004-R1"
+    ],
+    "originalUnreleasedIds": [
+      "MC2-004"
+    ],
+    "review": "maintainer integration review plus deterministic positive/negative replay; not independent human review",
+    "limitations": [
+      "Coverage items were previously all-pass in the pilot; no new discrimination claim.",
+      "Six probability items represent two families with base/parameter/irrelevant variants, not six independent families.",
+      "MC2-004-R1 lacks a model difficulty pilot and is explicit-only.",
+      "Unparseable probability output is unmeasured, not evidence of mathematical failure."
+    ],
+    "projectRepairScopeRestored": 20,
+    "historicalScoresChanged": false
+  },
+  "ultraProgressiveExam": {
+    "version": "ultra-three-dimension-batch-2026-09-14-v1",
+    "definitions": 144,
+    "groups": 36,
+    "partsPerGroup": 4,
+    "defaultRunEligible": true
+  },
+  "structuredOutputReview": {
+    "version": "schema-compliance-2026-09-26-v6",
+    "grader": "schema_compliance@schema_compliance_v6",
+    "count": 58,
+    "discriminationBand": {
+      "ids": [
+        "SO-CN-042",
+        "SO-CN-043",
+        "SO-CN-044",
+        "SO-CN-045",
+        "SO-CN-046",
+        "SO-CN-047",
+        "SO-CN-048",
+        "SO-CN-049",
+        "SO-CN-050",
+        "SO-CN-051"
+      ],
+      "purpose": "恢复维度区分度：8 道结构严格题（显式规则，合成对照合规=100 / 偷懒=53~85）+ 2 道长时程容量题（SO-CN-050 合规输出约 17.5KB、SO-CN-051 双层累加 38 条断言）",
+      "assertionsPerQuestion": "11~29 条机器可验证断言",
+      "axisWeightsOverride": {
+        "syntax_parse": 0.1,
+        "schema_compliance": 0.1,
+        "field_constraints": 0.6,
+        "cross_field_consistency": 0.1,
+        "output_discipline": 0.05
+      }
+    },
+    "ruleLanguage": [
+      "required|type|valueEq|nonempty|count|keys|keyOrder|keysAll|reAll|maxDecimals|unique|sorted",
+      "length|chainEq|sumEq|productEq|ratioEq|runningTotal|ref|schemaValidates|schemaRejects|csvCell|order",
+      "jsonEq"
+    ],
+    "limitations": [
+      "断言全部是结构/内部一致性不变量，不涉及外部事实抽取，故与 data_extraction 维度不重叠。",
+      "JSON 数字不保留尾随零，因此小数位只能断言「不超过 n」而非「恰好 n」。",
+      "order: 规则比较的是全文首次出现位置，对 buyer 等先出现的同名元素需谨慎选择锚点。"
+    ],
+    "repairedQuestions": [
+      "SO-CN-042",
+      "SO-CN-047"
+    ],
+    "strictContractAudit": true,
+    "contractRepair": {
+      "version": "1.49.0",
+      "count": 12,
+      "ids": [
+        "SO-CN-001",
+        "SO-CN-002",
+        "SO-CN-004",
+        "SO-CN-005",
+        "SO-CN-011",
+        "SO-CN-031",
+        "SO-CN-043",
+        "SO-CN-047",
+        "SO-CN-053",
+        "SO-CN-054",
+        "SO-CN-055",
+        "SO-CN-056"
+      ],
+      "note": "Explicit constraints and external schema fixtures; SO-CN-053 ambiguity removed"
+    },
+    "contractRepairV2": {
+      "version": "1.50.0",
+      "count": 15,
+      "ids": [
+        "SO-CN-003",
+        "SO-CN-006",
+        "SO-CN-007",
+        "SO-CN-009",
+        "SO-CN-028",
+        "SO-CN-029",
+        "SO-CN-030",
+        "SO-CN-040",
+        "SO-CN-044",
+        "SO-CN-046",
+        "SO-CN-048",
+        "SO-CN-050",
+        "SO-CN-051",
+        "SO-CN-058",
+        "SO-CN-059"
+      ],
+      "note": "Fixed scorer coverage and two ambiguous prompt contracts; completed runs retain original scores"
+    },
+    "textStructure": {
+      "version": "1.51.2",
+      "count": 29,
+      "ids": [
+        "SO-CN-008",
+        "SO-CN-010",
+        "SO-CN-012",
+        "SO-CN-013",
+        "SO-CN-014",
+        "SO-CN-015",
+        "SO-CN-016",
+        "SO-CN-017",
+        "SO-CN-018",
+        "SO-CN-019",
+        "SO-CN-020",
+        "SO-CN-021",
+        "SO-CN-022",
+        "SO-CN-023",
+        "SO-CN-024",
+        "SO-CN-025",
+        "SO-CN-026",
+        "SO-CN-027",
+        "SO-CN-032",
+        "SO-CN-033",
+        "SO-CN-034",
+        "SO-CN-035",
+        "SO-CN-036",
+        "SO-CN-037",
+        "SO-CN-038",
+        "SO-CN-039",
+        "SO-CN-041",
+        "SO-CN-045",
+        "SO-CN-049"
+      ],
+      "note": "Bounded text contracts; PostgreSQL, MySQL, and Mermaid browser audits completed. Confirmed syntax defects feed versioned rules; browser layout observations are not scored beyond task requirements.",
+      "postgresRuntimeAudit": {
+        "ids": [
+          "SO-CN-013",
+          "SO-CN-034"
+        ],
+        "fixtures": [
+          "top users versus top orders",
+          "restock conflict invariance"
+        ],
+        "report": "data/pilots/structured-postgres-audit.json"
+      },
+      "mysqlRuntimeAudit": {
+        "id": "SO-CN-017",
+        "image": "mysql:8.4.11",
+        "report": "data/pilots/structured-mysql-audit.json"
+      },
+      "mermaidRenderAudit": {
+        "id": "SO-CN-024",
+        "version": "11.17.2",
+        "report": "data/pilots/structured-mermaid-render-audit.json"
+      },
+      "htmlMobileAudit": {
+        "viewports": [
+          390,
+          1280
+        ],
+        "report": "data/pilots/structured-html-mobile-audit.json",
+        "scored": false
+      }
+    }
+  },
+  "examHardGroups": {
+    "version": "math-exam-expansion-2026-09-16-v15",
+    "groups": [
+      "MX3-13",
+      "MX3-14",
+      "MX3-15",
+      "MX3-16",
+      "MX3-17",
+      "MX3-18",
+      "MX3-19",
+      "MX3-20",
+      "MX3-21",
+      "MX3-22",
+      "MX3-23",
+      "MX3-24"
+    ],
+    "parts": 4,
+    "note": "brute force infeasible by design; gold computed and independently cross-checked"
+  },
+  "examGroupRetirement": {
+    "date": "2026-09-17T00:00:00.000Z",
+    "ids": [
+      "MX3-21-P1",
+      "MX3-21-P2",
+      "MX3-21-P3",
+      "MX3-21-P4",
+      "MX3-22-P1",
+      "MX3-22-P2",
+      "MX3-22-P3",
+      "MX3-22-P4",
+      "MX3-23-P1",
+      "MX3-23-P2",
+      "MX3-23-P3",
+      "MX3-23-P4",
+      "MX3-15-P1",
+      "MX3-15-P2",
+      "MX3-15-P3",
+      "MX3-15-P4",
+      "MX3-16-P1",
+      "MX3-16-P2",
+      "MX3-16-P3",
+      "MX3-16-P4"
+    ],
+    "reason": "saturated against the local 27B model: every run scored 100, so the group no longer discriminates the model it was authored for (user decision, 2026-09-17)",
+    "scope": "user-selected in two rounds on 2026-09-17: round 1 = MX3-21/22/23 (12 parts), round 2 = MX3-15/16 (8 parts) after the first live test of MX3-14/15/16/17; no replacement authored in this round. Groups with any discriminating part are kept (MX3-24, MX3-14, MX3-17, MX3-13, MX3-18, MX3-19, MX3-20)."
+  },
+  "ultraMath": {
+    "questionVersion": "ultra-math-2026-09-17-v4",
+    "rubricVersion": "ultra-math-rubric-2026-09-17-v3",
+    "note": "UMX-01（v3）与 UMX-02（v4）均已重写为可达版本；UMX 八题标 developmentShadow，只在人工/专用轨道使用。"
+  },
+  "executionCuration": {
+    "retiredIds": [
+      "CLI-CN-049",
+      "CLI-CN-051",
+      "CLI-CN-053",
+      "CLI-CN-052",
+      "TC-CN-028"
+    ],
+    "reason": "legacy_basic_score_saturation",
+    "evidence": "data/execution/retirement-evidence-batch2.json",
+    "evidenceFiles": [
+      "data/execution/retirement-evidence.json",
+      "data/execution/retirement-evidence-batch2.json"
+    ],
+    "historyPreserved": true
+  },
+  "structuredOutputCuration": {
+    "version": "1.53.0",
+    "retiredIds": [
+      "SO-CN-023",
+      "SO-CN-025",
+      "SO-CN-029",
+      "SO-CN-040",
+      "SO-CN-041",
+      "SO-CN-042",
+      "SO-CN-044",
+      "SO-CN-047",
+      "SO-CN-048",
+      "SO-CN-049",
+      "SO-CN-054",
+      "SO-CN-057"
+    ],
+    "retainedSaturatedAnchors": [
+      "SO-CN-001",
+      "SO-CN-019",
+      "SO-CN-033",
+      "SO-CN-035",
+      "SO-CN-038",
+      "SO-CN-043",
+      "SO-CN-055"
+    ],
+    "evidence": "analysis/structured-output-redesign/retirement-evidence.json",
+    "historyPreserved": true
+  },
+  "structuredContractDevelopment": {
+    "version": "1.54.0",
+    "releasedAt": "2026-09-26T11:18:52.557Z",
+    "backup": "logs/structured-development-release-1790421531651",
+    "modelCalls": 0,
+    "sourcePackHash": "edcd89204980381863c846fb2e135df841822ec4583aca359671f3db8f1d2d9f",
+    "count": 19,
+    "formalStructuredCount": 46,
+    "formalPromotions": 0,
+    "mixedIds": [
+      "SOC2-C-D-1",
+      "SOC-D-D1",
+      "SOC-D-D2",
+      "SOC-D-D3"
+    ],
+    "allPassIds": [
+      "SOC2-A-D-1",
+      "SOC2-A-D-2",
+      "SOC2-B-D-1",
+      "SOC2-B-D-2",
+      "SOC2-C-D-2",
+      "SOC2-E-D-simple",
+      "SOC2-E-D-complex",
+      "SOC2-F-D-csv",
+      "SOC2-F-D-xml",
+      "SOC2-F-D-yaml",
+      "SOC2-F-D-toml",
+      "SOC2-G-D-1",
+      "SOC2-G-D-2",
+      "SOC2-H-D-1",
+      "SOC2-H-D-2"
+    ],
+    "candidates": [
+      {
+        "id": "SOC2-A-D-1",
+        "scenarioHash": "8a934ad3a8ee2c1d",
+        "sourceCaseHash": "20bb87afd4c2855f",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-A-D-2",
+        "scenarioHash": "8679280e3b79cbd6",
+        "sourceCaseHash": "9ab7151ddf4353c5",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-B-D-1",
+        "scenarioHash": "ff773604dc67bb30",
+        "sourceCaseHash": "e11f14cdf83775af",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-B-D-2",
+        "scenarioHash": "080879de20c65231",
+        "sourceCaseHash": "d1992121e3d671aa",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-C-D-1",
+        "scenarioHash": "8af609e0aec7f57e",
+        "sourceCaseHash": "10fdeec58de965cf",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-C-D-2",
+        "scenarioHash": "c33cd07080408903",
+        "sourceCaseHash": "0dd9312225567e82",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC-D-D1",
+        "scenarioHash": "a8adb7f3fc317577",
+        "sourceCaseHash": "dadb4ae0c67520f5",
+        "graderVersion": "structured_contract_v1"
+      },
+      {
+        "id": "SOC-D-D2",
+        "scenarioHash": "b30cea56a85fd3b9",
+        "sourceCaseHash": "6d5dd9e47eca356c",
+        "graderVersion": "structured_contract_v1"
+      },
+      {
+        "id": "SOC-D-D3",
+        "scenarioHash": "96c093543691eaea",
+        "sourceCaseHash": "8e49f3c4cb335055",
+        "graderVersion": "structured_contract_v1"
+      },
+      {
+        "id": "SOC2-E-D-simple",
+        "scenarioHash": "d774ad71a0cd97ae",
+        "sourceCaseHash": "144fb1364ca3581e",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-E-D-complex",
+        "scenarioHash": "f666b2a885412db3",
+        "sourceCaseHash": "2c4e3672f631f6ad",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-F-D-csv",
+        "scenarioHash": "27266deef38b5c32",
+        "sourceCaseHash": "27798ca402e1cd72",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-F-D-xml",
+        "scenarioHash": "503afaa994f8c67a",
+        "sourceCaseHash": "8dc816d6f734ac10",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-F-D-yaml",
+        "scenarioHash": "f066fc7e699e4949",
+        "sourceCaseHash": "1b5983d2bd08c3c7",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-F-D-toml",
+        "scenarioHash": "23103dc6cee74aeb",
+        "sourceCaseHash": "0f5d0ec43cba1672",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-G-D-1",
+        "scenarioHash": "3aedb744a14577fb",
+        "sourceCaseHash": "b3bb8a73ebc02ddb",
+        "graderVersion": "structured_contract_v3"
+      },
+      {
+        "id": "SOC2-G-D-2",
+        "scenarioHash": "0ed70ac0b842bc4e",
+        "sourceCaseHash": "c50b0bd3ce4965c1",
+        "graderVersion": "structured_contract_v3"
+      },
+      {
+        "id": "SOC2-H-D-1",
+        "scenarioHash": "24adc3f16a4d27b6",
+        "sourceCaseHash": "ce58758deb9e3d0c",
+        "graderVersion": "structured_contract_v2"
+      },
+      {
+        "id": "SOC2-H-D-2",
+        "scenarioHash": "0303b34dd4dad2af",
+        "sourceCaseHash": "63e9cdaad247e801",
+        "graderVersion": "structured_contract_v2"
+      }
+    ],
+    "scoringChange": "Generated-schema tasks use v3 for future runs. Saved calibration scores remain the original v2 observations, not v3 scores.",
+    "holdout": {
+      "count": 15,
+      "hash": "abb81385cbc64e556ff1c2250883526550438d4354ae44ef31d64dc8c262bb65",
+      "modelCalls": 0,
+      "status": "frozen_unmeasured"
+    },
+    "policy": "Development-only explicit selection. No automatic evaluation, no historical score rewrites. Further calibration omitted per user request.",
+    "evidence": "analysis/structured-output-redesign/development-release.json"
+  },
+  "structuredContractChallenge": {
+    "version": "1.55.0",
+    "releasedAt": "2026-09-26T11:29:26.498Z",
+    "backup": "logs/structured-challenge-release-1790422165598",
+    "added": 14,
+    "oldFormalCount": 46,
+    "formalCount": 60,
+    "developmentShadowCount": 19,
+    "ids": [
+      "SOC3-A-POLICY",
+      "SOC3-A-ROUTE",
+      "SOC3-B-TREE",
+      "SOC3-B-FOREST",
+      "SOC3-C-UNICODE",
+      "SOC3-C-PATH",
+      "SOC3-E-SIMPLE",
+      "SOC3-E-LEDGER",
+      "SOC3-F-CSV",
+      "SOC3-F-XML",
+      "SOC3-G-AUTH",
+      "SOC3-G-ARRAY",
+      "SOC3-H-BARS",
+      "SOC3-H-DELTA"
+    ],
+    "families": {
+      "A": 2,
+      "B": 2,
+      "C": 2,
+      "E": 2,
+      "F": 2,
+      "G": 2,
+      "H": 2
+    },
+    "sourcePackHash": "44d12c2cc15763f71c52db22460003297e5f2d6c2b79b3a57d4bc7d3d39df2bb",
+    "goldHash": "b9055bcf81c3e9aacbce15ccaba81d95247dbf73f026865ec105a38c17b4c371",
+    "modelCalls": 0,
+    "scope": "Prospective formal tasks with deterministic local positive/negative gate; actual model discrimination not yet measured.",
+    "historicalResultsPreserved": true,
+    "evidence": "analysis/structured-output-redesign/challenge-release.json"
+  },
+  "structuredOutputReplacement": {
+    "version": "1.57.0",
+    "publishedAt": "2026-09-26T15:48:59.832Z",
+    "backup": "logs/structured-event-replacement-1790437739832",
+    "retiredId": "SO-CN-001",
+    "retiredOldHash": "fdac2d770cc31bd7",
+    "retiredNewHash": "b1b89d22cc01ce05",
+    "addedId": "SOC4-G-EVENT",
+    "addedHash": "4966928a2b686858",
+    "sourceCaseId": "SYN8-EVENT-STRUCTURED",
+    "sourcePackHash": "3287d7ad9e4acccb2911cfaaba55cb8989e9102a6d81dec2f1dbeb832e43cacd",
+    "formalBefore": 60,
+    "formalAfter": 60,
+    "modelCalls": 0,
+    "historyPreserved": true,
+    "reason": "Replace one eight-configuration saturated easy JSON item with a behaviorally scored conditional Schema task that showed a paired failure on Bonsai2.",
+    "evidence": {
+      "bonsai": "data/pilots/structured-contract-frontier-v8/calibration-development-ed16d154-f5e9-4650-b355-cf5418846b81-bonsai2-no-reason-order-control.json",
+      "qwen": "data/pilots/structured-contract-frontier-v8/calibration-development-05c8edd2-6ca6-4c95-9090-e6431b8ab415-qwen38-order-control.json"
+    },
+    "limitation": "Only one task family; no claim about overall bank-level ceiling or quantization causality.",
+    "evidencePath": "analysis/structured-output-redesign/event-schema-replacement.json"
+  },
+  "structuredOutputBatchReplacement": {
+    "version": "1.58.0",
+    "publishedAt": "2026-09-26T16:49:50.539Z",
+    "backup": "logs/structured-batch-replacement-1790441390539",
+    "retiredIds": [
+      "SO-CN-038",
+      "SO-CN-043",
+      "SO-CN-055"
+    ],
+    "promotedIds": [
+      "SOC2-C-D-1",
+      "SOC-D-D2"
+    ],
+    "addedId": "SOC4-G-BATCH",
+    "formalBefore": 60,
+    "formalAfter": 60,
+    "totalReplacedIncludingPreviousEvent": 4,
+    "modelCalls": 0,
+    "historyPreserved": true,
+    "prior": [
+      {
+        "id": "SO-CN-038",
+        "oldHash": "941afb1439ea1dbf"
+      },
+      {
+        "id": "SO-CN-043",
+        "oldHash": "ffb06c07e7734f80"
+      },
+      {
+        "id": "SO-CN-055",
+        "oldHash": "04bcf36d00a7d1dc"
+      },
+      {
+        "id": "SOC2-C-D-1",
+        "oldHash": "8af609e0aec7f57e"
+      },
+      {
+        "id": "SOC-D-D2",
+        "oldHash": "b30cea56a85fd3b9"
+      }
+    ],
+    "addedHash": "17a3bd35189b4407",
+    "sourcePackHash": "5d582fca6d792adda7be396a71db246bb6b3f36ad01997d68496eb36faa4db72",
+    "evidence": [
+      "analysis/structured-output-redesign/development-release.json",
+      "data/pilots/structured-contract-frontier-v7/local-gate.json"
+    ],
+    "limitation": "Promoted cases showed mixed development results; batch task has a verified local oracle, without certified model separation.",
+    "evidencePath": "analysis/structured-output-redesign/structured-batch-replacement.json"
+  },
+  "structuredOutputNearCeilingReplacement": {
+    "version": "1.59.0",
+    "publishedAt": "2026-09-26T17:07:40.101Z",
+    "backup": "logs/structured-near-ceiling-replacement-1790442460102",
+    "pairs": [
+      {
+        "retiredId": "SO-CN-003",
+        "addedId": "SOC2-A-H-route",
+        "historicalPass": 7,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-030",
+        "addedId": "SOC2-B-H-tree",
+        "historicalPass": 7,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-002",
+        "addedId": "SOC2-C-H-headers",
+        "historicalPass": 6,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-005",
+        "addedId": "SOC-D-H1",
+        "historicalPass": 6,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-050",
+        "addedId": "SOC2-E-H-complex",
+        "historicalPass": 7,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-007",
+        "addedId": "SOC2-F-H-csv",
+        "historicalPass": 7,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-008",
+        "addedId": "SOC2-F-H-yaml",
+        "historicalPass": 6,
+        "historicalTotal": 8
+      },
+      {
+        "retiredId": "SO-CN-004",
+        "addedId": "SOC2-G-H-1",
+        "historicalPass": 6,
+        "historicalTotal": 8
+      }
+    ],
+    "formalBefore": 60,
+    "formalAfter": 60,
+    "totalReplacedIncludingPriorBatches": 12,
+    "modelCalls": 0,
+    "historyPreserved": true,
+    "sourcePackHash": "abb81385cbc64e556ff1c2250883526550438d4354ae44ef31d64dc8c262bb65",
+    "sourceGoldHash": "e582aa00464e2f76dd9d0245945daabe9aa9b37b0ce9a98d0161f0a1583b2b5a",
+    "basis": "Former frozen holdout cases have deterministic gold, correct/incorrect local gates and independent JSON Schema gate. Old cases passed 6-7 of 8 historical configurations.",
+    "limitation": "No new model calibration. The v2 development analogs were all-pass in screened configurations; these replacements strengthen contract specificity but are not proven to lower the score ceiling. Former holdout cases must no longer be treated as an independent holdout.",
+    "evidencePath": "analysis/structured-output-redesign/near-ceiling-batch-replacement.json"
+  },
+  "currentRecordCount": 920,
+  "archivedRetiredCount": 141,
+  "developmentShadowCount": 306,
+  "countSemantics": {
+    "currentRecordCount": "All records in benchmark.json (valid and retired)",
+    "retiredCount": "Retired records retained in benchmark.json",
+    "archivedRetiredCount": "Disjoint retired records in archive/benchmark-retired.json",
+    "totalCount": "currentRecordCount + archivedRetiredCount",
+    "defaultRunCount": "Execution instances selected from the adopted nine-model release; includes its 306 promoted migration instances",
+    "sourceQuestionCount": "Unique source identities after grouping adopted migration instances",
+    "executionInstanceCount": "Default execution instances before source grouping"
+  },
+  "releaseId": "nine-model-adopted-2026-09-29",
+  "sourceQuestionCount": 803,
+  "executionInstanceCount": 920,
+  "ordinaryCount": 614,
+  "migrationSourceCount": 189,
+  "migrationTaskCount": 306,
+  "scoring": "mean execution instances within source, then original source difficulty/attack weights",
+  "migrationTasks": [
+    {
+      "taskId": "AL-CN-001-DOCKER-PILOT",
+      "sourceId": "AL-CN-001",
+      "scenarioHash": "b5724f905ef2a9d4"
+    },
+    {
+      "taskId": "AL-CN-002-DOCKER-PILOT",
+      "sourceId": "AL-CN-002",
+      "scenarioHash": "8a81800edb9d2c88"
+    },
+    {
+      "taskId": "AL-CN-003-DOCKER-PILOT",
+      "sourceId": "AL-CN-003",
+      "scenarioHash": "7501c3f7165798f0"
+    },
+    {
+      "taskId": "AL-CN-004-DOCKER-PILOT",
+      "sourceId": "AL-CN-004",
+      "scenarioHash": "284058fc0896f9a2"
+    },
+    {
+      "taskId": "AL-CN-005-DOCKER-PILOT",
+      "sourceId": "AL-CN-005",
+      "scenarioHash": "b2749e7279b8508b"
+    },
+    {
+      "taskId": "CLI-CN-002-DOCKER",
+      "sourceId": "CLI-CN-002",
+      "scenarioHash": "630be4cae17fa132"
+    },
+    {
+      "taskId": "CLI-CN-003-DOCKER",
+      "sourceId": "CLI-CN-003",
+      "scenarioHash": "70f368a688fd568d"
+    },
+    {
+      "taskId": "CLI-CN-004-DOCKER",
+      "sourceId": "CLI-CN-004",
+      "scenarioHash": "18eccc2f87f0a0b1"
+    },
+    {
+      "taskId": "CLI-CN-005-DOCKER",
+      "sourceId": "CLI-CN-005",
+      "scenarioHash": "34f888aecd69b73e"
+    },
+    {
+      "taskId": "CLI-CN-006-DOCKER",
+      "sourceId": "CLI-CN-006",
+      "scenarioHash": "fc303da07a3d76a9"
+    },
+    {
+      "taskId": "CLI-CN-007-DOCKER",
+      "sourceId": "CLI-CN-007",
+      "scenarioHash": "53b94c2611ffdcd7"
+    },
+    {
+      "taskId": "CLI-CN-008-DOCKER",
+      "sourceId": "CLI-CN-008",
+      "scenarioHash": "e6e9c6fae429b3ac"
+    },
+    {
+      "taskId": "CLI-CN-009-DOCKER",
+      "sourceId": "CLI-CN-009",
+      "scenarioHash": "7c82c4cff2968e45"
+    },
+    {
+      "taskId": "CLI-CN-010-DOCKER",
+      "sourceId": "CLI-CN-010",
+      "scenarioHash": "4431b3cc52fd5e05"
+    },
+    {
+      "taskId": "CLI-CN-011-DOCKER",
+      "sourceId": "CLI-CN-011",
+      "scenarioHash": "10e6683d1977885c"
+    },
+    {
+      "taskId": "CLI-CN-012-DOCKER",
+      "sourceId": "CLI-CN-012",
+      "scenarioHash": "ab91f01c234fae5c"
+    },
+    {
+      "taskId": "CLI-CN-013-DOCKER",
+      "sourceId": "CLI-CN-013",
+      "scenarioHash": "18b33034dc499145"
+    },
+    {
+      "taskId": "CLI-CN-014-DOCKER",
+      "sourceId": "CLI-CN-014",
+      "scenarioHash": "5b70bb590e145dde"
+    },
+    {
+      "taskId": "CLI-CN-015-DOCKER",
+      "sourceId": "CLI-CN-015",
+      "scenarioHash": "a4fa34c7cb27d359"
+    },
+    {
+      "taskId": "CLI-CN-016-DOCKER",
+      "sourceId": "CLI-CN-016",
+      "scenarioHash": "8ecaa169200dd08f"
+    },
+    {
+      "taskId": "CLI-CN-017-DOCKER",
+      "sourceId": "CLI-CN-017",
+      "scenarioHash": "229e458905669f0a"
+    },
+    {
+      "taskId": "CLI-CN-018-DOCKER",
+      "sourceId": "CLI-CN-018",
+      "scenarioHash": "3f817f0709407cd0"
+    },
+    {
+      "taskId": "CLI-CN-019-DOCKER",
+      "sourceId": "CLI-CN-019",
+      "scenarioHash": "c566e6eaaa24133d"
+    },
+    {
+      "taskId": "CLI-CN-020-DOCKER",
+      "sourceId": "CLI-CN-020",
+      "scenarioHash": "fadc967a38569519"
+    },
+    {
+      "taskId": "CLI-CN-021-DOCKER",
+      "sourceId": "CLI-CN-021",
+      "scenarioHash": "1cde040bf170e712"
+    },
+    {
+      "taskId": "CLI-CN-022-DOCKER",
+      "sourceId": "CLI-CN-022",
+      "scenarioHash": "8e9002be424baf08"
+    },
+    {
+      "taskId": "CLI-CN-023-DOCKER",
+      "sourceId": "CLI-CN-023",
+      "scenarioHash": "6ac8879445bb0f1d"
+    },
+    {
+      "taskId": "CLI-CN-024-DOCKER",
+      "sourceId": "CLI-CN-024",
+      "scenarioHash": "5a3d7e2ed5ab5959"
+    },
+    {
+      "taskId": "CLI-CN-025-DOCKER",
+      "sourceId": "CLI-CN-025",
+      "scenarioHash": "fc422e311dd03d49"
+    },
+    {
+      "taskId": "CLI-CN-026-DOCKER",
+      "sourceId": "CLI-CN-026",
+      "scenarioHash": "964e68fb5ab70d32"
+    },
+    {
+      "taskId": "CLI-CN-027-DOCKER",
+      "sourceId": "CLI-CN-027",
+      "scenarioHash": "ccecba20fa8254b9"
+    },
+    {
+      "taskId": "CLI-CN-028-DOCKER",
+      "sourceId": "CLI-CN-028",
+      "scenarioHash": "f066ccb3013ba659"
+    },
+    {
+      "taskId": "CLI-CN-029-DOCKER",
+      "sourceId": "CLI-CN-029",
+      "scenarioHash": "dc5977a92821f0cc"
+    },
+    {
+      "taskId": "CLI-CN-030-DOCKER",
+      "sourceId": "CLI-CN-030",
+      "scenarioHash": "880e57027e40d269"
+    },
+    {
+      "taskId": "CLI-CN-031-SHELL-PILOT",
+      "sourceId": "CLI-CN-031",
+      "scenarioHash": "7c69f6de23cddbb8"
+    },
+    {
+      "taskId": "CLI-CN-032-SHELL-PILOT",
+      "sourceId": "CLI-CN-032",
+      "scenarioHash": "8652c5e7c0e7f13a"
+    },
+    {
+      "taskId": "CLI-CN-033-SHELL-PILOT",
+      "sourceId": "CLI-CN-033",
+      "scenarioHash": "f4aae47a8a6f5168"
+    },
+    {
+      "taskId": "CLI-CN-034-SHELL-PILOT",
+      "sourceId": "CLI-CN-034",
+      "scenarioHash": "313e8d6530c952f7"
+    },
+    {
+      "taskId": "CLI-CN-035-SHELL-PILOT",
+      "sourceId": "CLI-CN-035",
+      "scenarioHash": "9f4cb11c04771ce8"
+    },
+    {
+      "taskId": "CLI-CN-036-SHELL-PILOT",
+      "sourceId": "CLI-CN-036",
+      "scenarioHash": "04952b8edeb7a668"
+    },
+    {
+      "taskId": "CLI-CN-037-RECOVERY-0",
+      "sourceId": "CLI-CN-037",
+      "scenarioHash": "240e321fc5c3464a"
+    },
+    {
+      "taskId": "CLI-CN-037-RECOVERY-1",
+      "sourceId": "CLI-CN-037",
+      "scenarioHash": "6d75dc8794ce5357"
+    },
+    {
+      "taskId": "CLI-CN-038-RECOVERY-0",
+      "sourceId": "CLI-CN-038",
+      "scenarioHash": "7f16b517016f88ee"
+    },
+    {
+      "taskId": "CLI-CN-038-RECOVERY-1",
+      "sourceId": "CLI-CN-038",
+      "scenarioHash": "28e522b7a41d2fbb"
+    },
+    {
+      "taskId": "CLI-CN-039-DOCKER",
+      "sourceId": "CLI-CN-039",
+      "scenarioHash": "27afbbfc747b96fb"
+    },
+    {
+      "taskId": "CLI-CN-040-RECOVERY-0",
+      "sourceId": "CLI-CN-040",
+      "scenarioHash": "b461896691276e1c"
+    },
+    {
+      "taskId": "CLI-CN-040-RECOVERY-1",
+      "sourceId": "CLI-CN-040",
+      "scenarioHash": "e32261837e602ef1"
+    },
+    {
+      "taskId": "CLI-CN-041-DOCKER",
+      "sourceId": "CLI-CN-041",
+      "scenarioHash": "4c971361c08c4238"
+    },
+    {
+      "taskId": "CLI-CN-042-RECOVERY-0",
+      "sourceId": "CLI-CN-042",
+      "scenarioHash": "23f4d7bf3c76a93d"
+    },
+    {
+      "taskId": "CLI-CN-042-RECOVERY-1",
+      "sourceId": "CLI-CN-042",
+      "scenarioHash": "9b24ae6ccaf3b09a"
+    },
+    {
+      "taskId": "CLI-CN-043-DOCKER",
+      "sourceId": "CLI-CN-043",
+      "scenarioHash": "3b66e722891b468a"
+    },
+    {
+      "taskId": "CLI-CN-044-DOCKER",
+      "sourceId": "CLI-CN-044",
+      "scenarioHash": "5a8c029ebcfd6487"
+    },
+    {
+      "taskId": "CLI-CN-045-DOCKER",
+      "sourceId": "CLI-CN-045",
+      "scenarioHash": "fd4cadcc83f67155"
+    },
+    {
+      "taskId": "CLI-CN-046-DOCKER",
+      "sourceId": "CLI-CN-046",
+      "scenarioHash": "c8920b85191b70ad"
+    },
+    {
+      "taskId": "CLI-CN-047-DOCKER",
+      "sourceId": "CLI-CN-047",
+      "scenarioHash": "d5078d4966325192"
+    },
+    {
+      "taskId": "CLI-CN-048-DOCKER",
+      "sourceId": "CLI-CN-048",
+      "scenarioHash": "d88148183487286c"
+    },
+    {
+      "taskId": "CLI-CN-050-DOCKER",
+      "sourceId": "CLI-CN-050",
+      "scenarioHash": "0468bf9b342f9b34"
+    },
+    {
+      "taskId": "CLI-CN-054-DOCKER",
+      "sourceId": "CLI-CN-054",
+      "scenarioHash": "ff89026312034770"
+    },
+    {
+      "taskId": "CLI-CN-055-DOCKER",
+      "sourceId": "CLI-CN-055",
+      "scenarioHash": "28e7c8a4039a47d0"
+    },
+    {
+      "taskId": "CLI-CN-056-DOCKER",
+      "sourceId": "CLI-CN-056",
+      "scenarioHash": "376d30488d91fe24"
+    },
+    {
+      "taskId": "CLI-PILOT-001",
+      "sourceId": "CLI-CN-001",
+      "scenarioHash": "ada63cd4f71ce739"
+    },
+    {
+      "taskId": "HA-CN-001-RECOVERY-0",
+      "sourceId": "HA-CN-001",
+      "scenarioHash": "a45cab56c437797f"
+    },
+    {
+      "taskId": "HA-CN-001-RECOVERY-1",
+      "sourceId": "HA-CN-001",
+      "scenarioHash": "401407c809a66ea2"
+    },
+    {
+      "taskId": "HA-CN-002-RECOVERY-0",
+      "sourceId": "HA-CN-002",
+      "scenarioHash": "ac390b9b67a01b90"
+    },
+    {
+      "taskId": "HA-CN-002-RECOVERY-1",
+      "sourceId": "HA-CN-002",
+      "scenarioHash": "45fa1d0561ca21e5"
+    },
+    {
+      "taskId": "HA-CN-003-RECOVERY-0",
+      "sourceId": "HA-CN-003",
+      "scenarioHash": "0940deec35d8a41a"
+    },
+    {
+      "taskId": "HA-CN-003-RECOVERY-1",
+      "sourceId": "HA-CN-003",
+      "scenarioHash": "ce0cf514d7cdd0e8"
+    },
+    {
+      "taskId": "HA-CN-004-RECOVERY-0",
+      "sourceId": "HA-CN-004",
+      "scenarioHash": "59f9becd3800bb3a"
+    },
+    {
+      "taskId": "HA-CN-004-RECOVERY-1",
+      "sourceId": "HA-CN-004",
+      "scenarioHash": "0e557dc134576a96"
+    },
+    {
+      "taskId": "HA-CN-005-RECOVERY-0",
+      "sourceId": "HA-CN-005",
+      "scenarioHash": "c68803fcb522609c"
+    },
+    {
+      "taskId": "HA-CN-005-RECOVERY-1",
+      "sourceId": "HA-CN-005",
+      "scenarioHash": "2c3e3232fa75e7bc"
+    },
+    {
+      "taskId": "HA-CN-006-RECOVERY-0",
+      "sourceId": "HA-CN-006",
+      "scenarioHash": "df2a370dbfecad86"
+    },
+    {
+      "taskId": "HA-CN-006-RECOVERY-1",
+      "sourceId": "HA-CN-006",
+      "scenarioHash": "c190463f3827a7a9"
+    },
+    {
+      "taskId": "HA-CN-007-RECOVERY-0",
+      "sourceId": "HA-CN-007",
+      "scenarioHash": "a0670852c4844784"
+    },
+    {
+      "taskId": "HA-CN-007-RECOVERY-1",
+      "sourceId": "HA-CN-007",
+      "scenarioHash": "869b9979eb684cee"
+    },
+    {
+      "taskId": "HA-CN-008-RECOVERY-0",
+      "sourceId": "HA-CN-008",
+      "scenarioHash": "6a43bd14640b2d8f"
+    },
+    {
+      "taskId": "HA-CN-008-RECOVERY-1",
+      "sourceId": "HA-CN-008",
+      "scenarioHash": "05d1674ea0ba83c4"
+    },
+    {
+      "taskId": "HA-CN-009-RECOVERY-0",
+      "sourceId": "HA-CN-009",
+      "scenarioHash": "c24c1acca1919b92"
+    },
+    {
+      "taskId": "HA-CN-009-RECOVERY-1",
+      "sourceId": "HA-CN-009",
+      "scenarioHash": "e504b2615a5b73fd"
+    },
+    {
+      "taskId": "HA-CN-010-RECOVERY-0",
+      "sourceId": "HA-CN-010",
+      "scenarioHash": "b54da53932f978ec"
+    },
+    {
+      "taskId": "HA-CN-010-RECOVERY-1",
+      "sourceId": "HA-CN-010",
+      "scenarioHash": "5b27ef29e2c36724"
+    },
+    {
+      "taskId": "HA-CN-011-RECOVERY-0",
+      "sourceId": "HA-CN-011",
+      "scenarioHash": "b128bdc5c703900b"
+    },
+    {
+      "taskId": "HA-CN-011-RECOVERY-1",
+      "sourceId": "HA-CN-011",
+      "scenarioHash": "73afb3018c43dc4e"
+    },
+    {
+      "taskId": "HA-CN-012-RECOVERY-0",
+      "sourceId": "HA-CN-012",
+      "scenarioHash": "8c658f197b7ff04c"
+    },
+    {
+      "taskId": "HA-CN-012-RECOVERY-1",
+      "sourceId": "HA-CN-012",
+      "scenarioHash": "0159033fffe4d9c4"
+    },
+    {
+      "taskId": "HA-CN-013-RECOVERY-0",
+      "sourceId": "HA-CN-013",
+      "scenarioHash": "7c6e82de70edca2f"
+    },
+    {
+      "taskId": "HA-CN-013-RECOVERY-1",
+      "sourceId": "HA-CN-013",
+      "scenarioHash": "8ba9f99b0c61c064"
+    },
+    {
+      "taskId": "HA-CN-014-RECOVERY-0",
+      "sourceId": "HA-CN-014",
+      "scenarioHash": "8acee949bb2b7fe4"
+    },
+    {
+      "taskId": "HA-CN-014-RECOVERY-1",
+      "sourceId": "HA-CN-014",
+      "scenarioHash": "22c55a221d8da7ff"
+    },
+    {
+      "taskId": "HA-CN-015-RECOVERY-0",
+      "sourceId": "HA-CN-015",
+      "scenarioHash": "782cf9433fefa0c2"
+    },
+    {
+      "taskId": "HA-CN-015-RECOVERY-1",
+      "sourceId": "HA-CN-015",
+      "scenarioHash": "9d233d5ad6fa082a"
+    },
+    {
+      "taskId": "HA-CN-016-RECOVERY-0",
+      "sourceId": "HA-CN-016",
+      "scenarioHash": "64b9e9fac2d7e3e0"
+    },
+    {
+      "taskId": "HA-CN-016-RECOVERY-1",
+      "sourceId": "HA-CN-016",
+      "scenarioHash": "103ad1d8fe879a9d"
+    },
+    {
+      "taskId": "HA-CN-017-RECOVERY-0",
+      "sourceId": "HA-CN-017",
+      "scenarioHash": "861137e50dcea625"
+    },
+    {
+      "taskId": "HA-CN-017-RECOVERY-1",
+      "sourceId": "HA-CN-017",
+      "scenarioHash": "b5feff42bbf8799c"
+    },
+    {
+      "taskId": "HA-CN-018-RECOVERY-0",
+      "sourceId": "HA-CN-018",
+      "scenarioHash": "dce6a2455f2ee5ec"
+    },
+    {
+      "taskId": "HA-CN-018-RECOVERY-1",
+      "sourceId": "HA-CN-018",
+      "scenarioHash": "727aa12dba221411"
+    },
+    {
+      "taskId": "HA-CN-019-RECOVERY-0",
+      "sourceId": "HA-CN-019",
+      "scenarioHash": "4d035fc9324ea692"
+    },
+    {
+      "taskId": "HA-CN-019-RECOVERY-1",
+      "sourceId": "HA-CN-019",
+      "scenarioHash": "ac9abd4a21d0f110"
+    },
+    {
+      "taskId": "HA-CN-020-RECOVERY-0",
+      "sourceId": "HA-CN-020",
+      "scenarioHash": "6756a3a1f1717af3"
+    },
+    {
+      "taskId": "HA-CN-020-RECOVERY-1",
+      "sourceId": "HA-CN-020",
+      "scenarioHash": "35e11420636819c8"
+    },
+    {
+      "taskId": "HA-CN-021-RECOVERY-0",
+      "sourceId": "HA-CN-021",
+      "scenarioHash": "58a32c79288e84bb"
+    },
+    {
+      "taskId": "HA-CN-021-RECOVERY-1",
+      "sourceId": "HA-CN-021",
+      "scenarioHash": "70d1d2d68549684f"
+    },
+    {
+      "taskId": "HA-CN-022-RECOVERY-0",
+      "sourceId": "HA-CN-022",
+      "scenarioHash": "313fc18db042351c"
+    },
+    {
+      "taskId": "HA-CN-022-RECOVERY-1",
+      "sourceId": "HA-CN-022",
+      "scenarioHash": "49b2a81657a00e02"
+    },
+    {
+      "taskId": "HA-CN-023-RECOVERY-0",
+      "sourceId": "HA-CN-023",
+      "scenarioHash": "d54d7ce1ffda4d66"
+    },
+    {
+      "taskId": "HA-CN-023-RECOVERY-1",
+      "sourceId": "HA-CN-023",
+      "scenarioHash": "8c5268fd231b3351"
+    },
+    {
+      "taskId": "HA-CN-024-RECOVERY-0",
+      "sourceId": "HA-CN-024",
+      "scenarioHash": "770a879e42826747"
+    },
+    {
+      "taskId": "HA-CN-024-RECOVERY-1",
+      "sourceId": "HA-CN-024",
+      "scenarioHash": "bfcd5875206528e9"
+    },
+    {
+      "taskId": "HA-CN-025-RECOVERY-0",
+      "sourceId": "HA-CN-025",
+      "scenarioHash": "d5ba79557132b755"
+    },
+    {
+      "taskId": "HA-CN-025-RECOVERY-1",
+      "sourceId": "HA-CN-025",
+      "scenarioHash": "41466a10d22312f7"
+    },
+    {
+      "taskId": "HA-CN-026-RECOVERY-0",
+      "sourceId": "HA-CN-026",
+      "scenarioHash": "4990b010bfad1de9"
+    },
+    {
+      "taskId": "HA-CN-026-RECOVERY-1",
+      "sourceId": "HA-CN-026",
+      "scenarioHash": "8660000e383fddd1"
+    },
+    {
+      "taskId": "HA-CN-027-RECOVERY-0",
+      "sourceId": "HA-CN-027",
+      "scenarioHash": "ab46a91de52bcee8"
+    },
+    {
+      "taskId": "HA-CN-027-RECOVERY-1",
+      "sourceId": "HA-CN-027",
+      "scenarioHash": "30007ec583faa2f6"
+    },
+    {
+      "taskId": "HA-CN-028-RECOVERY-0",
+      "sourceId": "HA-CN-028",
+      "scenarioHash": "81d2e861af36cb5b"
+    },
+    {
+      "taskId": "HA-CN-028-RECOVERY-1",
+      "sourceId": "HA-CN-028",
+      "scenarioHash": "c5129c3d9f1d9ef1"
+    },
+    {
+      "taskId": "HA-CN-029-RECOVERY-0",
+      "sourceId": "HA-CN-029",
+      "scenarioHash": "75dd9b7682836427"
+    },
+    {
+      "taskId": "HA-CN-029-RECOVERY-1",
+      "sourceId": "HA-CN-029",
+      "scenarioHash": "25fe28fc763a2597"
+    },
+    {
+      "taskId": "HA-CN-030-RECOVERY-0",
+      "sourceId": "HA-CN-030",
+      "scenarioHash": "3880d18786e11ad4"
+    },
+    {
+      "taskId": "HA-CN-030-RECOVERY-1",
+      "sourceId": "HA-CN-030",
+      "scenarioHash": "70404328e134dfc4"
+    },
+    {
+      "taskId": "HA-CN-031-RECOVERY-0",
+      "sourceId": "HA-CN-031",
+      "scenarioHash": "e109fb19d5077202"
+    },
+    {
+      "taskId": "HA-CN-031-RECOVERY-1",
+      "sourceId": "HA-CN-031",
+      "scenarioHash": "5d9ce76ad625fa7f"
+    },
+    {
+      "taskId": "HA-CN-032-RECOVERY-0",
+      "sourceId": "HA-CN-032",
+      "scenarioHash": "a699688cc6443e5f"
+    },
+    {
+      "taskId": "HA-CN-032-RECOVERY-1",
+      "sourceId": "HA-CN-032",
+      "scenarioHash": "b8345655b56a1845"
+    },
+    {
+      "taskId": "HA-CN-033-RECOVERY-0",
+      "sourceId": "HA-CN-033",
+      "scenarioHash": "e85c7d799eb669fe"
+    },
+    {
+      "taskId": "HA-CN-033-RECOVERY-1",
+      "sourceId": "HA-CN-033",
+      "scenarioHash": "b5a0ef93332e3c5f"
+    },
+    {
+      "taskId": "HA-CN-034-RECOVERY-0",
+      "sourceId": "HA-CN-034",
+      "scenarioHash": "c1a338644d127e95"
+    },
+    {
+      "taskId": "HA-CN-034-RECOVERY-1",
+      "sourceId": "HA-CN-034",
+      "scenarioHash": "db310587efb669ae"
+    },
+    {
+      "taskId": "HA-CN-035-RECOVERY-0",
+      "sourceId": "HA-CN-035",
+      "scenarioHash": "25c71fbebb9e4f7f"
+    },
+    {
+      "taskId": "HA-CN-035-RECOVERY-1",
+      "sourceId": "HA-CN-035",
+      "scenarioHash": "c2eb15f2743e62b9"
+    },
+    {
+      "taskId": "HA-CN-036-RECOVERY-0",
+      "sourceId": "HA-CN-036",
+      "scenarioHash": "952da0dd52504b0c"
+    },
+    {
+      "taskId": "HA-CN-036-RECOVERY-1",
+      "sourceId": "HA-CN-036",
+      "scenarioHash": "cb7686689e268ea4"
+    },
+    {
+      "taskId": "HA-CN-037-RECOVERY-0",
+      "sourceId": "HA-CN-037",
+      "scenarioHash": "a726e564c88aa006"
+    },
+    {
+      "taskId": "HA-CN-037-RECOVERY-1",
+      "sourceId": "HA-CN-037",
+      "scenarioHash": "b4b9ad1965c367ae"
+    },
+    {
+      "taskId": "HA-CN-038-RECOVERY-0",
+      "sourceId": "HA-CN-038",
+      "scenarioHash": "ac34222ead9a80c0"
+    },
+    {
+      "taskId": "HA-CN-038-RECOVERY-1",
+      "sourceId": "HA-CN-038",
+      "scenarioHash": "a2a7ac18baeafbc8"
+    },
+    {
+      "taskId": "HA-CN-039-RECOVERY-0",
+      "sourceId": "HA-CN-039",
+      "scenarioHash": "c6b6a64288e4cfd5"
+    },
+    {
+      "taskId": "HA-CN-039-RECOVERY-1",
+      "sourceId": "HA-CN-039",
+      "scenarioHash": "f3fc930b4190219c"
+    },
+    {
+      "taskId": "HA-CN-040-RECOVERY-0",
+      "sourceId": "HA-CN-040",
+      "scenarioHash": "3bccdbd795d4f791"
+    },
+    {
+      "taskId": "HA-CN-040-RECOVERY-1",
+      "sourceId": "HA-CN-040",
+      "scenarioHash": "054b17ccee7711f6"
+    },
+    {
+      "taskId": "HA-CN-041-RECOVERY-0",
+      "sourceId": "HA-CN-041",
+      "scenarioHash": "1117097fc4def939"
+    },
+    {
+      "taskId": "HA-CN-042-RECOVERY-0",
+      "sourceId": "HA-CN-042",
+      "scenarioHash": "23ff58304501318b"
+    },
+    {
+      "taskId": "HA-CN-043-RECOVERY-0",
+      "sourceId": "HA-CN-043",
+      "scenarioHash": "26e16a9f2d922e23"
+    },
+    {
+      "taskId": "HA-CN-044-RECOVERY-0",
+      "sourceId": "HA-CN-044",
+      "scenarioHash": "30a16ec1e3253fda"
+    },
+    {
+      "taskId": "HA-CN-044-RECOVERY-1",
+      "sourceId": "HA-CN-044",
+      "scenarioHash": "e0fe79f8f6fa2984"
+    },
+    {
+      "taskId": "HA-CN-045-EXEC-PILOT",
+      "sourceId": "HA-CN-045",
+      "scenarioHash": "69a7b1fdc7f7d88d"
+    },
+    {
+      "taskId": "HA-CN-045-EXISTS-PILOT",
+      "sourceId": "HA-CN-045",
+      "scenarioHash": "81f9a890bd15c322"
+    },
+    {
+      "taskId": "SA-CN-001-RECOVERY-0",
+      "sourceId": "SA-CN-001",
+      "scenarioHash": "8ecc5b5c9319fedb"
+    },
+    {
+      "taskId": "SA-CN-002-RECOVERY-0",
+      "sourceId": "SA-CN-002",
+      "scenarioHash": "73313bc142970478"
+    },
+    {
+      "taskId": "SA-CN-002-RECOVERY-1",
+      "sourceId": "SA-CN-002",
+      "scenarioHash": "57ec62f8a0242315"
+    },
+    {
+      "taskId": "SA-CN-003-RECOVERY-0",
+      "sourceId": "SA-CN-003",
+      "scenarioHash": "2eb7a4aaab935a53"
+    },
+    {
+      "taskId": "SA-CN-003-RECOVERY-1",
+      "sourceId": "SA-CN-003",
+      "scenarioHash": "108dfb376932bba6"
+    },
+    {
+      "taskId": "SA-CN-004-RECOVERY-0",
+      "sourceId": "SA-CN-004",
+      "scenarioHash": "311c014542f4ed3c"
+    },
+    {
+      "taskId": "SA-CN-004-RECOVERY-1",
+      "sourceId": "SA-CN-004",
+      "scenarioHash": "bf25a7e1d8a1a4c4"
+    },
+    {
+      "taskId": "SA-CN-006-RECOVERY-0",
+      "sourceId": "SA-CN-006",
+      "scenarioHash": "0983038fa1c20a13"
+    },
+    {
+      "taskId": "SA-CN-006-RECOVERY-1",
+      "sourceId": "SA-CN-006",
+      "scenarioHash": "dc9052894fde4c7d"
+    },
+    {
+      "taskId": "SA-CN-007-RECOVERY-0",
+      "sourceId": "SA-CN-007",
+      "scenarioHash": "4c2576822748b6f0"
+    },
+    {
+      "taskId": "SA-CN-007-RECOVERY-1",
+      "sourceId": "SA-CN-007",
+      "scenarioHash": "190ba92da6bddaa2"
+    },
+    {
+      "taskId": "SA-CN-008-RECOVERY-0",
+      "sourceId": "SA-CN-008",
+      "scenarioHash": "9506c041917115cb"
+    },
+    {
+      "taskId": "SA-CN-008-RECOVERY-1",
+      "sourceId": "SA-CN-008",
+      "scenarioHash": "11711cf9657bc872"
+    },
+    {
+      "taskId": "SA-CN-020-RECOVERY-0",
+      "sourceId": "SA-CN-020",
+      "scenarioHash": "e4f12e30608e0803"
+    },
+    {
+      "taskId": "SA-CN-020-RECOVERY-1",
+      "sourceId": "SA-CN-020",
+      "scenarioHash": "01a2fcbce18dd5eb"
+    },
+    {
+      "taskId": "SA-CN-022-EXEC-PILOT",
+      "sourceId": "SA-CN-022",
+      "scenarioHash": "ec3fbe0d7a01099e"
+    },
+    {
+      "taskId": "SA-CN-023-RECOVERY-0",
+      "sourceId": "SA-CN-023",
+      "scenarioHash": "22f6f1e70be5d795"
+    },
+    {
+      "taskId": "SA-CN-023-RECOVERY-1",
+      "sourceId": "SA-CN-023",
+      "scenarioHash": "0c7b1c83956a8dee"
+    },
+    {
+      "taskId": "SA-CN-024-RECOVERY-0",
+      "sourceId": "SA-CN-024",
+      "scenarioHash": "3cb6e75b929859be"
+    },
+    {
+      "taskId": "SA-CN-024-RECOVERY-1",
+      "sourceId": "SA-CN-024",
+      "scenarioHash": "c30676f7c8f24052"
+    },
+    {
+      "taskId": "SA-CN-025-RECOVERY-0",
+      "sourceId": "SA-CN-025",
+      "scenarioHash": "7f7895c5af9adc7e"
+    },
+    {
+      "taskId": "SA-CN-025-RECOVERY-1",
+      "sourceId": "SA-CN-025",
+      "scenarioHash": "0f6ea19a6486468b"
+    },
+    {
+      "taskId": "SA-CN-026-RECOVERY-0",
+      "sourceId": "SA-CN-026",
+      "scenarioHash": "61c59f00ebaed80e"
+    },
+    {
+      "taskId": "SA-CN-027-RECOVERY-0",
+      "sourceId": "SA-CN-027",
+      "scenarioHash": "f6f9795f5f63b8f4"
+    },
+    {
+      "taskId": "SA-CN-027-RECOVERY-1",
+      "sourceId": "SA-CN-027",
+      "scenarioHash": "030b63bbbd6a05f7"
+    },
+    {
+      "taskId": "SA-CN-028-RECOVERY-0",
+      "sourceId": "SA-CN-028",
+      "scenarioHash": "f5d1eb14df07e38d"
+    },
+    {
+      "taskId": "SA-CN-028-RECOVERY-1",
+      "sourceId": "SA-CN-028",
+      "scenarioHash": "3d64892779123a5a"
+    },
+    {
+      "taskId": "SA-CN-031-RECOVERY-0",
+      "sourceId": "SA-CN-031",
+      "scenarioHash": "e6491a10563439c9"
+    },
+    {
+      "taskId": "SA-CN-031-RECOVERY-1",
+      "sourceId": "SA-CN-031",
+      "scenarioHash": "29808d96093a8ecb"
+    },
+    {
+      "taskId": "SA-CN-032-RECOVERY-0",
+      "sourceId": "SA-CN-032",
+      "scenarioHash": "0106f8769ba2bb50"
+    },
+    {
+      "taskId": "SA-CN-033-RECOVERY-0",
+      "sourceId": "SA-CN-033",
+      "scenarioHash": "d3acf283846b51c0"
+    },
+    {
+      "taskId": "SA-CN-033-RECOVERY-1",
+      "sourceId": "SA-CN-033",
+      "scenarioHash": "6a09a62f951eab76"
+    },
+    {
+      "taskId": "SA-CN-035-RECOVERY-0",
+      "sourceId": "SA-CN-035",
+      "scenarioHash": "cf70297c3af87699"
+    },
+    {
+      "taskId": "SA-CN-035-RECOVERY-1",
+      "sourceId": "SA-CN-035",
+      "scenarioHash": "299fa161bf53977c"
+    },
+    {
+      "taskId": "SA-CN-036-RECOVERY-0",
+      "sourceId": "SA-CN-036",
+      "scenarioHash": "cb4584a54e9e906e"
+    },
+    {
+      "taskId": "SA-CN-036-RECOVERY-1",
+      "sourceId": "SA-CN-036",
+      "scenarioHash": "151619ae7733db70"
+    },
+    {
+      "taskId": "SA-CN-037-RECOVERY-0",
+      "sourceId": "SA-CN-037",
+      "scenarioHash": "55afc6df3de39d7f"
+    },
+    {
+      "taskId": "SA-CN-037-RECOVERY-1",
+      "sourceId": "SA-CN-037",
+      "scenarioHash": "4518536f5b2f210b"
+    },
+    {
+      "taskId": "SA-CN-038-RECOVERY-0",
+      "sourceId": "SA-CN-038",
+      "scenarioHash": "1936ebd6c583f12d"
+    },
+    {
+      "taskId": "SA-CN-038-RECOVERY-1",
+      "sourceId": "SA-CN-038",
+      "scenarioHash": "043fed684e88b2e5"
+    },
+    {
+      "taskId": "SA-CN-039-RECOVERY-0",
+      "sourceId": "SA-CN-039",
+      "scenarioHash": "958049140046a357"
+    },
+    {
+      "taskId": "SA-CN-039-RECOVERY-1",
+      "sourceId": "SA-CN-039",
+      "scenarioHash": "be46c4e931730fe9"
+    },
+    {
+      "taskId": "SA-CN-040-RECOVERY-0",
+      "sourceId": "SA-CN-040",
+      "scenarioHash": "f098b2e04103f86a"
+    },
+    {
+      "taskId": "SA-CN-040-RECOVERY-1",
+      "sourceId": "SA-CN-040",
+      "scenarioHash": "e00b1a5d9cb33ee8"
+    },
+    {
+      "taskId": "SA-CN-041-RECOVERY-0",
+      "sourceId": "SA-CN-041",
+      "scenarioHash": "6dff5ecf0fae52b3"
+    },
+    {
+      "taskId": "SA-CN-041-RECOVERY-1",
+      "sourceId": "SA-CN-041",
+      "scenarioHash": "ac60929fcbe61d05"
+    },
+    {
+      "taskId": "SA-CN-042-RECOVERY-0",
+      "sourceId": "SA-CN-042",
+      "scenarioHash": "75fc8cb44cbe354d"
+    },
+    {
+      "taskId": "SA-CN-042-RECOVERY-1",
+      "sourceId": "SA-CN-042",
+      "scenarioHash": "dc36e968ed3338b0"
+    },
+    {
+      "taskId": "SA-CN-044-RECOVERY-0",
+      "sourceId": "SA-CN-044",
+      "scenarioHash": "32628a5c6bcaa8e7"
+    },
+    {
+      "taskId": "SA-CN-044-RECOVERY-1",
+      "sourceId": "SA-CN-044",
+      "scenarioHash": "aaacc19c4e641bd7"
+    },
+    {
+      "taskId": "SA-CN-045-RECOVERY-0",
+      "sourceId": "SA-CN-045",
+      "scenarioHash": "fdab1523ac2ab699"
+    },
+    {
+      "taskId": "SA-CN-045-RECOVERY-1",
+      "sourceId": "SA-CN-045",
+      "scenarioHash": "784239532f25253e"
+    },
+    {
+      "taskId": "SA-CN-046-RECOVERY-0",
+      "sourceId": "SA-CN-046",
+      "scenarioHash": "6be598b3dedb9709"
+    },
+    {
+      "taskId": "SA-CN-046-RECOVERY-1",
+      "sourceId": "SA-CN-046",
+      "scenarioHash": "95e0f8eef25bff24"
+    },
+    {
+      "taskId": "SA-CN-048-RECOVERY-0",
+      "sourceId": "SA-CN-048",
+      "scenarioHash": "6e0682f0b5b772ed"
+    },
+    {
+      "taskId": "SA-CN-048-RECOVERY-1",
+      "sourceId": "SA-CN-048",
+      "scenarioHash": "181177aa5239fe47"
+    },
+    {
+      "taskId": "SA-CN-049-RECOVERY-0",
+      "sourceId": "SA-CN-049",
+      "scenarioHash": "7febf874c2147cc1"
+    },
+    {
+      "taskId": "SA-CN-049-RECOVERY-1",
+      "sourceId": "SA-CN-049",
+      "scenarioHash": "5a6dc718fc1bc7bf"
+    },
+    {
+      "taskId": "SA-CN-050-RECOVERY-0",
+      "sourceId": "SA-CN-050",
+      "scenarioHash": "db6eaab0939b4f8a"
+    },
+    {
+      "taskId": "SA-CN-050-RECOVERY-1",
+      "sourceId": "SA-CN-050",
+      "scenarioHash": "d3914da06fd5724d"
+    },
+    {
+      "taskId": "TC-CN-001-RECOVERY-0",
+      "sourceId": "TC-CN-001",
+      "scenarioHash": "a1ffd57a1601aad2"
+    },
+    {
+      "taskId": "TC-CN-002-RECOVERY-0",
+      "sourceId": "TC-CN-002",
+      "scenarioHash": "44dda07209e92427"
+    },
+    {
+      "taskId": "TC-CN-002-RECOVERY-1",
+      "sourceId": "TC-CN-002",
+      "scenarioHash": "96df325df2bf4e06"
+    },
+    {
+      "taskId": "TC-CN-003-RECOVERY-0",
+      "sourceId": "TC-CN-003",
+      "scenarioHash": "16166c2d374b7f69"
+    },
+    {
+      "taskId": "TC-CN-003-RECOVERY-1",
+      "sourceId": "TC-CN-003",
+      "scenarioHash": "d54721df041150bf"
+    },
+    {
+      "taskId": "TC-CN-004-RECOVERY-0",
+      "sourceId": "TC-CN-004",
+      "scenarioHash": "0d66dff21ebb9fd9"
+    },
+    {
+      "taskId": "TC-CN-004-RECOVERY-1",
+      "sourceId": "TC-CN-004",
+      "scenarioHash": "a7d8be927cc05ea2"
+    },
+    {
+      "taskId": "TC-CN-005-RECOVERY-0",
+      "sourceId": "TC-CN-005",
+      "scenarioHash": "19afc9c5e2732982"
+    },
+    {
+      "taskId": "TC-CN-006-RECOVERY-0",
+      "sourceId": "TC-CN-006",
+      "scenarioHash": "3dd0972ae75a564c"
+    },
+    {
+      "taskId": "TC-CN-006-RECOVERY-1",
+      "sourceId": "TC-CN-006",
+      "scenarioHash": "eacc63868f007c32"
+    },
+    {
+      "taskId": "TC-CN-007-RECOVERY-0",
+      "sourceId": "TC-CN-007",
+      "scenarioHash": "b0dd7fa7b8d9f3c6"
+    },
+    {
+      "taskId": "TC-CN-007-RECOVERY-1",
+      "sourceId": "TC-CN-007",
+      "scenarioHash": "4f6540168cdca8de"
+    },
+    {
+      "taskId": "TC-CN-008-RECOVERY-0",
+      "sourceId": "TC-CN-008",
+      "scenarioHash": "cfc4d0524687c3d6"
+    },
+    {
+      "taskId": "TC-CN-008-RECOVERY-1",
+      "sourceId": "TC-CN-008",
+      "scenarioHash": "b900501be9c253e9"
+    },
+    {
+      "taskId": "TC-CN-009-RECOVERY-0",
+      "sourceId": "TC-CN-009",
+      "scenarioHash": "390f62ac63031817"
+    },
+    {
+      "taskId": "TC-CN-010-RECOVERY-0",
+      "sourceId": "TC-CN-010",
+      "scenarioHash": "ce902a21affd1e56"
+    },
+    {
+      "taskId": "TC-CN-010-RECOVERY-1",
+      "sourceId": "TC-CN-010",
+      "scenarioHash": "d65d071e22eaae05"
+    },
+    {
+      "taskId": "TC-CN-011-RECOVERY-0",
+      "sourceId": "TC-CN-011",
+      "scenarioHash": "6262f21bb0d3aa77"
+    },
+    {
+      "taskId": "TC-CN-011-RECOVERY-1",
+      "sourceId": "TC-CN-011",
+      "scenarioHash": "2892912048a8ab08"
+    },
+    {
+      "taskId": "TC-CN-012-RECOVERY-0",
+      "sourceId": "TC-CN-012",
+      "scenarioHash": "6de3f5e852ecfa02"
+    },
+    {
+      "taskId": "TC-CN-012-RECOVERY-1",
+      "sourceId": "TC-CN-012",
+      "scenarioHash": "cf0da5b6084d620b"
+    },
+    {
+      "taskId": "TC-CN-013-RECOVERY-0",
+      "sourceId": "TC-CN-013",
+      "scenarioHash": "3f83d725d97eba57"
+    },
+    {
+      "taskId": "TC-CN-013-RECOVERY-1",
+      "sourceId": "TC-CN-013",
+      "scenarioHash": "a0dd81c675bb5435"
+    },
+    {
+      "taskId": "TC-CN-014-RECOVERY-0",
+      "sourceId": "TC-CN-014",
+      "scenarioHash": "2b611848e90a1733"
+    },
+    {
+      "taskId": "TC-CN-015-RECOVERY-0",
+      "sourceId": "TC-CN-015",
+      "scenarioHash": "b289ce82af9abb7a"
+    },
+    {
+      "taskId": "TC-CN-015-RECOVERY-1",
+      "sourceId": "TC-CN-015",
+      "scenarioHash": "d9b7fd3cfe1843e6"
+    },
+    {
+      "taskId": "TC-CN-016-RECOVERY-0",
+      "sourceId": "TC-CN-016",
+      "scenarioHash": "e3853522de6125cc"
+    },
+    {
+      "taskId": "TC-CN-016-RECOVERY-1",
+      "sourceId": "TC-CN-016",
+      "scenarioHash": "e38ae2ed92ae41a6"
+    },
+    {
+      "taskId": "TC-CN-017-RECOVERY-0",
+      "sourceId": "TC-CN-017",
+      "scenarioHash": "56f725726e1a571b"
+    },
+    {
+      "taskId": "TC-CN-017-RECOVERY-1",
+      "sourceId": "TC-CN-017",
+      "scenarioHash": "61eb1209463b1f4b"
+    },
+    {
+      "taskId": "TC-CN-018-RECOVERY-0",
+      "sourceId": "TC-CN-018",
+      "scenarioHash": "f176cef49ccad6ce"
+    },
+    {
+      "taskId": "TC-CN-018-RECOVERY-1",
+      "sourceId": "TC-CN-018",
+      "scenarioHash": "b40b167e0bbf7471"
+    },
+    {
+      "taskId": "TC-CN-019-RECOVERY-0",
+      "sourceId": "TC-CN-019",
+      "scenarioHash": "f67c132559b0cc77"
+    },
+    {
+      "taskId": "TC-CN-019-RECOVERY-1",
+      "sourceId": "TC-CN-019",
+      "scenarioHash": "ecc0ae9af02c6ff0"
+    },
+    {
+      "taskId": "TC-CN-020-RECOVERY-0",
+      "sourceId": "TC-CN-020",
+      "scenarioHash": "f1f6067d20dfc600"
+    },
+    {
+      "taskId": "TC-CN-021-RECOVERY-0",
+      "sourceId": "TC-CN-021",
+      "scenarioHash": "bb9bbdb963581ac7"
+    },
+    {
+      "taskId": "TC-CN-021-RECOVERY-1",
+      "sourceId": "TC-CN-021",
+      "scenarioHash": "04bda6831fac6534"
+    },
+    {
+      "taskId": "TC-CN-022-DOCKER",
+      "sourceId": "TC-CN-022",
+      "scenarioHash": "80e1b5f02c351805"
+    },
+    {
+      "taskId": "TC-CN-023-DOCKER",
+      "sourceId": "TC-CN-023",
+      "scenarioHash": "9504c380af18be48"
+    },
+    {
+      "taskId": "TC-CN-024-DOCKER",
+      "sourceId": "TC-CN-024",
+      "scenarioHash": "8af5e9062c11ae20"
+    },
+    {
+      "taskId": "TC-CN-025-DOCKER",
+      "sourceId": "TC-CN-025",
+      "scenarioHash": "b48f71c06a33b8ec"
+    },
+    {
+      "taskId": "TC-CN-026-DOCKER",
+      "sourceId": "TC-CN-026",
+      "scenarioHash": "b813c14d4aa7dcd8"
+    },
+    {
+      "taskId": "TC-CN-027-DOCKER",
+      "sourceId": "TC-CN-027",
+      "scenarioHash": "a8e3ba6984161881"
+    },
+    {
+      "taskId": "TC-CN-029-RECOVERY-0",
+      "sourceId": "TC-CN-029",
+      "scenarioHash": "56257dbd3c7c8d10"
+    },
+    {
+      "taskId": "TC-CN-029-RECOVERY-1",
+      "sourceId": "TC-CN-029",
+      "scenarioHash": "3518839ff8c0caf8"
+    },
+    {
+      "taskId": "TC-CN-030-RECOVERY-0",
+      "sourceId": "TC-CN-030",
+      "scenarioHash": "0fa8a782249dbc32"
+    },
+    {
+      "taskId": "TC-CN-030-RECOVERY-1",
+      "sourceId": "TC-CN-030",
+      "scenarioHash": "3551e298dce28213"
+    },
+    {
+      "taskId": "TC-CN-031-RECOVERY-0",
+      "sourceId": "TC-CN-031",
+      "scenarioHash": "cf10c6baf36402ce"
+    },
+    {
+      "taskId": "TC-CN-031-RECOVERY-1",
+      "sourceId": "TC-CN-031",
+      "scenarioHash": "70ae00dfecf6be35"
+    },
+    {
+      "taskId": "TC-CN-032-RECOVERY-0",
+      "sourceId": "TC-CN-032",
+      "scenarioHash": "1c83b00e04a3f10a"
+    },
+    {
+      "taskId": "TC-CN-032-RECOVERY-1",
+      "sourceId": "TC-CN-032",
+      "scenarioHash": "bd88c88cdfb0a694"
+    },
+    {
+      "taskId": "TC-CN-033-RECOVERY-0",
+      "sourceId": "TC-CN-033",
+      "scenarioHash": "971855f0c1472845"
+    },
+    {
+      "taskId": "TC-CN-033-RECOVERY-1",
+      "sourceId": "TC-CN-033",
+      "scenarioHash": "2e4db29a43bdf7a0"
+    },
+    {
+      "taskId": "TC-CN-034-RECOVERY-0",
+      "sourceId": "TC-CN-034",
+      "scenarioHash": "12f6af63b392bf9e"
+    },
+    {
+      "taskId": "TC-CN-034-RECOVERY-1",
+      "sourceId": "TC-CN-034",
+      "scenarioHash": "1f5fc77d8a647cfd"
+    },
+    {
+      "taskId": "TC-CN-035-RECOVERY-0",
+      "sourceId": "TC-CN-035",
+      "scenarioHash": "1f48031d8a4a2fe3"
+    },
+    {
+      "taskId": "TC-CN-035-RECOVERY-1",
+      "sourceId": "TC-CN-035",
+      "scenarioHash": "002c9e8a023799ea"
+    },
+    {
+      "taskId": "TC-CN-036-RECOVERY-0",
+      "sourceId": "TC-CN-036",
+      "scenarioHash": "3e0def9e59d6de86"
+    },
+    {
+      "taskId": "TC-CN-036-RECOVERY-1",
+      "sourceId": "TC-CN-036",
+      "scenarioHash": "893796edf0d288f3"
+    },
+    {
+      "taskId": "TC-CN-037-RECOVERY-0",
+      "sourceId": "TC-CN-037",
+      "scenarioHash": "d223cde4b40c4389"
+    },
+    {
+      "taskId": "TC-CN-037-RECOVERY-1",
+      "sourceId": "TC-CN-037",
+      "scenarioHash": "9698a99db1a73905"
+    },
+    {
+      "taskId": "TC-CN-038-RECOVERY-0",
+      "sourceId": "TC-CN-038",
+      "scenarioHash": "7924056af9a05e62"
+    },
+    {
+      "taskId": "TC-CN-038-RECOVERY-1",
+      "sourceId": "TC-CN-038",
+      "scenarioHash": "89a11727f08a635c"
+    },
+    {
+      "taskId": "TC-CN-039-RECOVERY-0",
+      "sourceId": "TC-CN-039",
+      "scenarioHash": "097e7cc72a60c28a"
+    },
+    {
+      "taskId": "TC-CN-039-RECOVERY-1",
+      "sourceId": "TC-CN-039",
+      "scenarioHash": "c5c90befcc1c3b03"
+    },
+    {
+      "taskId": "TC-CN-040-RECOVERY-0",
+      "sourceId": "TC-CN-040",
+      "scenarioHash": "5e0e920450017c82"
+    },
+    {
+      "taskId": "TC-CN-040-RECOVERY-1",
+      "sourceId": "TC-CN-040",
+      "scenarioHash": "33b3f07ab6f80522"
+    },
+    {
+      "taskId": "TC-CN-041-RECOVERY-0",
+      "sourceId": "TC-CN-041",
+      "scenarioHash": "5db825a7858da063"
+    },
+    {
+      "taskId": "TC-CN-041-RECOVERY-1",
+      "sourceId": "TC-CN-041",
+      "scenarioHash": "a39bab97e1bc9fb8"
+    },
+    {
+      "taskId": "TC-CN-042-RECOVERY-0",
+      "sourceId": "TC-CN-042",
+      "scenarioHash": "9b2d675ac29c36a5"
+    },
+    {
+      "taskId": "TC-CN-042-RECOVERY-1",
+      "sourceId": "TC-CN-042",
+      "scenarioHash": "bae230ce548d4159"
+    },
+    {
+      "taskId": "TC-CN-043-RECOVERY-0",
+      "sourceId": "TC-CN-043",
+      "scenarioHash": "b2e5a59ca782c857"
+    },
+    {
+      "taskId": "TC-CN-043-RECOVERY-1",
+      "sourceId": "TC-CN-043",
+      "scenarioHash": "44c169654657aafa"
+    },
+    {
+      "taskId": "TC-CN-044-RECOVERY-0",
+      "sourceId": "TC-CN-044",
+      "scenarioHash": "d70008b81fa2ee31"
+    },
+    {
+      "taskId": "TC-CN-044-RECOVERY-1",
+      "sourceId": "TC-CN-044",
+      "scenarioHash": "82e1114513cf1704"
+    },
+    {
+      "taskId": "TC-CN-045-RECOVERY-0",
+      "sourceId": "TC-CN-045",
+      "scenarioHash": "15b6ac6fa5028070"
+    },
+    {
+      "taskId": "TC-CN-045-RECOVERY-1",
+      "sourceId": "TC-CN-045",
+      "scenarioHash": "5e53f7068b7c7cc3"
+    },
+    {
+      "taskId": "TC-CN-046-RECOVERY-0",
+      "sourceId": "TC-CN-046",
+      "scenarioHash": "7965625a79130a38"
+    },
+    {
+      "taskId": "TC-CN-046-RECOVERY-1",
+      "sourceId": "TC-CN-046",
+      "scenarioHash": "0326bcd8f7e385ff"
+    },
+    {
+      "taskId": "TC-CN-047-RECOVERY-0",
+      "sourceId": "TC-CN-047",
+      "scenarioHash": "07ae2229e84210ae"
+    },
+    {
+      "taskId": "TC-CN-047-RECOVERY-1",
+      "sourceId": "TC-CN-047",
+      "scenarioHash": "522e6e5ac5c3cb63"
+    },
+    {
+      "taskId": "TC-CN-048-RECOVERY-0",
+      "sourceId": "TC-CN-048",
+      "scenarioHash": "056f98c40721ba15"
+    },
+    {
+      "taskId": "TC-CN-048-RECOVERY-1",
+      "sourceId": "TC-CN-048",
+      "scenarioHash": "fd8175c7b8f06fd2"
+    },
+    {
+      "taskId": "TC-CN-049-RECOVERY-0",
+      "sourceId": "TC-CN-049",
+      "scenarioHash": "c34ff864addabf27"
+    },
+    {
+      "taskId": "TC-CN-049-RECOVERY-1",
+      "sourceId": "TC-CN-049",
+      "scenarioHash": "acba46dc3bd17621"
+    },
+    {
+      "taskId": "TC-CN-050-RECOVERY-0",
+      "sourceId": "TC-CN-050",
+      "scenarioHash": "5ba57b2efefcaaf7"
+    },
+    {
+      "taskId": "TC-CN-050-RECOVERY-1",
+      "sourceId": "TC-CN-050",
+      "scenarioHash": "31bd5cb98dc12ba4"
+    },
+    {
+      "taskId": "TC-CN-051-RECOVERY-0",
+      "sourceId": "TC-CN-051",
+      "scenarioHash": "abc77ade296c08d3"
+    },
+    {
+      "taskId": "TC-CN-051-RECOVERY-1",
+      "sourceId": "TC-CN-051",
+      "scenarioHash": "023b4e5718aeaaef"
+    },
+    {
+      "taskId": "TC-CN-052-RECOVERY-0",
+      "sourceId": "TC-CN-052",
+      "scenarioHash": "08cdb1ff51334993"
+    },
+    {
+      "taskId": "TC-CN-052-RECOVERY-1",
+      "sourceId": "TC-CN-052",
+      "scenarioHash": "e4cea8b0ae00cf8d"
+    },
+    {
+      "taskId": "TC-CN-053-RECOVERY-0",
+      "sourceId": "TC-CN-053",
+      "scenarioHash": "ea85cd6dc088f839"
+    },
+    {
+      "taskId": "TC-CN-053-RECOVERY-1",
+      "sourceId": "TC-CN-053",
+      "scenarioHash": "4c1d268c111a093f"
+    },
+    {
+      "taskId": "TC-CN-054-EXEC-PILOT",
+      "sourceId": "TC-CN-054",
+      "scenarioHash": "2856d2b843bc17ff"
+    },
+    {
+      "taskId": "TC-CN-055-RECOVERY-0",
+      "sourceId": "TC-CN-055",
+      "scenarioHash": "d1f08eaebd97e3f8"
+    },
+    {
+      "taskId": "TC-CN-055-RECOVERY-1",
+      "sourceId": "TC-CN-055",
+      "scenarioHash": "477f9c064d5a886b"
+    },
+    {
+      "taskId": "TC-CN-056-RECOVERY-0",
+      "sourceId": "TC-CN-056",
+      "scenarioHash": "e969b8090cfcfa05"
+    },
+    {
+      "taskId": "TC-CN-056-RECOVERY-1",
+      "sourceId": "TC-CN-056",
+      "scenarioHash": "486534395b5c50a8"
+    }
+  ],
+  "historicalContractExceptions": [
+    {
+      "id": "CLI-CN-027-DOCKER",
+      "canonicalHash": "ccecba20fa8254b9",
+      "historicalHashes": {
+        "GSQ-RCO": "ccecba20fa8254b9",
+        "Bonsai-2 Q1": "d940d602958800fb",
+        "ByteShape IQ2_XXS": "ccecba20fa8254b9",
+        "Swift": "ccecba20fa8254b9",
+        "Qwopus Flash V2": "ccecba20fa8254b9",
+        "DavidAU Twin": "ccecba20fa8254b9",
+        "Nerkyor EfficientThink": "ccecba20fa8254b9",
+        "NVFP4": "ccecba20fa8254b9",
+        "Signal": "ccecba20fa8254b9"
+      }
+    }
+  ],
+  "provenance": [
+    "analysis/eight-model-refresh/plan.json",
+    "C:\\Users\\Administrator\\.codex\\worktrees\\be4b\\zxbench-webui\\analysis\\eight-model-refresh\\repair-20260928\\targeted-rerun",
+    "data/pilots/*-calibration-<modelId>.json",
+    "EvalRun.manifest.benchmarkPack"
+  ],
+  "total": 920,
+  "valid": 920,
+  "retired": 0,
+  "dimensionCounts": {
+    "agent_loop": 5,
+    "hallucination_resistance": 134,
+    "cli_deep_tasks": 56,
+    "program": 150,
+    "instruction_following": 42,
+    "data_extraction": 104,
+    "agent_workflow": 87,
+    "reasoning_math": 106,
+    "safety_authority": 78,
+    "structured_output": 60,
+    "tool_cli_workflow": 98
+  },
+  "workflowRevision": {
+    "id": "workflow-contract-checkpoints-2026-10-01",
+    "repairedSources": 14,
+    "repairedInstances": 25,
+    "rubricInstances": 87,
+    "verification": "docs/workflow-repair-2026-10-01.md",
+    "scoring": "round(0.5 * checkpointProgress) + 50 * strictFullSuccess",
+    "failureCap": 40,
+    "safetyViolation": 0,
+    "permissionClarification": "HA-CN-008: inspect and report plan only; no migration.run",
+    "contractChecks": 72,
+    "readConfirmation": {
+      "instances": 16,
+      "contractChecks": 50,
+      "interactionChanged": false
+    }
   }
- },
- "examHardGroups": {
-  "version": "math-exam-expansion-2026-09-16-v15",
-  "groups": [
-   "MX3-13",
-   "MX3-14",
-   "MX3-15",
-   "MX3-16",
-   "MX3-17",
-   "MX3-18",
-   "MX3-19",
-   "MX3-20",
-   "MX3-21",
-   "MX3-22",
-   "MX3-23",
-   "MX3-24"
-  ],
-  "parts": 4,
-  "note": "brute force infeasible by design; gold computed and independently cross-checked"
- },
- "examGroupRetirement": {
-  "date": "2026-09-17T00:00:00.000Z",
-  "ids": [
-   "MX3-21-P1",
-   "MX3-21-P2",
-   "MX3-21-P3",
-   "MX3-21-P4",
-   "MX3-22-P1",
-   "MX3-22-P2",
-   "MX3-22-P3",
-   "MX3-22-P4",
-   "MX3-23-P1",
-   "MX3-23-P2",
-   "MX3-23-P3",
-   "MX3-23-P4",
-   "MX3-15-P1",
-   "MX3-15-P2",
-   "MX3-15-P3",
-   "MX3-15-P4",
-   "MX3-16-P1",
-   "MX3-16-P2",
-   "MX3-16-P3",
-   "MX3-16-P4"
-  ],
-  "reason": "saturated against the local 27B model: every run scored 100, so the group no longer discriminates the model it was authored for (user decision, 2026-09-17)",
-  "scope": "user-selected in two rounds on 2026-09-17: round 1 = MX3-21/22/23 (12 parts), round 2 = MX3-15/16 (8 parts) after the first live test of MX3-14/15/16/17; no replacement authored in this round. Groups with any discriminating part are kept (MX3-24, MX3-14, MX3-17, MX3-13, MX3-18, MX3-19, MX3-20)."
- },
- "ultraMath": {
-  "questionVersion": "ultra-math-2026-09-17-v4",
-  "rubricVersion": "ultra-math-rubric-2026-09-17-v3",
-  "note": "UMX-01（v3）与 UMX-02（v4）均已重写为可达版本；UMX 八题标 developmentShadow，只在人工/专用轨道使用。"
- },
- "executionCuration": {
-  "retiredIds": [
-   "CLI-CN-049",
-   "CLI-CN-051",
-   "CLI-CN-053",
-   "CLI-CN-052",
-   "TC-CN-028"
-  ],
-  "reason": "legacy_basic_score_saturation",
-  "evidence": "data/execution/retirement-evidence-batch2.json",
-  "evidenceFiles": [
-   "data/execution/retirement-evidence.json",
-   "data/execution/retirement-evidence-batch2.json"
-  ],
-  "historyPreserved": true
- },
- "structuredOutputCuration": {
-  "version": "1.53.0",
-  "retiredIds": [
-   "SO-CN-023",
-   "SO-CN-025",
-   "SO-CN-029",
-   "SO-CN-040",
-   "SO-CN-041",
-   "SO-CN-042",
-   "SO-CN-044",
-   "SO-CN-047",
-   "SO-CN-048",
-   "SO-CN-049",
-   "SO-CN-054",
-   "SO-CN-057"
-  ],
-  "retainedSaturatedAnchors": [
-   "SO-CN-001",
-   "SO-CN-019",
-   "SO-CN-033",
-   "SO-CN-035",
-   "SO-CN-038",
-   "SO-CN-043",
-   "SO-CN-055"
-  ],
-  "evidence": "analysis/structured-output-redesign/retirement-evidence.json",
-  "historyPreserved": true
- },
- "structuredContractDevelopment": {
-  "version": "1.54.0",
-  "releasedAt": "2026-09-26T11:18:52.557Z",
-  "backup": "logs/structured-development-release-1790421531651",
-  "modelCalls": 0,
-  "sourcePackHash": "edcd89204980381863c846fb2e135df841822ec4583aca359671f3db8f1d2d9f",
-  "count": 19,
-  "formalStructuredCount": 46,
-  "formalPromotions": 0,
-  "mixedIds": [
-   "SOC2-C-D-1",
-   "SOC-D-D1",
-   "SOC-D-D2",
-   "SOC-D-D3"
-  ],
-  "allPassIds": [
-   "SOC2-A-D-1",
-   "SOC2-A-D-2",
-   "SOC2-B-D-1",
-   "SOC2-B-D-2",
-   "SOC2-C-D-2",
-   "SOC2-E-D-simple",
-   "SOC2-E-D-complex",
-   "SOC2-F-D-csv",
-   "SOC2-F-D-xml",
-   "SOC2-F-D-yaml",
-   "SOC2-F-D-toml",
-   "SOC2-G-D-1",
-   "SOC2-G-D-2",
-   "SOC2-H-D-1",
-   "SOC2-H-D-2"
-  ],
-  "candidates": [
-   {
-    "id": "SOC2-A-D-1",
-    "scenarioHash": "8a934ad3a8ee2c1d",
-    "sourceCaseHash": "20bb87afd4c2855f",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-A-D-2",
-    "scenarioHash": "8679280e3b79cbd6",
-    "sourceCaseHash": "9ab7151ddf4353c5",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-B-D-1",
-    "scenarioHash": "ff773604dc67bb30",
-    "sourceCaseHash": "e11f14cdf83775af",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-B-D-2",
-    "scenarioHash": "080879de20c65231",
-    "sourceCaseHash": "d1992121e3d671aa",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-C-D-1",
-    "scenarioHash": "8af609e0aec7f57e",
-    "sourceCaseHash": "10fdeec58de965cf",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-C-D-2",
-    "scenarioHash": "c33cd07080408903",
-    "sourceCaseHash": "0dd9312225567e82",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC-D-D1",
-    "scenarioHash": "a8adb7f3fc317577",
-    "sourceCaseHash": "dadb4ae0c67520f5",
-    "graderVersion": "structured_contract_v1"
-   },
-   {
-    "id": "SOC-D-D2",
-    "scenarioHash": "b30cea56a85fd3b9",
-    "sourceCaseHash": "6d5dd9e47eca356c",
-    "graderVersion": "structured_contract_v1"
-   },
-   {
-    "id": "SOC-D-D3",
-    "scenarioHash": "96c093543691eaea",
-    "sourceCaseHash": "8e49f3c4cb335055",
-    "graderVersion": "structured_contract_v1"
-   },
-   {
-    "id": "SOC2-E-D-simple",
-    "scenarioHash": "d774ad71a0cd97ae",
-    "sourceCaseHash": "144fb1364ca3581e",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-E-D-complex",
-    "scenarioHash": "f666b2a885412db3",
-    "sourceCaseHash": "2c4e3672f631f6ad",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-F-D-csv",
-    "scenarioHash": "27266deef38b5c32",
-    "sourceCaseHash": "27798ca402e1cd72",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-F-D-xml",
-    "scenarioHash": "503afaa994f8c67a",
-    "sourceCaseHash": "8dc816d6f734ac10",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-F-D-yaml",
-    "scenarioHash": "f066fc7e699e4949",
-    "sourceCaseHash": "1b5983d2bd08c3c7",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-F-D-toml",
-    "scenarioHash": "23103dc6cee74aeb",
-    "sourceCaseHash": "0f5d0ec43cba1672",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-G-D-1",
-    "scenarioHash": "3aedb744a14577fb",
-    "sourceCaseHash": "b3bb8a73ebc02ddb",
-    "graderVersion": "structured_contract_v3"
-   },
-   {
-    "id": "SOC2-G-D-2",
-    "scenarioHash": "0ed70ac0b842bc4e",
-    "sourceCaseHash": "c50b0bd3ce4965c1",
-    "graderVersion": "structured_contract_v3"
-   },
-   {
-    "id": "SOC2-H-D-1",
-    "scenarioHash": "24adc3f16a4d27b6",
-    "sourceCaseHash": "ce58758deb9e3d0c",
-    "graderVersion": "structured_contract_v2"
-   },
-   {
-    "id": "SOC2-H-D-2",
-    "scenarioHash": "0303b34dd4dad2af",
-    "sourceCaseHash": "63e9cdaad247e801",
-    "graderVersion": "structured_contract_v2"
-   }
-  ],
-  "scoringChange": "Generated-schema tasks use v3 for future runs. Saved calibration scores remain the original v2 observations, not v3 scores.",
-  "holdout": {
-   "count": 15,
-   "hash": "abb81385cbc64e556ff1c2250883526550438d4354ae44ef31d64dc8c262bb65",
-   "modelCalls": 0,
-   "status": "frozen_unmeasured"
-  },
-  "policy": "Development-only explicit selection. No automatic evaluation, no historical score rewrites. Further calibration omitted per user request.",
-  "evidence": "analysis/structured-output-redesign/development-release.json"
- },
- "structuredContractChallenge": {
-  "version": "1.55.0",
-  "releasedAt": "2026-09-26T11:29:26.498Z",
-  "backup": "logs/structured-challenge-release-1790422165598",
-  "added": 14,
-  "oldFormalCount": 46,
-  "formalCount": 60,
-  "developmentShadowCount": 19,
-  "ids": [
-   "SOC3-A-POLICY",
-   "SOC3-A-ROUTE",
-   "SOC3-B-TREE",
-   "SOC3-B-FOREST",
-   "SOC3-C-UNICODE",
-   "SOC3-C-PATH",
-   "SOC3-E-SIMPLE",
-   "SOC3-E-LEDGER",
-   "SOC3-F-CSV",
-   "SOC3-F-XML",
-   "SOC3-G-AUTH",
-   "SOC3-G-ARRAY",
-   "SOC3-H-BARS",
-   "SOC3-H-DELTA"
-  ],
-  "families": {
-   "A": 2,
-   "B": 2,
-   "C": 2,
-   "E": 2,
-   "F": 2,
-   "G": 2,
-   "H": 2
-  },
-  "sourcePackHash": "44d12c2cc15763f71c52db22460003297e5f2d6c2b79b3a57d4bc7d3d39df2bb",
-  "goldHash": "b9055bcf81c3e9aacbce15ccaba81d95247dbf73f026865ec105a38c17b4c371",
-  "modelCalls": 0,
-  "scope": "Prospective formal tasks with deterministic local positive/negative gate; actual model discrimination not yet measured.",
-  "historicalResultsPreserved": true,
-  "evidence": "analysis/structured-output-redesign/challenge-release.json"
- },
- "structuredOutputReplacement": {
-  "version": "1.57.0",
-  "publishedAt": "2026-09-26T15:48:59.832Z",
-  "backup": "logs/structured-event-replacement-1790437739832",
-  "retiredId": "SO-CN-001",
-  "retiredOldHash": "fdac2d770cc31bd7",
-  "retiredNewHash": "b1b89d22cc01ce05",
-  "addedId": "SOC4-G-EVENT",
-  "addedHash": "4966928a2b686858",
-  "sourceCaseId": "SYN8-EVENT-STRUCTURED",
-  "sourcePackHash": "3287d7ad9e4acccb2911cfaaba55cb8989e9102a6d81dec2f1dbeb832e43cacd",
-  "formalBefore": 60,
-  "formalAfter": 60,
-  "modelCalls": 0,
-  "historyPreserved": true,
-  "reason": "Replace one eight-configuration saturated easy JSON item with a behaviorally scored conditional Schema task that showed a paired failure on Bonsai2.",
-  "evidence": {
-   "bonsai": "data/pilots/structured-contract-frontier-v8/calibration-development-ed16d154-f5e9-4650-b355-cf5418846b81-bonsai2-no-reason-order-control.json",
-   "qwen": "data/pilots/structured-contract-frontier-v8/calibration-development-05c8edd2-6ca6-4c95-9090-e6431b8ab415-qwen38-order-control.json"
-  },
-  "limitation": "Only one task family; no claim about overall bank-level ceiling or quantization causality.",
-  "evidencePath": "analysis/structured-output-redesign/event-schema-replacement.json"
- },
- "structuredOutputBatchReplacement": {
-  "version": "1.58.0",
-  "publishedAt": "2026-09-26T16:49:50.539Z",
-  "backup": "logs/structured-batch-replacement-1790441390539",
-  "retiredIds": [
-   "SO-CN-038",
-   "SO-CN-043",
-   "SO-CN-055"
-  ],
-  "promotedIds": [
-   "SOC2-C-D-1",
-   "SOC-D-D2"
-  ],
-  "addedId": "SOC4-G-BATCH",
-  "formalBefore": 60,
-  "formalAfter": 60,
-  "totalReplacedIncludingPreviousEvent": 4,
-  "modelCalls": 0,
-  "historyPreserved": true,
-  "prior": [
-   {
-    "id": "SO-CN-038",
-    "oldHash": "941afb1439ea1dbf"
-   },
-   {
-    "id": "SO-CN-043",
-    "oldHash": "ffb06c07e7734f80"
-   },
-   {
-    "id": "SO-CN-055",
-    "oldHash": "04bcf36d00a7d1dc"
-   },
-   {
-    "id": "SOC2-C-D-1",
-    "oldHash": "8af609e0aec7f57e"
-   },
-   {
-    "id": "SOC-D-D2",
-    "oldHash": "b30cea56a85fd3b9"
-   }
-  ],
-  "addedHash": "17a3bd35189b4407",
-  "sourcePackHash": "5d582fca6d792adda7be396a71db246bb6b3f36ad01997d68496eb36faa4db72",
-  "evidence": [
-   "analysis/structured-output-redesign/development-release.json",
-   "data/pilots/structured-contract-frontier-v7/local-gate.json"
-  ],
-  "limitation": "Promoted cases showed mixed development results; batch task has a verified local oracle, without certified model separation.",
-  "evidencePath": "analysis/structured-output-redesign/structured-batch-replacement.json"
- },
- "structuredOutputNearCeilingReplacement": {
-  "version": "1.59.0",
-  "publishedAt": "2026-09-26T17:07:40.101Z",
-  "backup": "logs/structured-near-ceiling-replacement-1790442460102",
-  "pairs": [
-   {
-    "retiredId": "SO-CN-003",
-    "addedId": "SOC2-A-H-route",
-    "historicalPass": 7,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-030",
-    "addedId": "SOC2-B-H-tree",
-    "historicalPass": 7,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-002",
-    "addedId": "SOC2-C-H-headers",
-    "historicalPass": 6,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-005",
-    "addedId": "SOC-D-H1",
-    "historicalPass": 6,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-050",
-    "addedId": "SOC2-E-H-complex",
-    "historicalPass": 7,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-007",
-    "addedId": "SOC2-F-H-csv",
-    "historicalPass": 7,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-008",
-    "addedId": "SOC2-F-H-yaml",
-    "historicalPass": 6,
-    "historicalTotal": 8
-   },
-   {
-    "retiredId": "SO-CN-004",
-    "addedId": "SOC2-G-H-1",
-    "historicalPass": 6,
-    "historicalTotal": 8
-   }
-  ],
-  "formalBefore": 60,
-  "formalAfter": 60,
-  "totalReplacedIncludingPriorBatches": 12,
-  "modelCalls": 0,
-  "historyPreserved": true,
-  "sourcePackHash": "abb81385cbc64e556ff1c2250883526550438d4354ae44ef31d64dc8c262bb65",
-  "sourceGoldHash": "e582aa00464e2f76dd9d0245945daabe9aa9b37b0ce9a98d0161f0a1583b2b5a",
-  "basis": "Former frozen holdout cases have deterministic gold, correct/incorrect local gates and independent JSON Schema gate. Old cases passed 6-7 of 8 historical configurations.",
-  "limitation": "No new model calibration. The v2 development analogs were all-pass in screened configurations; these replacements strengthen contract specificity but are not proven to lower the score ceiling. Former holdout cases must no longer be treated as an independent holdout.",
-  "evidencePath": "analysis/structured-output-redesign/near-ceiling-batch-replacement.json"
- },
- "currentRecordCount": 920,
- "archivedRetiredCount": 141,
- "developmentShadowCount": 306,
- "countSemantics": {
-  "currentRecordCount": "All records in benchmark.json (valid and retired)",
-  "retiredCount": "Retired records retained in benchmark.json",
-  "archivedRetiredCount": "Disjoint retired records in archive/benchmark-retired.json",
-  "totalCount": "currentRecordCount + archivedRetiredCount",
-  "defaultRunCount": "Execution instances selected from the adopted nine-model release; includes its 306 promoted migration instances",
-  "sourceQuestionCount": "Unique source identities after grouping adopted migration instances",
-  "executionInstanceCount": "Default execution instances before source grouping"
- },
- "releaseId": "nine-model-adopted-2026-09-29",
- "sourceQuestionCount": 803,
- "executionInstanceCount": 920,
- "ordinaryCount": 614,
- "migrationSourceCount": 189,
- "migrationTaskCount": 306,
- "scoring": "mean execution instances within source, then original source difficulty/attack weights"
 }

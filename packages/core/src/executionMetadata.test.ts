@@ -40,7 +40,7 @@ it.each([false, true])('persists actual execution and scorer identity with Judge
 });
 it('new manifests identify the changed scoring implementation and reject cross-version regression comparisons', () => {
   const manifest = generateManifest('new-run', model, {}, {} as EvalRunConfig, 'hash');
-  expect(manifest.scorers.version).toBe('scorer-2026-09-29-world-final-semantics-v1');
+  expect(manifest.scorers.version).toBe('scorer-2026-10-01-workflow-checkpoints-v1');
   const old = { ...manifest, scorers: { ...manifest.scorers, version: 'scorer-2026-09-07-audit-v1' } } as RunManifest;
   const result = checkRegression({ manifest: old, results: [] }, { manifest, results: [] });
   expect(result.issues).toContain('Scorer versions differ');

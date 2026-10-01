@@ -31,7 +31,7 @@ import type {
 } from '@zxbench/types';
 import { callModelWithRetry } from './model/caller.js';
 import { runAgentLoop, type AgentLoopConfig } from './agentLoop/loop.js';
-import { runWorldLoop, extractWorldFinalMessage, type WorldConfig, type WorldTrace } from './execution/worldLoop.js';
+import { runWorldLoop, extractWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from './execution/worldLoop.js';
 import { runShellLoop, type ShellConfig } from './execution/shellLoop.js';
 import { executionTimeoutMs } from './execution/budget.js';
 import { createHash } from 'node:crypto';
@@ -49,6 +49,7 @@ import { attachEvaluationAudit } from './audit.js';
 import { snapshotHash } from './contracts/pack.js';
 import { isDockerAvailable } from './execution/containerRunner.js';
 import { dockerNotReadyError } from './execution/dockerReadiness.js';
+import { assertNoKnownScenarioDefects } from './contracts/knownDefects.js';
 
 export interface OrchestrateOptions {
   scenario: Scenario;
@@ -271,6 +272,9 @@ export function buildConstraintCriteria(
 
 /** 执行单题评测完整流程 */
 export async function orchestrateEvaluation(options: OrchestrateOptions): Promise<ScenarioResult> {
+  // Applies to direct/development calls too, before candidate, container or Judge work.
+  // Saved-answer grading retains the historic execution contract for auditing.
+  if (!options.savedCandidate) assertNoKnownScenarioDefects(options.scenario);
   const result = await evaluateCandidate(options);
   // Early empty-output / token-limit exits must not disappear from strict-IF denominators.
   if (!result.modelOutput.trim() && !result.criterionResults && options.scenario.grader.startsWith('instruction_checklist')) {
@@ -507,9 +511,11 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
   // 而是标记 truncated 证据后进入正常评分流程（修复"思考超限误伤真实能力"，
   // 实测 AG1-005/AG1-010 判 0 → answerFirst+硬截断下救回 45/40 分）。
   if (modelResponse.executionWorld) {
-    const trace = modelResponse.executionWorld as WorldTrace;
+    const storedTrace = modelResponse.executionWorld as WorldTrace;
+    const trace=normalizeWorldFinalTrace({...storedTrace,
+      answerFirstRequested:storedTrace.answerFirstRequested??effectiveConstraints.answerFirst===true});
     if (trace.turns?.length) {
-      const finalMessage = extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '');
+      const finalMessage = extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '',trace.answerFirstRequested);
       modelResponse = { ...modelResponse, content: finalMessage, executionWorld: { ...trace, finalMessage } };
     }
   }
@@ -760,7 +766,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     && judgeOptions.localModel.modelType !== 'tested') {
     const semanticReview = await reviewSemanticFinalAnswer(
       scenario, modelResponse, outputMetadata, result, judgeOptions.localModel, options.signal);
-    if (semanticReview) applySemanticFinalReview(result, semanticReview);
+    if (semanticReview) applySemanticFinalReview(result, semanticReview, scenario);
   }
 
   // ===== Stage 8: AI Judge（GPT5.6 P1-8 争议记录） =====
@@ -1023,6 +1029,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     totalScore: result.totalScore ?? 0,
     criterionResults: result.criterionResults,
     semanticFinalReview: result.semanticFinalReview,
+    checkpointEvaluation: result.checkpointEvaluation,
     structuredContractMetrics: result.structuredContractMetrics,
     deterministicScore: result.deterministicScore,
     judgeScore: result.judgeScore,
@@ -1078,7 +1085,7 @@ export function generateManifest(
       scenarioHash,
     },
     scorers: {
-      version: 'scorer-2026-09-29-world-final-semantics-v1',
+      version: 'scorer-2026-10-01-workflow-checkpoints-v1',
       configHash: snapshotHash(evalConfig),
     },
     models: [{

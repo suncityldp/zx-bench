@@ -1,0 +1,9 @@
+{
+  "image": "zxbench/workflow-contracts:2026-10-01",
+  "imageId": "sha256:5018eb2a931ff693b16846b6ad210b707571bb4750ec6b09974b89a8072d0bc5",
+  "platform": "linux/amd64",
+  "pyyamlVersion": "6.0.3",
+  "asset": "zxbench-workflow-contracts-2026-10-01-linux-amd64.tar.gz",
+  "archiveSha256": "f26ffd352a2cf1a489d17185824e5bc1059fd12bbde9e92e7a2ea94bf15425d9",
+  "url": "https://github.com/suncityldp/zx-bench/releases/download/v0.2.6/zxbench-workflow-contracts-2026-10-01-linux-amd64.tar.gz"
+}

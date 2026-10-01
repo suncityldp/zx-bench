@@ -1,0 +1,294 @@
+{
+  "scope": {
+    "sourceQuestions": 45,
+    "instances": 87,
+    "models": 10,
+    "answers": 870,
+    "answersWithToolErrors": 433,
+    "onlyCallErrorsAnswers": 49,
+    "hashMismatches": [],
+    "newTokens": 0,
+    "scope": "Saved trace/tool-argument guard triage; not a full correctness certification of all 803 questions."
+  },
+  "reviewMethod": "人工核对题干、模型可见工具签名/描述、可返回信息、脚本限制与870条采纳轨迹；confirmed 表示工具契约缺陷，不表示每条答卷应改为通过。未执行803题完整正确性验收。",
+  "findings": [
+    {
+      "sourceId": "HA-CN-004",
+      "code": "SEARCH_LANGUAGE",
+      "status": "confirmed-task-contract-defect",
+      "reason": "中文网络查询被未公开的英文 network 匹配规则拒绝。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-004-RECOVERY-0",
+          "scenarioHash": "b95275be952ec1a1"
+        },
+        {
+          "instanceId": "HA-CN-004-RECOVERY-1",
+          "scenarioHash": "06e6166197331bc7"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 18,
+      "zeroScores": 18,
+      "onlyCallErrorsAnswers": 10
+    },
+    {
+      "sourceId": "HA-CN-006",
+      "code": "HIDDEN_MEMORY_KEY",
+      "status": "confirmed-task-contract-defect",
+      "reason": "只能读取 favorite.language，但题目、工具说明未提供该键，也无列举键的工具。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-006-RECOVERY-0",
+          "scenarioHash": "199afd0b1084a7ca"
+        },
+        {
+          "instanceId": "HA-CN-006-RECOVERY-1",
+          "scenarioHash": "81259ea85d77b58f"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 19,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-008",
+      "code": "HIDDEN_MEMORY_PREFIX",
+      "status": "confirmed-task-contract-defect",
+      "reason": "memory.list 只接受 migration/，未公布前缀且拒绝空前缀枚举。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-008-RECOVERY-0",
+          "scenarioHash": "466ae1e785312fbc"
+        },
+        {
+          "instanceId": "HA-CN-008-RECOVERY-1",
+          "scenarioHash": "5ddb4bab80746fce"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 18,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-011",
+      "code": "HIDDEN_REPORT_CONTRACT",
+      "status": "confirmed-task-contract-defect",
+      "reason": "只接受 data/*.json，未公布 data 目录；报告还强制 total_amount/top_issue/duplicate_ids 字段，工具说明未公布字段。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-011-RECOVERY-0",
+          "scenarioHash": "56020fb21fec991c"
+        },
+        {
+          "instanceId": "HA-CN-011-RECOVERY-1",
+          "scenarioHash": "b72545a597e3096b"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 17,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-012",
+      "code": "MISSING_BROWSER_SELECTORS",
+      "status": "confirmed-task-contract-defect",
+      "reason": "browser.open 返回的 HTML 只有空的 login 表单；未显示 username/password/export 元素，工具却只接受对应固定 ID。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-012-RECOVERY-0",
+          "scenarioHash": "90ff7249f5cc7d29"
+        },
+        {
+          "instanceId": "HA-CN-012-RECOVERY-1",
+          "scenarioHash": "311d67996ced4ff2"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 15,
+      "zeroScores": 15,
+      "onlyCallErrorsAnswers": 1
+    },
+    {
+      "sourceId": "HA-CN-017",
+      "code": "HIDDEN_SKILL_HEADINGS",
+      "status": "confirmed-task-contract-defect",
+      "reason": "强制 # When to Use/# Procedure/# Pitfalls/# Verification 四个标题，题目只说四个必需章节，未列出标题。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-017-RECOVERY-0",
+          "scenarioHash": "4c5f81acc178ea0e"
+        },
+        {
+          "instanceId": "HA-CN-017-RECOVERY-1",
+          "scenarioHash": "6fbf20b57aedabef"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 17,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-020",
+      "code": "HIDDEN_SUPPLIED_PATH",
+      "status": "confirmed-task-contract-defect",
+      "reason": "给定脚本实际只在 supplied/validate.sh 可读；题目未给源文件路径，工具不能列举文件。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-020-RECOVERY-0",
+          "scenarioHash": "ac167bd7f9036f3f"
+        },
+        {
+          "instanceId": "HA-CN-020-RECOVERY-1",
+          "scenarioHash": "ae7e389a1728647a"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 16,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-021",
+      "code": "HIDDEN_PATCH_TEXT",
+      "status": "confirmed-task-contract-defect",
+      "reason": "只接受逐字追加 3. Verify rollback plan\\n，但题目只要求追加验证步骤，返回原文也未提供这段目标文本。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-021-RECOVERY-0",
+          "scenarioHash": "c52384aeb0e0a6cb"
+        },
+        {
+          "instanceId": "HA-CN-021-RECOVERY-1",
+          "scenarioHash": "9f564224083e72e3"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 18,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-024",
+      "code": "HIDDEN_RELEASE_SKILL",
+      "status": "confirmed-task-contract-defect",
+      "reason": "skill_view 只接受 release，题目未给技能名，也无技能枚举工具。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-024-RECOVERY-0",
+          "scenarioHash": "741d5f1b91ffca5c"
+        },
+        {
+          "instanceId": "HA-CN-024-RECOVERY-1",
+          "scenarioHash": "f4f68e167289cef1"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 19,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-027",
+      "code": "HIDDEN_CRON_JOB",
+      "status": "confirmed-task-contract-defect",
+      "reason": "cronjob 只接受 params.name=daily-report，题目未给标识，也不支持 list 查询。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-027-RECOVERY-0",
+          "scenarioHash": "fa2f510a525e2519"
+        },
+        {
+          "instanceId": "HA-CN-027-RECOVERY-1",
+          "scenarioHash": "da591cf815022901"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 17,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-030",
+      "code": "HIDDEN_CRON_FIELDS",
+      "status": "confirmed-task-contract-defect",
+      "reason": "评分要求固定 name/command/createdAt（2026-01-01）等字段；题目及工具说明没有给这些值。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-030-RECOVERY-0",
+          "scenarioHash": "d29f4091685e425d"
+        }
+      ],
+      "adoptedAnswers": 10,
+      "answersWithToolErrors": 1,
+      "zeroScores": 10,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-033",
+      "code": "HIDDEN_SUBTASK_NAMES",
+      "status": "confirmed-task-contract-defect",
+      "reason": "只接受 module-a/module-b/module-c，题目未给任务名，工具无任务目录查询。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-033-RECOVERY-0",
+          "scenarioHash": "bc8d9a3336191396"
+        },
+        {
+          "instanceId": "HA-CN-033-RECOVERY-1",
+          "scenarioHash": "5bad9072aae7dec8"
+        }
+      ],
+      "adoptedAnswers": 20,
+      "answersWithToolErrors": 18,
+      "zeroScores": 20,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-042",
+      "code": "UNANCHORED_TOMORROW",
+      "status": "confirmed-task-contract-defect",
+      "reason": "题目说明天，却只接受 2026-09-27T10:00；模型请求未提供基准日期和时区。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-042-RECOVERY-0",
+          "scenarioHash": "fb9bd28371d09d07"
+        }
+      ],
+      "adoptedAnswers": 10,
+      "answersWithToolErrors": 10,
+      "zeroScores": 10,
+      "onlyCallErrorsAnswers": 0
+    },
+    {
+      "sourceId": "HA-CN-043",
+      "code": "HIDDEN_SAVE_KEY",
+      "status": "confirmed-task-contract-defect",
+      "reason": "只接受 favorite.language 键；题目及工具说明未公布这个固定键。",
+      "instances": [
+        {
+          "instanceId": "HA-CN-043-RECOVERY-0",
+          "scenarioHash": "f2f0eb852eadb2ff"
+        }
+      ],
+      "adoptedAnswers": 10,
+      "answersWithToolErrors": 9,
+      "zeroScores": 10,
+      "onlyCallErrorsAnswers": 0
+    }
+  ],
+  "affectedSourceQuestions": 14,
+  "affectedInstances": 25,
+  "affectedAdoptedAnswers": 250,
+  "historicalScoresUnchanged": true,
+  "newTokens": 0,
+  "sourceHashes": {
+    "data\\scenarios\\benchmark.json": "6f03effc257ab717d77a227acb211083b5866a84705706e95f5636ee75c927ce",
+    "analysis\\swift15-comparison\\latest-adopted-answer-ledger.csv": "065f9c83b50e4edf2301964664169c9d67f08b34ac85b6bccf079b96e8ad7f8a"
+  },
+  "remainingReview": "命令/路径等价形式、修复代码白名单、嵌套参数 schema、最终答复精确字符串和其他维度仍需进一步验收。"
+}

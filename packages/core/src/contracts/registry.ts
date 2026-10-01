@@ -173,7 +173,8 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 智能体工作流：agent_trace ----
   agent_trace: {
     grader: 'agent_trace',
-    version: 'agent_trace_v5',
+    version: 'agent_trace_v7',
+    compatibleVersions: ['agent_trace_v5','agent_trace_v6'],
     dimension: 'agent_workflow',
     consumedFields: ['expectedActions', 'expectedStateChanges', 'completionKeywords', 'planningKeywords', 'forbiddenActions', 'safetyCapActions', 'executionWorld'],
     declaredFields: [

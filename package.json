@@ -1,6 +1,6 @@
 {
   "name": "zxbench-webui",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "description": "ZxBench Pro WebUI - 大模型评测系统",
   "scripts": {
@@ -12,7 +12,7 @@
     "build:server": "pnpm --filter server build",
     "lint": "pnpm -r run lint",
     "type-check": "pnpm -r run type-check",
-    "pretest": "pnpm -r --filter \"./packages/*\" run build",
+    "pretest": "pnpm test:world-contracts && pnpm -r --filter \"./packages/*\" run build",
     "test": "vitest run",
     "test:containers": "node scripts/test-containers.mjs",
     "test:isolation": "node scripts/test-containers.mjs --isolation --maxWorkers=1 --minWorkers=1",
@@ -49,7 +49,10 @@
     "eval:inspect": "pnpm --filter server exec tsx ../../packages/core/src/scripts/inspect-capability.ts",
     "db:generate": "pnpm --filter server prisma:generate",
     "db:push": "pnpm --filter server prisma:push",
-    "db:studio": "pnpm --filter server prisma:studio"
+    "db:studio": "pnpm --filter server prisma:studio",
+    "test:world-contracts": "node --test scripts/recovery-world-search.test.mjs",
+    "runtime:workflow": "node scripts/prepare-workflow-runtime.mjs",
+    "test:workflow-containers": "node scripts/test-workflow-containers.mjs"
   },
   "engines": {
     "node": ">=22.13.0",
