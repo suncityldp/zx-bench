@@ -32,8 +32,8 @@ interface AgentRequirements {
 
 export const agentTraceEvaluator: Evaluator = {
   name: 'agent_trace',
-  version: 'agent_trace_v7',
-  compatibleVersions: ['agent_trace_v5','agent_trace_v6'],
+  version: 'agent_trace_v8',
+  compatibleVersions: ['agent_trace_v5','agent_trace_v6','agent_trace_v7'],
 
   async evaluate(
     scenario: Scenario,

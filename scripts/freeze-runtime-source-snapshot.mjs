@@ -10,12 +10,13 @@ const historicalPaths = ['data/scenarios/execution-review-manifest.json', 'data/
 const historical = historicalPaths.map(path => [path, JSON.parse(read(path))]);
 const workflowPaths = ['packages/core/src/audit.ts','packages/core/src/contracts/eligibility.ts','packages/core/src/contracts/knownDefects.ts','packages/core/src/evaluators/worldTrace.ts','packages/core/src/evaluators/worldCheckpoints.ts','packages/core/src/evaluators/semanticFinalAnswer.ts','packages/core/src/execution/worldLoop.ts','packages/types/src/index.ts','scripts/lib/workflow-checkpoints.mjs','scripts/lib/workflow-contract-repairs.mjs','scripts/lib/workflow-read-verification.mjs','scripts/prepare-workflow-runtime.mjs','docker/workflow-contracts/runtime.json','data/scenarios/benchmark.json','data/scenarios/benchmark-meta.json','data/scenarios/benchmark-release.json'];
 const toolPaths = ['packages/core/src/evaluators/toolCallTrace.ts','packages/core/src/evaluators/cliCommand.ts','scripts/lib/tool-contract-repairs.mjs','scripts/lib/tool-checkpoints.mjs','scripts/lib/tool-cli-checkpoints.mjs','scripts/lib/execution-task-pack.mjs','scripts/lib/recovery-world-tasks.mjs'];
-const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths])].sort();
+const visibleContractPaths = ['scripts/lib/workflow-visible-contracts.mjs','scripts/build-tool-world-pilots.mjs','packages/core/src/evaluators/agentTrace.ts'];
+const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths])].sort();
 const snapshot = {
   schemaVersion: 1,
-  version: 'runtime-source-2026-10-01-tool-cli-repair',
+  version: 'runtime-source-2026-10-02-workflow-visible-contracts',
   applicationVersion: JSON.parse(read('package.json')).version,
-  baselineCommit: '0dafc912c1ccfd67954f385938ebb6138e9656a3',
+  baselineCommit: '8e0adf687e0e019f78ccc14510ee1d184fbe02cc',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',
   independentHumanGold: false,
   historicalRescoring: false,

@@ -74,7 +74,7 @@ existingMemory.scenarioHash = hashScenarioShort(existingMemory);
 pilots.push(existingMemory);
 for(const task of pilots.filter(s=>s.dimension==='agent_workflow')) {
   task.requirements.executionWorld.checkpointRubric=buildWorkflowRubric(task.requirements.executionWorld,'HA-CN-045');
-  task.graderVersion='agent_trace_v7';task.scenarioVersion='3.3.0';task.scenarioHash=hashScenarioShort(task);
+  task.graderVersion='agent_trace_v8';task.scenarioVersion='3.4.0';task.scenarioHash=hashScenarioShort(task);
 }
 for(const task of pilots.filter(s=>s.dimension==='tool_cli_workflow')) {
   task.requirements.executionWorld.checkpointRubric=buildToolRubric(task.requirements.executionWorld,'TC-CN-054');
