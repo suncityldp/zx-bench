@@ -129,7 +129,10 @@ export async function runWorldLoop(options: {
     'SAY 开始最终答复，正文可以有多行；所有工具调用必须在 SAY 之前。',
     '参数必须是合法 JSON。不能声称未实际执行的动作已经完成。',
     '可用工具：',
-    ...config.tools.map((tool) => `${tool.name}(${JSON.stringify(tool.requiredArgs ?? {})})${tool.description ? ': ' + tool.description : ''}`),
+    '工具清单中的 JSON 是参数类型说明，不是参数值。调用时填入真实值；工具名和 JSON 之间用空格，不加函数调用括号。',
+    '清单中列出的参数字段都必须提供；未列出的顶层参数不接受。工具说明限定了本题支持的操作，不是通用 shell 或完整外部服务。',
+    ...config.tools.map((tool) => `工具 ${tool.name}；参数类型 ${JSON.stringify(tool.requiredArgs ?? {})}${tool.description ? `；说明：${tool.description}` : ''}`),
+    ...config.tools.filter(tool => tool.requirePriorCall).map(tool => `调用 ${tool.name} 前须调用 ${tool.requirePriorCall!.tool}${tool.requirePriorCall!.sameArgs?.length ? `，并使用相同的 ${tool.requirePriorCall!.sameArgs!.join('、')} 参数` : ''}${tool.requirePriorCall!.allowedErrors?.length ? `；前置调用允许返回预期错误 ${tool.requirePriorCall!.allowedErrors!.join('、')}` : '，前置调用须成功'}。`),
   ].join('\n');
 
   try {

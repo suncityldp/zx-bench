@@ -1,6 +1,7 @@
 import { repairWorldTask } from './execution-review-repairs.mjs';
 import { repairWorkflowContract } from './workflow-contract-repairs.mjs';
 import { buildWorkflowRubric } from './workflow-checkpoints.mjs';
+import { repairWorkflowVisibility } from './workflow-visible-contracts.mjs';
 import { repairToolContract, repairToolReadVerification } from './tool-contract-repairs.mjs';
 import { buildToolRubric } from './tool-checkpoints.mjs';
 const read = (name, path, requiredArgs = {}, description = '') => ({ name, path, requiredArgs, description, kind: 'read' });
@@ -2483,8 +2484,9 @@ state['sms'].append(args); result={'sent':True}`, '记录合成短信。'),requi
 recoveryWorldTasks.forEach(repairWorldTask);
 recoveryWorldTasks.forEach(repairWorkflowContract);
 for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('HA-CN-'))) {
+  repairWorkflowVisibility(task);
   task.config.checkpointRubric=buildWorkflowRubric(task.config,task.sourceId);
-  task.scenarioVersion='3.3.0';task.graderVersion='agent_trace_v7';
+  task.scenarioVersion='3.4.0';task.graderVersion='agent_trace_v8';
 }
 for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('TC-CN-'))) {
   repairToolContract(task);repairToolReadVerification(task.config,task.sourceId);

@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "release": "v0.2.8",
+  "auditedWorkflowInstances": 87,
+  "auditedSources": 45,
+  "repairedSources": 23,
+  "repairedInstances": 45,
+  "otherDimensionsUnchangedFromV027": true,
+  "dockerCases": 216,
+  "replyOnlyZeroScoreCases": 87,
+  "fixture": "packages/core/src/evaluators/fixtures/workflow/visible-contracts.json",
+  "commands": {
+    "syntheticReplay": "pnpm test",
+    "realContainers": "pnpm build && node scripts/test-workflow-visible-containers.mjs"
+  },
+  "historicalAmendment": {
+    "correctedAnswers": 30,
+    "fullCreditPreserved": 502,
+    "answersReplaced": 0,
+    "newGenerationCalls": 0,
+    "tokensChanged": 0,
+    "originalInteractionHashesChanged": 0,
+    "modelScores": [
+      {
+        "model": "GSQ-RCO",
+        "before": 83.36520242594634,
+        "after": 83.4077556174357
+      },
+      {
+        "model": "Nerkyor EfficientThink",
+        "before": 82.55163476215986,
+        "after": 82.72716667705348
+      },
+      {
+        "model": "Swift 1.5",
+        "before": 81.84984536953294,
+        "after": 81.84984536953294
+      },
+      {
+        "model": "NVFP4",
+        "before": 80.78806154703665,
+        "after": 80.8242317598026
+      },
+      {
+        "model": "Swift",
+        "before": 79.60167120233662,
+        "after": 79.71230950020896
+      },
+      {
+        "model": "Signal",
+        "before": 78.50678862048004,
+        "after": 78.54083117367153
+      },
+      {
+        "model": "Bonsai-2 Q1",
+        "before": 75.37837789000571,
+        "after": 75.47625023043125
+      },
+      {
+        "model": "ByteShape IQ2_XXS",
+        "before": 74.47897080900587,
+        "after": 74.52577931964417
+      },
+      {
+        "model": "DavidAU Twin",
+        "before": 73.38553893240486,
+        "after": 73.41958148559634
+      },
+      {
+        "model": "Qwopus Flash V2",
+        "before": 71.61793133693892,
+        "after": 71.64133559225807
+      }
+    ]
+  },
+  "historicalScope": "783 adopted workflow answers from nine prior models; 502 full-credit retained, 281 original traces inspected, 30 corrected and 251 retained for lack of sufficient evidence to raise scores. Swift 1.5 unchanged. Raw database result rows unchanged.",
+  "releaseBuild": "passed",
+  "vitest": {
+    "passed": 1973,
+    "skipped": 217,
+    "failed": 0
+  },
+  "releaseDockerSmokeCases": 4,
+  "nodeContractTests": 14
+}

@@ -20,6 +20,25 @@ beforeEach(() => {
   });
 });
 describe('world reply and termination contract', () => {
+  it('shows tool schemas without function parentheses and discloses prior calls', async () => {
+    mocks.call.mockResolvedValue(response('SAY ok'));
+    await runWorldLoop({config:{initialState:{},maxTurns:2,tools:[
+      {name:'memory.read',kind:'read',path:'memory/{key}',requiredArgs:{key:'string'}},
+      {name:'memory.save',kind:'set',path:'memory/{key}',requiredArgs:{key:'string',value:'string'},requirePriorCall:{tool:'memory.read',sameArgs:['key'],allowedErrors:['NOT_FOUND']}}
+    ]},task:'test',modelConfig:config,maxTokens:100,hardTimeoutMs:1000});
+    const prompt=mocks.call.mock.calls[0][0].systemPrompt;
+    expect(prompt).toContain('工具 memory.read；参数类型 {"key":"string"}');
+    expect(prompt).not.toContain('memory.read(');
+    expect(prompt).toContain('相同的 key 参数');
+    expect(prompt).toContain('预期错误 NOT_FOUND');
+  });
+  it('still rejects parenthesized CALL syntax without executing it', async () => {
+    mocks.call.mockResolvedValue(response('CALL request.inspect({})'));
+    const {trace}=await run();
+    expect(trace.terminationReason).toBe('protocol_error');
+    expect(trace.events).toHaveLength(0);
+    expect(trace.turnErrors[0]).toContain('INVALID_CALL_SYNTAX');
+  });
   it('preserves lists, repeated SAY lines and quoted CALL text without executing it', async () => {
     const body = 'SAY 订单：\n- #8811\nSAY - #8812\n```text\nCALL danger {}\nSAY literal\n```';
     expect(extractWorldFinalMessage(body)).toBe('订单：\n- #8811\n- #8812\n```text\nCALL danger {}\nSAY literal\n```');

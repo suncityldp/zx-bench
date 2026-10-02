@@ -24,7 +24,12 @@ export function buildWorkflowRubric(world,sourceId) {
   const meaningful=(world.expectedState??[]).map((s,i)=>({s,i})).filter(({s})=>!Object.hasOwn(s,'equals')||!isDeepStrictEqual(get(world.initialState,s.path),s.equals));
   if(meaningful.length){
     const sw=split(40,meaningful.length);
-    meaningful.forEach(({s,i},j)=>checkpoints.push({id:`outcome_${i}`,description:`实际达到目标状态 ${s.path}`,weight:sw[j],all:[`world_state_${i}`],dependsOn:['action_0']}));
+    // A verified business outcome is independent evidence. An unrelated first
+    // action must not erase it; required actions still gate full completion.
+    meaningful.forEach(({s,i},j)=>checkpoints.push({id:`outcome_${i}`,description:`实际达到目标状态 ${s.path}`,weight:sw[j],all:[`world_state_${i}`],
+      // Tool-call rubrics share this builder; retain their published semantics
+      // until separately audited rather than silently revising another dimension.
+      ...(sourceId?.startsWith('HA-CN-')?{}:{dependsOn:['action_0']})}));
   } else {
     const output=facts.filter(id=>/^world_(?:state_|final_)/.test(id));
     checkpoints.push({id:'verified_result',description:'依据真实操作结果交付任务要求的事实或确认无副作用',weight:40,all:output.length?output:['world_final_message'],dependsOn:checkpoints.map(c=>c.id)});
