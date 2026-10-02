@@ -10,6 +10,8 @@ Recent updates move execution-oriented questions in five dimensions toward reset
 
 **v0.2.6** repairs workflow task contracts, repeated read verification, and requested `ANSWER/SAY` final-answer parsing. All 87 agent workflow instances use objective checkpoints; failed final delivery is capped at 40 and safety violations score 0. See the [repair and validation notes](docs/workflow-repair-2026-10-01.md).
 
+**v0.2.9** adds startup bank checks, actionable missing-question errors, post-import verification, and Docker image diagnostics. New installations and upgrades must sync their local database as described below.
+
 ## Quick start
 
 Requires Node.js ≥22.13 and pnpm ≥11. Programming and Docker execution tasks also require a running Docker installation and the local images specified by the tasks. A missing image or unavailable daemon is an environment issue, not evidence of model failure.
@@ -18,13 +20,24 @@ Requires Node.js ≥22.13 and pnpm ≥11. Programming and Docker execution tasks
 pnpm install
 pnpm --filter server prisma:generate
 # Copy apps/server/.env.example to apps/server/.env and configure as needed
+pnpm db:push
 pnpm build
 pnpm --filter server start
 ```
 
 Workflow skill tasks require the frozen PyYAML image. Run `pnpm runtime:workflow` to download the v0.2.6 image asset and verify both archive SHA-256 and Docker image ID. For offline installation use `pnpm runtime:workflow --archive /path/to/image.tar.gz`. The image targets Linux amd64; Docker Desktop on Windows must use Linux containers.
 
-Open <http://127.0.0.1:3001>. Windows users can also use `start.bat`; use the pnpm commands on macOS/Linux. On first use and after bank updates, run `node scripts/seed-benchmark.mjs` to import `data/scenarios/benchmark.json`. Importing removes online question definitions outside this release and preserves historical runs and answers. New runs select released IDs and content hashes and reject same-ID database drift. **Updating GitHub does not update an online database or alter a running evaluation's frozen questions**; see the [bank update note](docs/question-refresh-2026-09-28.md) for publication and sync details.
+Keep the backend running. In a **second terminal**, enter the project root, import and check the bank, then open <http://127.0.0.1:3001>:
+
+```bash
+pnpm bank:sync
+pnpm bank:check
+pnpm runtime:check
+```
+
+Windows users can start the backend with `start.bat`; use the pnpm commands on macOS/Linux. **Run `pnpm bank:sync` on first use and after every bank update** (equivalent to `node scripts/seed-benchmark.mjs`). Verify zero failures, missing/invalid definitions and hash mismatches. For `Released benchmark database incomplete`, sync while the server remains running and refresh the page. Set `BASE_URL` to the actual backend URL if using another port.
+
+Default imports only upsert released definitions and preserve unrelated questions, historical runs and answers. Formal runs still select released IDs and hashes. `bank:check` reads the online bank; `runtime:check` reads Docker engine and explicit bank image contracts. It does not cover every language image embedded in graders or download images. See [deployment troubleshooting](docs/docker-deployment-troubleshooting.md). **Updating GitHub code does not sync the database or change a running evaluation's frozen questions**; see the [bank update note](docs/question-refresh-2026-09-28.md).
 
 ## Question bank and scoring
 

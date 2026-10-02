@@ -2,6 +2,18 @@
 
 All notable changes to ZxBench are documented here.
 
+## [0.2.9] — 2026-10-02
+
+### Deployment and question-bank synchronization
+
+- Check released definitions at server startup and show the sync command when a new or upgraded database is incomplete or has stale hashes. Keep the API available for importing the bank.
+- Include actionable sync instructions in missing-definition and hash-drift errors before model inference.
+- Make default imports upsert-only, preserving unrelated definitions and historical runs. Verify persisted IDs, valid status and frozen hashes after import; fail on HTTP errors or incomplete persistence.
+- Add `pnpm bank:sync`, read-only `pnpm bank:check`, and `pnpm runtime:check` for explicit Docker image contracts. Add deployment regression tests to CI.
+- Initialize the configured SQLite parent directory and file before `pnpm db:push`, without replacing existing database content.
+- Document database initialization, the required second-terminal import, upgrade checks, and Docker image readiness in both quick starts. Existing installations must still synchronize their local database; updating code alone does not import questions.
+- Preserve the v0.2.8 question catalogue, scoring contracts, historical answers and frozen snapshots.
+
 ## [0.2.5] — 2026-09-30
 
 ### Default question-bank correction

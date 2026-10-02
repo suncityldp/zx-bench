@@ -1,6 +1,6 @@
 {
   "name": "zxbench-webui",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "private": true,
   "description": "ZxBench Pro WebUI - 大模型评测系统",
   "scripts": {
@@ -14,6 +14,10 @@
     "type-check": "pnpm -r run type-check",
     "pretest": "pnpm test:world-contracts && pnpm -r --filter \"./packages/*\" run build",
     "test": "vitest run",
+    "test:deployment": "node --test scripts/seed-benchmark.test.mjs scripts/check-docker-images.test.mjs scripts/init-database.test.mjs",
+    "bank:sync": "node scripts/seed-benchmark.mjs",
+    "bank:check": "node scripts/seed-benchmark.mjs --check",
+    "runtime:check": "node scripts/check-docker-images.mjs",
     "test:containers": "node scripts/test-containers.mjs",
     "test:isolation": "node scripts/test-containers.mjs --isolation --maxWorkers=1 --minWorkers=1",
     "test:observation": "node scripts/test-containers.mjs --observation --maxWorkers=1 --minWorkers=1",
@@ -48,7 +52,7 @@
     "eval:ultra:test": "vitest run packages/core/src/evaluationLab/ultraMathRubric.test.ts",
     "eval:inspect": "pnpm --filter server exec tsx ../../packages/core/src/scripts/inspect-capability.ts",
     "db:generate": "pnpm --filter server prisma:generate",
-    "db:push": "pnpm --filter server prisma:push",
+    "db:push": "node scripts/init-database.mjs",
     "db:studio": "pnpm --filter server prisma:studio",
     "test:world-contracts": "node --test scripts/recovery-world-search.test.mjs scripts/tool-visible-contracts.test.mjs scripts/workflow-visible-contracts.test.mjs",
     "runtime:workflow": "node scripts/prepare-workflow-runtime.mjs",

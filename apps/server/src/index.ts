@@ -8,6 +8,7 @@ import cors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import fastifyWebSocket from '@fastify/websocket';
 import { PrismaClient } from '@prisma/client';
+import { releasedDatabaseStatus } from './releasedBenchmark.js';
 import { registerRoutes } from './routes/index.js';
 import { registerWebSocket } from './ws/index.js';
 import { challengeExtensionEvaluator, ultraBatchPartEvaluator, ultraProofPartEvaluator, structuredContractEvaluator, structuredContractV2Evaluator, structuredContractV3Evaluator, structuredContractV4Evaluator } from '@zxbench/core';
@@ -151,6 +152,18 @@ async function main() {
       }
     } catch (err) {
       console.error('启动恢复检查失败:', err);
+    }
+
+    // New installs/upgrades must sync the released catalogue independently of code.
+    // Keep the server available so the documented API import can repair the database.
+    try {
+      const rows = await prisma.scenarioDefinition.findMany({ where: { status: 'valid' },
+        select: { id: true, scenarioHash: true } });
+      const bankStatus = releasedDatabaseStatus(rows);
+      if (bankStatus.ready) console.log(`[Benchmark] 发行题库已同步：${bankStatus.expected} 个执行实例`);
+      else console.warn(`[Benchmark] 题库未同步：缺失 ${bankStatus.missingIds.length}，哈希不符 ${bankStatus.driftedIds.length}。保持服务运行，在另一个终端进入项目根目录执行 node scripts/seed-benchmark.mjs，再刷新页面。`);
+    } catch (err) {
+      console.warn('[Benchmark] 无法检查题库；首次部署请先配置 apps/server/.env 并执行 pnpm db:push。', err);
     }
 
     // ===== 优雅关闭 =====

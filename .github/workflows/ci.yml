@@ -37,3 +37,6 @@ jobs:
 
       - name: Run tests
         run: pnpm test
+
+      - name: Deployment import and Docker diagnostics
+        run: pnpm test:deployment

@@ -19,6 +19,16 @@ export function releasedBenchmark() {
   return cache;
 }
 
+/** Read-only readiness check for startup; never edits definitions or run snapshots. */
+export function releasedDatabaseStatus(rows: Array<{ id: string; scenarioHash: string }>) {
+  const { byId } = releasedBenchmark();
+  const stored = new Map(rows.map(row => [row.id, row]));
+  const missingIds = [...byId.values()].filter(s => !stored.has(s.id)).map(s => s.id);
+  const driftedIds = [...byId.values()].filter(s => stored.has(s.id)
+    && stored.get(s.id)!.scenarioHash !== s.scenarioHash).map(s => s.id);
+  return { ready: !missingIds.length && !driftedIds.length, expected: byId.size, missingIds, driftedIds };
+}
+
 /** The adopted execution contracts retain their historic shadow flag/hash.
  * Only an exact ID/hash in the published catalogue can use this exception.
  */
@@ -52,9 +62,9 @@ export function selectReleasedPack(
   }
   const stored = new Map(rows.map(s => [s.id,s]));
   const missing = required.filter(s => !stored.has(s.id));
-  if (missing.length) throw new Error(`Released benchmark database incomplete (${missing.length}): ${missing.slice(0,20).map(s => s.id).join(', ')}`);
+  if (missing.length) throw new Error(`Released benchmark database incomplete (${missing.length}): ${missing.slice(0,20).map(s => s.id).join(', ')}。数据库缺少当前发行题目；请保持服务运行，在项目根目录执行 node scripts/seed-benchmark.mjs 同步题库后重试。`);
   const drifted = required.filter(s => stored.get(s.id)!.scenarioHash !== s.scenarioHash);
-  if (drifted.length) throw new Error(`Released benchmark database is out of sync: ${drifted.map(s => s.id).join(', ')}`);
+  if (drifted.length) throw new Error(`Released benchmark database is out of sync: ${drifted.map(s => s.id).join(', ')}。数据库题目与当前发行题库不一致；请保持服务运行，在项目根目录执行 node scripts/seed-benchmark.mjs 同步题库后重试。`);
   const rejected = required.flatMap(s => {
     const { reasons } = releasedEligibility(s);
     return reasons.length ? [`${s.id}: ${reasons.join('; ')}`] : [];

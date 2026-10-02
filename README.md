@@ -12,6 +12,8 @@ ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则�
 
 **v0.2.6** 修复工作流题目契约、只读确认规则和 `ANSWER/SAY` 最终答复解析；87 个智能体实例采用检查点 rubric，最终未通过最高 40 分，安全违规为 0 分。详见[修复与验收说明](docs/workflow-repair-2026-10-01.md)。
 
+**v0.2.9** 增加启动时的题库同步检查、可操作的缺题提示、导入后完整性校验及 Docker 镜像诊断。首次部署和升级后均需同步本地数据库，步骤见下文。
+
 ## 快速开始
 
 需要 Node.js ≥22.13、pnpm ≥11；运行编程和 Docker 执行任务还需要已启动的 Docker，以及题目指定的本地镜像。缺失镜像或 Docker 不可用属于环境未就绪，不应解释为模型能力失败。
@@ -20,13 +22,24 @@ ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则�
 pnpm install
 pnpm --filter server prisma:generate
 # 将 apps/server/.env.example 复制为 apps/server/.env，并按需配置
+pnpm db:push
 pnpm build
 pnpm --filter server start
 ```
 
 工作流技能题还需要发布时冻结的 PyYAML 镜像。运行 `pnpm runtime:workflow`，自动下载 v0.2.6 镜像资产并校验 SHA-256 与 Docker image ID。离线可用 `pnpm runtime:workflow --archive /path/to/image.tar.gz`。镜像为 Linux amd64；Windows Docker Desktop 需使用 Linux 容器。
 
-打开 <http://127.0.0.1:3001>。Windows 也可使用 `start.bat`；macOS/Linux 使用上面的 pnpm 命令。首次使用或题库更新后，运行 `node scripts/seed-benchmark.mjs` 导入 `data/scenarios/benchmark.json`。导入会清理发行集合外的在线题目定义，保留历史运行和答卷；新建运行按发布题目 ID 与内容哈希选择，数据库中同 ID 定义漂移会报错。**GitHub 更新不会自动更新在线数据库，也不会改变运行中任务的冻结题目**；发布与数据库同步步骤见[题库更新说明](docs/question-refresh-2026-09-28.md)。
+保持后端运行，在**另一个终端**进入项目根目录，导入并检查题库，然后打开 <http://127.0.0.1:3001>：
+
+```bash
+pnpm bank:sync
+pnpm bank:check
+pnpm runtime:check
+```
+
+Windows 也可使用 `start.bat` 启动后端；macOS/Linux 使用上面的 pnpm 命令。**首次使用和题库更新后都必须执行 `pnpm bank:sync`**（等价于 `node scripts/seed-benchmark.mjs`）；确认失败、缺失或非有效、哈希不符均为 0。若创建评测提示 `Released benchmark database incomplete`，保持服务运行，同步后刷新页面重试。端口不同可通过 `BASE_URL` 指向实际后端。
+
+默认导入只新增或更新发行题目，保留集合外定义、历史运行和答卷；正式评测仍按发行题目 ID 与内容哈希选择。`bank:check` 只读检查在线题库，`runtime:check` 检查 Docker 引擎和题库显式镜像；它不覆盖评分器内部所有语言镜像，也不自动下载。详见 [Docker 部署排错](docs/docker-deployment-troubleshooting.md)。**更新 GitHub 代码不会自动同步数据库或改变运行中任务的冻结题目**；发布步骤见[题库更新说明](docs/question-refresh-2026-09-28.md)。
 
 ## 题库与评分
 
