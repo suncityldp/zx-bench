@@ -194,7 +194,8 @@ export async function runAgentLoop(options: RunAgentLoopOptions): Promise<AgentL
   const systemPrompt = buildAgentSystemPrompt(policy, tools);
 
   const docker = config.backend === 'docker'
-    ? await DockerRetailRuntime.create(config.state, config.expectedImageId) : undefined;
+    // The session remains alive while the model thinks, as in the general tool world.
+    ? await DockerRetailRuntime.create(config.state, config.expectedImageId, hardTimeoutMs + 30_000) : undefined;
   const state = cloneState(config.state);
   const initialState = cloneState(config.state);
   const startedAt = Date.now();

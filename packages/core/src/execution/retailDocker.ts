@@ -19,10 +19,10 @@ export class DockerRetailRuntime {
   private constructor(private readonly session: DockerSession) {}
   get imageId(): string { return this.session.imageId; }
 
-  static async create(initialState: RetailState, expectedImageId?: string): Promise<DockerRetailRuntime> {
+  static async create(initialState: RetailState, expectedImageId?: string, timeoutMs = 180_000): Promise<DockerRetailRuntime> {
     const enginePath = fileURLToPath(new URL('../agentLoop/retailRuntime.js', import.meta.url));
     const engine = readFileSync(enginePath, 'utf8');
-    const session = await DockerSession.create({ image: 'node:22-alpine', expectedImageId, timeoutMs: 180_000,
+    const session = await DockerSession.create({ image: 'node:22-alpine', expectedImageId, timeoutMs,
       files: [
         { path: 'retailRuntime.mjs', content: engine },
         { path: '__zx_retail_runner.mjs', content: RUNNER },
