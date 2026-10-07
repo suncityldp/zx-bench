@@ -18,6 +18,14 @@ describe('repair submission context preservation',()=>{
   ['c','join','char *join(const char *s) {\n    return 0;\n}'],
  ])('keeps the submitted %s module', (language,name,code)=>expect(heuristicExtractCode(code,language,name)).toBe(code));
  it('recognizes an unfenced mapped type',()=>expect(heuristicExtractCode('答案:\ntype R<T>={[K in keyof T]:T[K]};','typescript','R')).toBe('type R<T>={[K in keyof T]:T[K]};'));
+ it.each(['javascript','typescript'])('keeps an unfenced %s generator header',language=>{
+  const code='async function* pageItems(xs) {\n  for (const x of xs) yield x;\n}';
+  expect(heuristicExtractCode('ANSWER:\n'+code,language,'pageItems')).toBe(code);
+ });
+ it('ends Python code before a reasoning paragraph',()=>{
+  const code='import math\n\ndef normalize(v):\n    return math.sqrt(sum(x*x for x in v))';
+  expect(heuristicExtractCode('ANSWER:\n'+code+'\n\n推理过程：\n1. 使用欧几里得范数。','python','normalize')).toBe(code);
+ });
  it('keeps explanation-like text inside a string literal',()=>{
   const js='const text = `first\n\nReason: part of the returned data\n`;\nfunction f(){return text;}';
   expect(heuristicExtractCode(js,'javascript','f')).toBe(js);

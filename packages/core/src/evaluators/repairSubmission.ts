@@ -9,8 +9,8 @@ export function stripRepairAnswerLabel(output: string): string {
 export function extractUnfencedRepairModule(output: string, language: string): string | null {
   const text = stripRepairAnswerLabel(output);
   const patterns: Record<string, RegExp> = {
-    javascript: /^(?:import\b|export\b|(?:async\s+)?function\s+\w+|class\s+\w+|(?:const|let|var)\s+\w+\s*=)/,
-    typescript: /^(?:import\b|export\b|(?:declare\s+)?(?:type|interface|enum|namespace)\s+\w+|(?:async\s+)?function\s+\w+|(?:abstract\s+)?class\s+\w+|(?:const|let|var)\s+\w+\s*=)/,
+    javascript: /^(?:import\b|export\b|(?:async\s+)?function\s*\*?\s+\w+|class\s+\w+|(?:const|let|var)\s+\w+\s*=)/,
+    typescript: /^(?:import\b|export\b|(?:declare\s+)?(?:type|interface|enum|namespace)\s+\w+|(?:async\s+)?function\s*\*?\s+\w+|(?:abstract\s+)?class\s+\w+|(?:const|let|var)\s+\w+\s*=)/,
     python: /^(?:import\s+\S|from\s+\S+\s+import\b|(?:async\s+)?def\s+\w+\s*\(|class\s+\w+\s*[:(]|@[\w.]+)/,
     go: /^(?:package\s+\w+|import(?:\s|\()|func\s+|(?:type|var|const)\s+\w+)/,
     java: /^(?:package\s+|import\s+|@\w+|(?:(?:public|private|protected|static|final|abstract)\s+)*(?:class|interface|enum|record)\s+\w+)/,
@@ -43,7 +43,7 @@ export function extractUnfencedRepairModule(output: string, language: string): s
       if(line[k]==='{')depth++;
       if(line[k]==='}')depth--;
     }
-    if (!quote&&!blockComment&&depth===0&&!line.trim() && /^(?:理由|原因|说明|解释|修复说明|Explanation|Reason|Notes?)\s*[:：]/i.test(lines[i])) {end=i;break;}
+    if (!quote&&!blockComment&&depth===0&&!line.trim() && /^(?:理由|原因|说明|解释|修复说明|推理过程|Explanation|Reason(?:ing)?|Notes?)\s*[:：]/i.test(lines[i])) {end=i;break;}
   }
   return lines.slice(start,end).join('\n').trim();
 }

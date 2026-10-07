@@ -1270,11 +1270,11 @@ export function isolatedCodeRepairUnavailable(scenario: Scenario): string | null
   return null;
 }
 
-/** Official v4.15 scorer: untrusted execution cannot self-certify test success.
+/** Official v4.15.1 scorer: untrusted execution cannot self-certify test success.
  * The trusted-host development switch does NOT bypass this scoring boundary. */
 export const codeRepairEvaluator: Evaluator = {
-  name: 'code_repair', version: '4.15.0', aliases: ['code_repair_v3'],
-  compatibleVersions: ['4.14.0'], // Same task contracts; fixes parsing and negative-type verification.
+  name: 'code_repair', version: '4.15.1', aliases: ['code_repair_v3'],
+  compatibleVersions: ['4.14.0', '4.15.0'], // Same task contracts; fixes parsing and negative-type verification.
   async evaluate(scenario, output, metadata, response) {
     // No-bug classification is a text/rule task, not a claim of runtime testing.
     if (scenario.expectedVerdict === 'no_bug') {
