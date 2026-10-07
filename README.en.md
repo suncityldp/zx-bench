@@ -12,6 +12,8 @@ Recent updates move execution-oriented questions in five dimensions toward reset
 
 **v0.2.9** adds startup bank checks, actionable missing-question errors, post-import verification, and Docker image diagnostics. New installations and upgrades must sync their local database as described below.
 
+The math/tool contract revision separates verified content from final submission and clarifies exact compound interest, CRT totals, archive member paths and scaling deltas. See the [revision and historical scoring policy](docs/math-tool-contract-review-2026-10-07.md).
+
 ## Quick start
 
 Requires Node.js ≥22.13 and pnpm ≥11. Programming and Docker execution tasks also require a running Docker installation and the local images specified by the tasks. A missing image or unavailable daemon is an environment issue, not evidence of model failure.

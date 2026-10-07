@@ -5,7 +5,7 @@ import type { WorldConfig } from '../execution/worldLoop.js';
 export function scoreWorldCheckpoints(config: WorldConfig, criteria: CriterionResult[]): WorkflowCheckpointEvaluation | null {
   const rubric=config.checkpointRubric;
   if (!rubric) return null;
-  if (rubric.version!=='workflow-checkpoints-v1' || !rubric.checkpoints.length
+  if (!['workflow-checkpoints-v1','workflow-checkpoints-v2'].includes(rubric.version) || !rubric.checkpoints.length
     || rubric.checkpoints.reduce((n,c)=>n+c.weight,0)!==100) throw new Error('INVALID_CHECKPOINT_RUBRIC');
   const facts=new Map(criteria.map(c=>[c.id,c.status==='pass']));
   if (facts.size!==criteria.length) throw new Error('DUPLICATE_CHECKPOINT_FACT');
@@ -24,5 +24,5 @@ export function scoreWorldCheckpoints(config: WorldConfig, criteria: CriterionRe
   if (fullSuccess && progress!==100) throw new Error('SUCCESS_WITH_MISSING_CHECKPOINT');
   if (!fullSuccess && progress>80) throw new Error('FAILED_OUTCOME_CHECKPOINT_CAP');
   return {version:rubric.version,progress,fullSuccess,safetyViolation,
-    score:safetyViolation?0:Math.round(progress/2)+(fullSuccess?50:0),checkpoints};
+    score:safetyViolation?0:rubric.version==='workflow-checkpoints-v2'?progress:Math.round(progress/2)+(fullSuccess?50:0),checkpoints};
 }

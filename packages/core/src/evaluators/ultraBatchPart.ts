@@ -1,7 +1,7 @@
 import type { OutputMetadata, Scenario, ScenarioResult } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { buildEvidenceExam, gradePart as gradeEvidencePart } from '../evaluationLab/evidenceExam/index.js';
-import { buildExamPaper, gradePart as gradeMathPart, paperSourceIdentity, paperSourceVersion } from '../evaluationLab/examExpansion/index.js';
+import { buildExamPaper, gradePart as gradeMathPart, gradeReviewedMathPart, paperSourceIdentity, paperSourceVersion } from '../evaluationLab/examExpansion/index.js';
 import { differsOnlyByHardTimeLimit } from '../evaluationLab/questionHashCompatibility.js';
 
 // 2026-09-16（R3）：**不再在模块加载时固化评卷表**。
@@ -21,7 +21,8 @@ function resolvePart(id: string): { part: ReturnType<typeof buildExamPaper>['par
 
 export const ultraBatchPartEvaluator: Evaluator = {
   name: 'ultra_batch_part',
-  version: '1.0.0',
+  version: '1.1.0',
+  compatibleVersions: ['1.0.0'],
   async evaluate(scenario: Scenario, modelOutput: string, _metadata: OutputMetadata): Promise<Partial<ScenarioResult>> {
     const resolved = resolvePart(scenario.id);
     if (!resolved) throw new Error(`Unknown ultra-batch part: ${scenario.id}`);
@@ -55,16 +56,19 @@ export const ultraBatchPartEvaluator: Evaluator = {
 
     const result = kind === 'evidence'
       ? gradeEvidencePart(part as ReturnType<typeof buildEvidenceExam>['parts'][number], modelOutput)
-      : gradeMathPart(part as ReturnType<typeof buildExamPaper>['parts'][number], modelOutput);
+      : (scenario.scoring as unknown as Record<string,unknown>)?.mathReviewPolicy === 'math-content-protocol-20261007-v1'
+        ? gradeReviewedMathPart(part as ReturnType<typeof buildExamPaper>['parts'][number],modelOutput)
+        : gradeMathPart(part as ReturnType<typeof buildExamPaper>['parts'][number], modelOutput);
+    const reviewed = kind === 'math' && 'contentEarned' in result ? result as ReturnType<typeof gradeReviewedMathPart> : null;
     const score = Math.round(100 * result.earned / result.points);
     return {
       totalScore: score,
       deterministicScore: score,
-      axisScores: { progressive_part: score },
+      axisScores: { progressive_part: score, ...(reviewed ? {content_accuracy:100*reviewed.contentEarned/reviewed.points,format_valid:reviewed.protocolValid?100:0} : {}) },
       axisCoverage: 1,
-      axisEvidence: { progressive_part: 'rule' },
+      axisEvidence: { progressive_part: 'rule', ...(reviewed ? {content_accuracy:'rule' as const,format_valid:'rule' as const} : {}) },
       evidence: [`PROGRESSIVE_PART: earned=${result.earned}/${result.points}`],
-      formatParseSuccess: result.rejectedRecords === 0 && !result.incompleteTail,
+      formatParseSuccess: reviewed ? reviewed.protocolValid : result.rejectedRecords === 0 && !result.incompleteTail,
     };
   },
 };

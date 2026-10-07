@@ -27,6 +27,7 @@ export function semanticFinalReviewCandidate(
   const storedTrace=response.executionWorld as WorldTrace|undefined;
   const trace=storedTrace?normalizeWorldFinalTrace(storedTrace):undefined;
   const criteria = result.criterionResults;
+  if (trace?.turns?.at(-1)?.interrupted) return null;
   if (!config || !trace || config.scoreMode !== 'strict' || !criteria?.length
     || (config.checkpointRubric ? result.totalScore===100 : result.totalScore !== 0) || result.environmentError || result.safetyLevel === 'red_line'
     || metadata.incomplete || metadata.truncated || response.finishReason === 'length'
@@ -123,7 +124,7 @@ export function applySemanticFinalReview(result: Partial<ScenarioResult>, review
   result.semanticFinalReview = review;
   result.evidence = [...(result.evidence ?? []),
     `SEMANTIC_FINAL_REVIEW: ${review.version} model=${review.judgeModelId} status=${review.status}`];
-  if (review.status !== 'equivalent' || !result.criterionResults) {
+  if (!['equivalent','not_equivalent'].includes(review.status) || !result.criterionResults) {
     if (review.status === 'error' || review.status === 'inconclusive') result.humanReviewRequired = true;
     if (review.status === 'error') {
       result.environmentError = true;
@@ -131,22 +132,21 @@ export function applySemanticFinalReview(result: Partial<ScenarioResult>, review
     }
     return;
   }
-  const ids = new Set(review.checks.map(c => c.id));
+  const positive=review.checks.filter(c=>c.equivalent===true && c.quote);
   const failed = result.criterionResults.filter(c => c.status !== 'pass');
-  if (!failed.length || ids.size !== failed.length || review.checks.some(c => c.equivalent !== true)
-    || failed.some(c => !ids.has(c.id) || !/^world_final_(?:any_)?\d+$/.test(c.id))) return;
+  if (!failed.length || !positive.length || positive.some(c=>!failed.some(f=>f.id===c.id && /^world_final_(?:any_)?\d+$/.test(f.id)))) return;
   if(result.checkpointEvaluation && !(scenario?.requirements as unknown as {executionWorld?:WorldConfig})?.executionWorld?.checkpointRubric) {
     throw new Error('CHECKPOINT_SEMANTIC_REVIEW_REQUIRES_SCENARIO');
   }
   result.criterionResults = result.criterionResults.map((c): CriterionResult => {
-    const check = review.checks.find(v => v.id === c.id);
+    const check = positive.find(v => v.id === c.id);
     return check && c.status === 'fail'
       ? { ...c, status: 'pass', source: 'llm', evidence: `Semantic equivalent: ${check.quote}` }
       : c;
   });
   const config=(scenario?.requirements as unknown as {executionWorld?:WorldConfig}|undefined)?.executionWorld;
   const checkpoints=config?scoreWorldCheckpoints(config,result.criterionResults):null;
-  result.totalScore = checkpoints?.score??100;
+  result.totalScore = checkpoints?.score??(result.criterionResults.every(c=>c.status==='pass')?100:(result.totalScore??0));
   if(checkpoints)result.checkpointEvaluation=checkpoints;
   result.deterministicScore = 0;
   result.axisScores = { ...(result.axisScores ?? {}), task_result: result.totalScore };

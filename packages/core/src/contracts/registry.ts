@@ -41,11 +41,11 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 推理数学：精确答案行 ----
   exact_answer_line: {
     grader: 'exact_answer_line',
-    version: 'exact_answer_v5',
-    compatibleVersions: ['exact_answer_v2', 'exact_answer_v3', 'exact_answer_v4'],
+    version: 'exact_answer_v6',
+    compatibleVersions: ['exact_answer_v2', 'exact_answer_v3', 'exact_answer_v4', 'exact_answer_v5'],
     dimension: 'reasoning_math',
-    consumedFields: ['answer'],
-    declaredFields: ['answer', 'acceptedVariants', 'answerGrammar', 'answerType', 'units', 'validUntil'],
+    consumedFields: ['answer', 'answerFields'],
+    declaredFields: ['answer', 'answerFields', 'acceptedVariants', 'answerGrammar', 'answerType', 'units', 'validUntil'],
     requiredFields: ['answer'],
     capabilities: {},
   },
@@ -313,7 +313,7 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
     capabilities: { supportedLanguages: ['json'], executableLanguages: ['json'] },
   },
   ultra_batch_part: {
-    grader: 'ultra_batch_part', version: '1.0.0',
+    grader: 'ultra_batch_part', version: '1.1.0', compatibleVersions: ['1.0.0'],
     dimension: ['data_extraction', 'hallucination_resistance', 'reasoning_math'],
     consumedFields: ['groupId', 'partNumber', 'points', 'hardSeconds', 'questionHash', 'sourcePackVersion'],
     declaredFields: ['groupId', 'partNumber', 'points', 'hardSeconds', 'questionHash', 'sourcePackVersion'],

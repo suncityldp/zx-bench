@@ -6,7 +6,9 @@ import { exactAnswerLineEvaluator as evaluator } from './exactAnswerLine.js';
 const scenarios: Scenario[] = JSON.parse(readFileSync(new URL('../../../../data/scenarios/benchmark.json', import.meta.url), 'utf8'));
 const scenario = (n: number) => scenarios.find(s => s.id === `RM-CN-${String(n).padStart(3, '0')}`)!;
 const meta = { truncated: false, incomplete: false } as OutputMetadata;
-const accuracy = async (n: number, output: string) => (await evaluator.evaluate(scenario(n), output, meta)).axisScores?.answer_accuracy;
+// Preserve exact legacy comparisons independently from opt-in field credit.
+const accuracy = async (n: number, output: string) => (await evaluator.evaluate({...scenario(n),graderVersion:'exact_answer_v4',
+  scoring:{...scenario(n).scoring,mathReviewPolicy:undefined} as Scenario['scoring']}, output, meta)).axisScores?.answer_accuracy;
 const round = (n: number, digits = 2) => Number(n.toFixed(digits));
 const permutations = <T,>(a: T[]): T[][] => a.length ? a.flatMap((v, i) => permutations(a.filter((_, j) => i !== j)).map(p => [v, ...p])) : [[]];
 
@@ -218,7 +220,7 @@ describe('strict answer-contract regressions', () => {
     const math=scenarios.filter(s=>s.dimension==='reasoning_math'&&s.grader==='exact_answer_line');expect(math).toHaveLength(34);
     expect(math.filter(s=>s.status==='ambiguous')).toEqual([]);
     expect(math.filter(s=>s.status==='valid')).toHaveLength(34);
-    for(const s of math){expect(s.scenarioVersion).toBe('3.2.0');expect(s.graderVersion).toBe('exact_answer_v4');expect((s.scoring as any).tolerance).toBe(0);expect(s.scenarioHash).toBe(hashScenarioShort(s));}
+    for(const s of math){expect(s.scenarioVersion).toBe('3.3.0');expect(s.graderVersion).toBe('exact_answer_v6');expect((s.scoring as any).tolerance).toBe(0);expect(s.scenarioHash).toBe(hashScenarioShort(s));}
   });
   it('states the final-line format and rounding rules in the prompts', () => {
     for(const s of scenarios.filter(s=>s.dimension==='reasoning_math'&&s.grader==='exact_answer_line')) {

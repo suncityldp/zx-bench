@@ -1,5 +1,5 @@
 {
-  "version": "math-exam-expansion-2026-09-17-v19",
+  "version": "math-exam-expansion-2026-10-07-v20",
   "status": "candidate-unmeasured",
   "modelCalls": 0,
   "hardSeconds": [
@@ -1753,7 +1753,7 @@
       "id": "MX3-20",
       "family": "finite-field-ladder",
       "title": "有限域算术：求逆、阶、离散对数与模合数",
-      "stem": "p=10007 与 q=10009 均为素数，p−1 = 10006 = 2×5003。所有结果取 [0,模数) 内的整数。各问规模都很小，但需要的方法不同。",
+      "stem": "p=10007 与 q=10009 均为素数，p−1 = 10006 = 2×5003。除第4问 total 是普通整数总和、不对模数取模外，其余模运算结果取 [0,模数) 内的整数。各问规模都很小，但需要的方法不同。",
       "parts": [
         {
           "task": "在 F_p 中求 4043 的乘法逆元。提交 inverse。",
@@ -1789,7 +1789,7 @@
           ]
         },
         {
-          "task": "条件变更：改为模合数 n = p·q = 100160063，求 x² ≡ 200 (mod n) 的最小非负解与全部解之和。提交 smallest 与 total（两者都按 [0,n) 内的整数提交）。",
+          "task": "条件变更：改为模合数 n = p·q = 100160063。枚举 x² ≡ 200 (mod n) 在 [0,n) 内的全部解。提交 smallest=其中最小的非负解，total=这些解的普通整数总和；total 不对 n 取模，允许大于等于 n。",
           "items": [
             {
               "key": "smallest",

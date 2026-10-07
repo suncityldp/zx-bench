@@ -24,8 +24,8 @@ export function referenceAnswerWarnings(rows: ReferenceAnswerRow[]): string[] {
     }
     if (!mathIds.has(row.scenarioId)) continue;
     const requiredVersion = '3.2.0';
-    if (row.scenarioVersion !== requiredVersion
-      || !['exact_answer_line@exact_answer_v4', 'exact_answer_v4', 'exact_answer_line@exact_answer_v5', 'exact_answer_v5'].includes(row.graderVersion ?? '')) {
+    if (![requiredVersion,'3.3.0'].includes(row.scenarioVersion??'')
+      || !['exact_answer_line@exact_answer_v4', 'exact_answer_v4', 'exact_answer_line@exact_answer_v5', 'exact_answer_v5','exact_answer_line@exact_answer_v6','exact_answer_v6'].includes(row.graderVersion ?? '')) {
       warnings.add(`${row.scenarioId}: 旧版或未核验的题面/评分规则，需用 ${requiredVersion} 题面及 exact_answer_v4/v5 重新评测（issue #7）`);
     }
   }

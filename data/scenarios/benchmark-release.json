@@ -1084,17 +1084,17 @@
     {
       "taskId": "TC-CN-005-RECOVERY-0",
       "sourceId": "TC-CN-005",
-      "scenarioHash": "c59f2ccc6c27e46d"
+      "scenarioHash": "cc52361030b408c3"
     },
     {
       "taskId": "TC-CN-006-RECOVERY-0",
       "sourceId": "TC-CN-006",
-      "scenarioHash": "ff9ca0eba04a98b2"
+      "scenarioHash": "15af4d0f42265dbe"
     },
     {
       "taskId": "TC-CN-006-RECOVERY-1",
       "sourceId": "TC-CN-006",
-      "scenarioHash": "19c1b0637b09ccf3"
+      "scenarioHash": "6ecb57ddc4a7ab9f"
     },
     {
       "taskId": "TC-CN-007-RECOVERY-0",
@@ -1169,12 +1169,12 @@
     {
       "taskId": "TC-CN-015-RECOVERY-0",
       "sourceId": "TC-CN-015",
-      "scenarioHash": "074554ba9b000d33"
+      "scenarioHash": "8d19806ce9743fa8"
     },
     {
       "taskId": "TC-CN-015-RECOVERY-1",
       "sourceId": "TC-CN-015",
-      "scenarioHash": "6f40430db25f0831"
+      "scenarioHash": "84ec347e83647e0c"
     },
     {
       "taskId": "TC-CN-016-RECOVERY-0",
@@ -1234,7 +1234,7 @@
     {
       "taskId": "TC-CN-022-DOCKER",
       "sourceId": "TC-CN-022",
-      "scenarioHash": "0cc8f9eeb8655e7e"
+      "scenarioHash": "51c077fc755988e7"
     },
     {
       "taskId": "TC-CN-023-DOCKER",
@@ -1284,12 +1284,12 @@
     {
       "taskId": "TC-CN-031-RECOVERY-0",
       "sourceId": "TC-CN-031",
-      "scenarioHash": "266138ad50ece26d"
+      "scenarioHash": "642103f7e500e075"
     },
     {
       "taskId": "TC-CN-031-RECOVERY-1",
       "sourceId": "TC-CN-031",
-      "scenarioHash": "428915c327a67617"
+      "scenarioHash": "738e13c4da2a09f3"
     },
     {
       "taskId": "TC-CN-032-RECOVERY-0",
@@ -1354,12 +1354,12 @@
     {
       "taskId": "TC-CN-038-RECOVERY-0",
       "sourceId": "TC-CN-038",
-      "scenarioHash": "24942f04bc510aea"
+      "scenarioHash": "7b918afcf0af43c3"
     },
     {
       "taskId": "TC-CN-038-RECOVERY-1",
       "sourceId": "TC-CN-038",
-      "scenarioHash": "761a83c1ffdd58d9"
+      "scenarioHash": "5647ab05b34122d9"
     },
     {
       "taskId": "TC-CN-039-RECOVERY-0",
@@ -1474,12 +1474,12 @@
     {
       "taskId": "TC-CN-050-RECOVERY-0",
       "sourceId": "TC-CN-050",
-      "scenarioHash": "5f015e5971ed3148"
+      "scenarioHash": "9ace4779900ba166"
     },
     {
       "taskId": "TC-CN-050-RECOVERY-1",
       "sourceId": "TC-CN-050",
-      "scenarioHash": "2aabc3f818b5f411"
+      "scenarioHash": "9b87e1d6a9563dd6"
     },
     {
       "taskId": "TC-CN-051-RECOVERY-0",
@@ -1611,5 +1611,803 @@
     "verifierAmendment": "TC-CN-024 permits untracked protected sentinel and Git logs before final merged line; other dirty files and incorrect final lines rejected",
     "alertVerifierAmendment": "Actual one offline alert with nonempty body; no hidden exact wording; duplicate alerts fail safety",
     "patchAmendment": "Exact native patches may update separate lines; final all images changed and unrelated text preserved"
+  },
+  "mathReview": {
+    "policy": "math-content-protocol-20261007-v1",
+    "revisedScenarioCount": 102,
+    "mappings": [
+      {
+        "id": "MX3-01-P1",
+        "originalScenarioHash": "733dca46be5fc567",
+        "revisedScenarioHash": "c643df067e78bbc6",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-01-P2",
+        "originalScenarioHash": "fe69a81718af0d80",
+        "revisedScenarioHash": "6863c3baf5af37e4",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-01-P3",
+        "originalScenarioHash": "0cf836c5cd216fa3",
+        "revisedScenarioHash": "f3c623786b9a2bd9",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-01-P4",
+        "originalScenarioHash": "ec77ad55be3a0f0d",
+        "revisedScenarioHash": "04c828f2e293c5e8",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-02-P1",
+        "originalScenarioHash": "69d09bdbe92c95a4",
+        "revisedScenarioHash": "0478ba726de8e0be",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-02-P2",
+        "originalScenarioHash": "55c7850fb662610a",
+        "revisedScenarioHash": "83945c94b03ecd79",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-02-P3",
+        "originalScenarioHash": "f80fb551e5cb76b0",
+        "revisedScenarioHash": "77c058c6fe4f8b12",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-02-P4",
+        "originalScenarioHash": "63fc04f8d10a4ba6",
+        "revisedScenarioHash": "c1c5e8dd7ce7cb4a",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-03-P1",
+        "originalScenarioHash": "e0b78b9c4cb53b33",
+        "revisedScenarioHash": "1e9accd5ceeb7013",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-03-P2",
+        "originalScenarioHash": "da109df9fbf42b14",
+        "revisedScenarioHash": "5cc05070ff8f4aa1",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-03-P3",
+        "originalScenarioHash": "145325dc18993d7e",
+        "revisedScenarioHash": "a2e7c613e68dd8f7",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-03-P4",
+        "originalScenarioHash": "a18f9afabba4df4d",
+        "revisedScenarioHash": "dcdd3b6dd1c0baa2",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-04-P1",
+        "originalScenarioHash": "d8f96c66f6d075e6",
+        "revisedScenarioHash": "58a4fd9a6799ef79",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-04-P2",
+        "originalScenarioHash": "0875270a0c9e7520",
+        "revisedScenarioHash": "0f65e3b499763997",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-04-P3",
+        "originalScenarioHash": "8386fe89d2e5337d",
+        "revisedScenarioHash": "140bc05aec0708c9",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-04-P4",
+        "originalScenarioHash": "1c7ec77c21ebdb0f",
+        "revisedScenarioHash": "0bd7a0a0e79cc422",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-05-P1",
+        "originalScenarioHash": "4069aacb11715a6d",
+        "revisedScenarioHash": "c3b87d2aacd322ba",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-05-P2",
+        "originalScenarioHash": "fc6ce7fa24962636",
+        "revisedScenarioHash": "bdc16421dc8983d2",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-05-P3",
+        "originalScenarioHash": "34e458623c969218",
+        "revisedScenarioHash": "554bdeac33a902cf",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-05-P4",
+        "originalScenarioHash": "6e4fc585e082eb12",
+        "revisedScenarioHash": "ca58fedfdfcfb61f",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-07-P1",
+        "originalScenarioHash": "780946452c146d80",
+        "revisedScenarioHash": "dc7109342c22215c",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-07-P2",
+        "originalScenarioHash": "98ca78d0fb9f2f31",
+        "revisedScenarioHash": "7153a3388da80799",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-07-P3",
+        "originalScenarioHash": "c21adc624e8026b3",
+        "revisedScenarioHash": "a2a29ed44e48b0f7",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-07-P4",
+        "originalScenarioHash": "ae139ee930993b15",
+        "revisedScenarioHash": "0cb0c0758394b857",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-08-P1",
+        "originalScenarioHash": "723f727a8664d470",
+        "revisedScenarioHash": "97c84736501a25fd",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-08-P2",
+        "originalScenarioHash": "26dc4956d5028909",
+        "revisedScenarioHash": "f34c81e7dcb8a56c",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-08-P3",
+        "originalScenarioHash": "8c89882cbe1604a9",
+        "revisedScenarioHash": "273f88f702f01299",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-08-P4",
+        "originalScenarioHash": "8593568fbe9a73da",
+        "revisedScenarioHash": "b92676f81bd8eb97",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-09-P1",
+        "originalScenarioHash": "ed1570986925f804",
+        "revisedScenarioHash": "374040e0ff3b905d",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-09-P2",
+        "originalScenarioHash": "f27140e61fabaa55",
+        "revisedScenarioHash": "b6db19e3e724ab6c",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-09-P3",
+        "originalScenarioHash": "ee5206b0483f1250",
+        "revisedScenarioHash": "b00f8b5e540bbb20",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-09-P4",
+        "originalScenarioHash": "b326be09b5108eb8",
+        "revisedScenarioHash": "2c2fc0ac32706d3a",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-10-P1",
+        "originalScenarioHash": "fc307e360ce4ba68",
+        "revisedScenarioHash": "ef5662720f7b5cd7",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-10-P2",
+        "originalScenarioHash": "c0af5ffbea5be4b1",
+        "revisedScenarioHash": "4267be6c5064b11e",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-10-P3",
+        "originalScenarioHash": "ceb21bf2c5b27b11",
+        "revisedScenarioHash": "3fb2f7fe622fbca9",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-10-P4",
+        "originalScenarioHash": "f3ef0255aafde7ee",
+        "revisedScenarioHash": "a43f42b9be57eadb",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-11-P1",
+        "originalScenarioHash": "ebd4582ecf5bd349",
+        "revisedScenarioHash": "a8bccf4fd70d749f",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-11-P2",
+        "originalScenarioHash": "b36e733340b3208a",
+        "revisedScenarioHash": "99f17f3723780b55",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-11-P3",
+        "originalScenarioHash": "37d31f61d8611919",
+        "revisedScenarioHash": "9bf6ee0eab141142",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-11-P4",
+        "originalScenarioHash": "318517a2427da626",
+        "revisedScenarioHash": "2a6f562e0605f5eb",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-13-P1",
+        "originalScenarioHash": "08df6f50820066d9",
+        "revisedScenarioHash": "e1f22b13dc5f0c1f",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-13-P2",
+        "originalScenarioHash": "6cb649b221af6aa8",
+        "revisedScenarioHash": "4bf8f680c0d54006",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-13-P3",
+        "originalScenarioHash": "78398f862be96ba7",
+        "revisedScenarioHash": "0d698ff392fbc2e9",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-13-P4",
+        "originalScenarioHash": "99cda3bf07a2360e",
+        "revisedScenarioHash": "1613a2847749358e",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-14-P1",
+        "originalScenarioHash": "652f3dcc217a9f63",
+        "revisedScenarioHash": "27fc569118f93b4f",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-14-P2",
+        "originalScenarioHash": "158a61082f5142b6",
+        "revisedScenarioHash": "e1b4a893c4b86ece",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-14-P3",
+        "originalScenarioHash": "d8bdb4513389a5d5",
+        "revisedScenarioHash": "4899704e20209a64",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-14-P4",
+        "originalScenarioHash": "4a97e899d4463e99",
+        "revisedScenarioHash": "e920d137c6c29567",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-17-P1",
+        "originalScenarioHash": "e940bfc1afc96818",
+        "revisedScenarioHash": "1f1544c88a69d968",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-17-P2",
+        "originalScenarioHash": "d6ee18bb1cbc8ad0",
+        "revisedScenarioHash": "2babfa9e2468b188",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-17-P3",
+        "originalScenarioHash": "81fd6a42c35712a0",
+        "revisedScenarioHash": "2c5f475c7e1c3d06",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-17-P4",
+        "originalScenarioHash": "260084628be36d3b",
+        "revisedScenarioHash": "a2adedb41a51e289",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-18-P1",
+        "originalScenarioHash": "aadb8975cfe278c3",
+        "revisedScenarioHash": "13008a849478b6e5",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-18-P2",
+        "originalScenarioHash": "25f37f3aeb040b8d",
+        "revisedScenarioHash": "6ff2ee021e6b2cd6",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-18-P3",
+        "originalScenarioHash": "dd4f5ef5b4e4b65e",
+        "revisedScenarioHash": "c6c14e46350d999d",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-18-P4",
+        "originalScenarioHash": "3e8f8e09458099bb",
+        "revisedScenarioHash": "47b5eca68d0bfca8",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-19-P1",
+        "originalScenarioHash": "b9b9b00c06a910ec",
+        "revisedScenarioHash": "fa2371d2d678488c",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-19-P2",
+        "originalScenarioHash": "6cbe68700981266d",
+        "revisedScenarioHash": "5c1a52461330d376",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-19-P3",
+        "originalScenarioHash": "0c88fe049b2313cb",
+        "revisedScenarioHash": "9747fb67411ba4ab",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-19-P4",
+        "originalScenarioHash": "a5cb554c4fd2ad26",
+        "revisedScenarioHash": "b4a4327eebc7e295",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-20-P1",
+        "originalScenarioHash": "a7dd3c5f3abc84a7",
+        "revisedScenarioHash": "fa1225d0104386eb",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-20-P2",
+        "originalScenarioHash": "b3715be901670498",
+        "revisedScenarioHash": "83bd800221cf3b85",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-20-P3",
+        "originalScenarioHash": "83d086f5319d79da",
+        "revisedScenarioHash": "5042159b17a948f3",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-20-P4",
+        "originalScenarioHash": "9f16c072b17425ba",
+        "revisedScenarioHash": "3b34e87f22ef74b0",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-24-P1",
+        "originalScenarioHash": "05eca6fb53eb65e5",
+        "revisedScenarioHash": "605f6ad48ac4dd80",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-24-P2",
+        "originalScenarioHash": "f1026727cec71c26",
+        "revisedScenarioHash": "15200f14323c4f01",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-24-P3",
+        "originalScenarioHash": "8402c61a2f0d46fb",
+        "revisedScenarioHash": "f8ce457bb2d82ecc",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "MX3-24-P4",
+        "originalScenarioHash": "df8ac1137afcdba9",
+        "revisedScenarioHash": "074f9cc03a7c1a37",
+        "scenarioVersion": "1.1.0",
+        "graderVersion": "1.1.0"
+      },
+      {
+        "id": "RM-CN-001",
+        "originalScenarioHash": "b9445c854c018a7b",
+        "revisedScenarioHash": "ab3adf8a7a63a39d",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-002",
+        "originalScenarioHash": "b18cc2755e9bb068",
+        "revisedScenarioHash": "9e315999be3f2445",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-003",
+        "originalScenarioHash": "f33820200d0650be",
+        "revisedScenarioHash": "a656d669f4a2b5e2",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-004",
+        "originalScenarioHash": "b3b06ee62eeb9baf",
+        "revisedScenarioHash": "d36df9bcb8f71a23",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-005",
+        "originalScenarioHash": "186c30bd269da9d9",
+        "revisedScenarioHash": "a38317d303eea56b",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-006",
+        "originalScenarioHash": "638a3e9c4a724ca8",
+        "revisedScenarioHash": "d8702f63ff9d6332",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-007",
+        "originalScenarioHash": "eca5986a4bf573a1",
+        "revisedScenarioHash": "ce68be841d43af1b",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-008",
+        "originalScenarioHash": "b00daaeffcaf0481",
+        "revisedScenarioHash": "f17bac9abd1151a1",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-009",
+        "originalScenarioHash": "7dd21a782538d6a0",
+        "revisedScenarioHash": "6412433b2f48f756",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-010",
+        "originalScenarioHash": "9866508ef246ebb9",
+        "revisedScenarioHash": "3d70e0efcd941500",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-011",
+        "originalScenarioHash": "85f4ea4ed0d3c71f",
+        "revisedScenarioHash": "36da1a7dfb8bd649",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-012",
+        "originalScenarioHash": "e7c58364fff98f31",
+        "revisedScenarioHash": "0dcd6cef5f9c0012",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-013",
+        "originalScenarioHash": "42a282747f26e14a",
+        "revisedScenarioHash": "53c3a66b8ae0bf8a",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-014",
+        "originalScenarioHash": "983868cc866808b6",
+        "revisedScenarioHash": "4520982dc6caba30",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-015",
+        "originalScenarioHash": "a3f6b36986c8c9f0",
+        "revisedScenarioHash": "450848ea9fae3c77",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-016",
+        "originalScenarioHash": "95440ec5a7411aec",
+        "revisedScenarioHash": "97bc9dddb2173d58",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-017",
+        "originalScenarioHash": "13f7a897b21ad29e",
+        "revisedScenarioHash": "c844a9e6feefabc6",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-018",
+        "originalScenarioHash": "fef3e8bf83c8e443",
+        "revisedScenarioHash": "b4e8c78ecd2dcdd5",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-019",
+        "originalScenarioHash": "8afb8338b58bc307",
+        "revisedScenarioHash": "a1b39f7291e77afb",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-020",
+        "originalScenarioHash": "9f88d323109adf24",
+        "revisedScenarioHash": "abfd3a15ee32f102",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-021",
+        "originalScenarioHash": "eff3ec0f0a3248a8",
+        "revisedScenarioHash": "c38ba7d851227373",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-022",
+        "originalScenarioHash": "577f71745c60cf34",
+        "revisedScenarioHash": "68428ea1eaaad29d",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-023",
+        "originalScenarioHash": "6daf2a85974d06a5",
+        "revisedScenarioHash": "34b5033cb997c871",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-024",
+        "originalScenarioHash": "dd33092b66d4629b",
+        "revisedScenarioHash": "b68a2a4c61982c03",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-025",
+        "originalScenarioHash": "9ddeb3c90d446b03",
+        "revisedScenarioHash": "3476f118bf64b386",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-027",
+        "originalScenarioHash": "262db75422bf3173",
+        "revisedScenarioHash": "1776b0048041dede",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-028",
+        "originalScenarioHash": "66b24f55f9cbf6d3",
+        "revisedScenarioHash": "7c616667a65da5f2",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-029",
+        "originalScenarioHash": "c43fabf7ef74b23c",
+        "revisedScenarioHash": "18a6accf7c172b20",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-030",
+        "originalScenarioHash": "641330c7c4436fe4",
+        "revisedScenarioHash": "3956147d409aa22f",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-031",
+        "originalScenarioHash": "06569a01455b9abc",
+        "revisedScenarioHash": "ee033162c6e671f2",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-032",
+        "originalScenarioHash": "55e4d654c3fad597",
+        "revisedScenarioHash": "039a39fdb5993805",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-033",
+        "originalScenarioHash": "630451a92969b855",
+        "revisedScenarioHash": "4381860d6e11ffb2",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-034",
+        "originalScenarioHash": "83215602d2c2e54f",
+        "revisedScenarioHash": "dba5436e4a0802e1",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      },
+      {
+        "id": "RM-CN-035",
+        "originalScenarioHash": "dacbe0579dfc0315",
+        "revisedScenarioHash": "8e7919c94a7c5d65",
+        "scenarioVersion": "3.3.0",
+        "graderVersion": "exact_answer_v6"
+      }
+    ]
+  },
+  "toolScoringReview": {
+    "policy": "tool-contract-content-delivery-20261007-v1",
+    "revisedScenarioCount": 12,
+    "mappings": [
+      {
+        "id": "TC-CN-005-RECOVERY-0",
+        "originalScenarioHash": "c59f2ccc6c27e46d",
+        "revisedScenarioHash": "cc52361030b408c3",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-006-RECOVERY-0",
+        "originalScenarioHash": "ff9ca0eba04a98b2",
+        "revisedScenarioHash": "15af4d0f42265dbe",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-006-RECOVERY-1",
+        "originalScenarioHash": "19c1b0637b09ccf3",
+        "revisedScenarioHash": "6ecb57ddc4a7ab9f",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-015-RECOVERY-0",
+        "originalScenarioHash": "074554ba9b000d33",
+        "revisedScenarioHash": "8d19806ce9743fa8",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-015-RECOVERY-1",
+        "originalScenarioHash": "6f40430db25f0831",
+        "revisedScenarioHash": "84ec347e83647e0c",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-022-DOCKER",
+        "originalScenarioHash": "0cc8f9eeb8655e7e",
+        "revisedScenarioHash": "51c077fc755988e7",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-031-RECOVERY-0",
+        "originalScenarioHash": "266138ad50ece26d",
+        "revisedScenarioHash": "642103f7e500e075",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-031-RECOVERY-1",
+        "originalScenarioHash": "428915c327a67617",
+        "revisedScenarioHash": "738e13c4da2a09f3",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-038-RECOVERY-0",
+        "originalScenarioHash": "24942f04bc510aea",
+        "revisedScenarioHash": "7b918afcf0af43c3",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-038-RECOVERY-1",
+        "originalScenarioHash": "761a83c1ffdd58d9",
+        "revisedScenarioHash": "5647ab05b34122d9",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-050-RECOVERY-0",
+        "originalScenarioHash": "5f015e5971ed3148",
+        "revisedScenarioHash": "9ace4779900ba166",
+        "scenarioVersion": "3.6.0"
+      },
+      {
+        "id": "TC-CN-050-RECOVERY-1",
+        "originalScenarioHash": "2aabc3f818b5f411",
+        "revisedScenarioHash": "9b87e1d6a9563dd6",
+        "scenarioVersion": "3.6.0"
+      }
+    ]
   }
 }

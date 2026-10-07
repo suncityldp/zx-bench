@@ -11,7 +11,9 @@ const bank: Scenario[] = JSON.parse(readFileSync(new URL('../../../../data/scena
 const ids = ['RM-CN-013','RM-CN-014','RM-CN-028','RM-CN-031'];
 const scenario = (id: number) => bank.find(s => s.id === `RM-CN-${String(id).padStart(3,'0')}`)!;
 const meta = {truncated:false,incomplete:false} as OutputMetadata;
-const score = async (id:number, answer:string) => (await exactAnswerLineEvaluator.evaluate(scenario(id),`ANSWER: ${answer}`,meta)).axisScores?.answer_accuracy;
+// Keep the original all-or-nothing independent oracle regressions as v4 checks.
+const score = async (id:number, answer:string) => (await exactAnswerLineEvaluator.evaluate({...scenario(id),graderVersion:'exact_answer_v4',
+  scoring:{...scenario(id).scoring,mathReviewPolicy:undefined} as Scenario['scoring']},`ANSWER: ${answer}`,meta)).axisScores?.answer_accuracy;
 
 describe('restored math independent oracles', () => {
   it('013 calculates every cumulative percentage and category from the actual table', async () => {
@@ -97,7 +99,7 @@ describe('restored math independent oracles', () => {
 
   it('restored source contracts are valid, verified and eligible with matching metadata and hashes', () => {
     for(const s of bank.filter(s=>ids.includes(s.id))) {
-      expect(s).toMatchObject({status:'valid',reviewStatus:'verified',scenarioVersion:'3.2.0',graderVersion:'exact_answer_v4'});
+      expect(s).toMatchObject({status:'valid',reviewStatus:'verified',scenarioVersion:'3.3.0',graderVersion:'exact_answer_v6'});
       expect(s.scenarioHash).toBe(hashScenarioShort(s));
       expect(referenceAnswerWarnings([{scenarioId:s.id,scenarioVersion:s.scenarioVersion,graderVersion:s.graderVersion}])).toEqual([]);
     }

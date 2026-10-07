@@ -3,6 +3,7 @@ import { advancedCliTasks } from './lib/advanced-cli-tasks.mjs';
 import { hashScenarioShort } from '../packages/core/dist/contracts/canonicalize.js';
 import { validateScenario } from '../packages/core/dist/contracts/validateScenario.js';
 import {addToolCliCheckpoints} from './lib/tool-cli-checkpoints.mjs';
+import {TOOL_CONTENT_DELIVERY_POLICY} from './lib/tool-content-delivery-review.mjs';
 const bank = JSON.parse(fs.readFileSync('data/scenarios/benchmark.json', 'utf8'));
 const tasks = advancedCliTasks.map(task => {
   const source = bank.find(s => s.id === task.sourceId);
@@ -21,6 +22,10 @@ const tasks = advancedCliTasks.map(task => {
     scoring: { type: 'cli_command', mode: 'executed_state' } };
   if(/^TC-CN-02[2-7]$/.test(source.id)){
     addToolCliCheckpoints(scenario);scenario.graderVersion='cli_command_v6';scenario.scenarioVersion='3.5.0';
+    if(source.id==='TC-CN-022'){
+      scenario.scenarioVersion='3.6.0';scenario.scoring.toolReviewPolicy=TOOL_CONTENT_DELIVERY_POLICY;
+      scenario.promptTemplate+='\n环境初始不存在archive.tar.gz。归档内路径可以保留data/logs/前缀，也可以相对data/logs/保存；不得有路径冲突、重复成员、链接或文件内容丢失。';
+    }
   }
   scenario.scenarioHash = hashScenarioShort(scenario);
   const validation = validateScenario(scenario);

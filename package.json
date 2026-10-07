@@ -54,7 +54,7 @@
     "db:generate": "pnpm --filter server prisma:generate",
     "db:push": "node scripts/init-database.mjs",
     "db:studio": "pnpm --filter server prisma:studio",
-    "test:world-contracts": "node --test scripts/recovery-world-search.test.mjs scripts/tool-visible-contracts.test.mjs scripts/workflow-visible-contracts.test.mjs",
+    "test:world-contracts": "node --test scripts/recovery-world-search.test.mjs scripts/tool-visible-contracts.test.mjs scripts/workflow-visible-contracts.test.mjs scripts/tool-content-delivery-review.test.mjs",
     "runtime:workflow": "node scripts/prepare-workflow-runtime.mjs",
     "test:workflow-containers": "node scripts/test-workflow-containers.mjs",
     "test:tool-containers": "pnpm -r --filter \"./packages/*\" run build && node scripts/test-tool-containers.mjs"

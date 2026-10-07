@@ -4,7 +4,7 @@ import { DockerToolWorld, type WorldEvent, type WorldTool } from './toolWorld.js
 
 export interface WorldConfig {
   checkpointRubric?: {
-    version: 'workflow-checkpoints-v1';
+    version: 'workflow-checkpoints-v1' | 'workflow-checkpoints-v2';
     checkpoints: Array<{ id: string; description: string; weight: number; all: string[]; dependsOn?: string[] }>;
     safetyCriteria: string[];
     safetyChecks?: Array<{ id: string; tool: string; arg: string; excludes: string[] }
@@ -29,6 +29,8 @@ export interface WorldConfig {
   /** Explicit alternatives for a stated fact; each group must match. */
   finalMessageMustContainAny?: string[][];
   finalMessageMustNotContain?: string[];
+  /** Content evidence is distinct from the strict final-delivery protocol. */
+  contentChecks?: Array<{id:string;description:string;patterns:string[];notPatterns?:string[]}>;
   /** Full success requires every critical outcome and policy assertion. */
   scoreMode?: 'strict';
 }
@@ -39,6 +41,8 @@ export interface WorldTurn {
   assistantRaw: string;
   calls: WorldEvent[];
   finishReason?: ModelResponse['finishReason'];
+  /** Interrupted content cannot prove a completed business response. */
+  interrupted?: boolean;
   usage?: TokenUsage;
 }
 

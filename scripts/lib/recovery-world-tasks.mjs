@@ -4,6 +4,7 @@ import { buildWorkflowRubric } from './workflow-checkpoints.mjs';
 import { repairWorkflowVisibility } from './workflow-visible-contracts.mjs';
 import { repairToolContract, repairToolReadVerification } from './tool-contract-repairs.mjs';
 import { buildToolRubric } from './tool-checkpoints.mjs';
+import { reviewToolContentDelivery } from './tool-content-delivery-review.mjs';
 const read = (name, path, requiredArgs = {}, description = '') => ({ name, path, requiredArgs, description, kind: 'read' });
 const script = (name, requiredArgs, code, description) => ({ name, kind: 'script', path: 'business', requiredArgs, script: code, description });
 const call = (tool, args = {}) => ({ tool, args });
@@ -2492,4 +2493,5 @@ for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('TC-CN-')))
   repairToolContract(task);repairToolReadVerification(task.config,task.sourceId);
   task.config.checkpointRubric=buildToolRubric(task.config,task.sourceId);
   task.scenarioVersion='3.5.0';task.grader='tool_call_trace';task.graderVersion='tool_trace_v5';
+  reviewToolContentDelivery(task);
 }
