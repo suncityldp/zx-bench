@@ -26,6 +26,8 @@ Old configuration-file tasks without a disclosed filename and old confirmation t
 
 Record original/revised scores, evidence, policy version, original-answer hash and defect disposition before a transactional update. Recompute summaries using their existing aggregation policies. Run summaries and fixed-source-denominator reports have different exclusions and must remain labeled accordingly.
 
+The live results table must also distinguish an evaluation reaching `completed` from the answer passing. Its status label now uses the server's `passed` outcome, so a completed low-scoring answer cannot appear as a green pass. This presentation correction does not change the stored scores.
+
 ## Validation
 
 Targeted refusal, affirmative-action, prior-transaction, version-identity, semantic-review and recovered-read regressions pass. Five Node contract tests validate future generator inputs and preserved secrets. Isolated Docker checks validate the disclosed filename, independent negative authorization result, inspection precondition, invalid scope rejection and valid confirmation scope. The original-answer replays use no additional model or Judge calls. Private databases and answer artifacts are not part of this PR.

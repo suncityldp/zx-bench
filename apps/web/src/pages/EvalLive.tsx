@@ -1184,7 +1184,9 @@ export default function EvalLive() {
               {
                 title: lang === 'en' ? 'Status' : '状态', dataIndex: 'stage', key: 'stage', width: 100,
                 render: (v: string, r: QuestionLiveResult) => {
-                  if (v === 'completed') return <Tag color="success" icon={<CheckCircleOutlined />}>{lang === 'en' ? 'Passed' : '通过'}</Tag>;
+                  if (v === 'completed') return r.passed
+                    ? <Tag color="success" icon={<CheckCircleOutlined />}>{lang === 'en' ? 'Passed' : '通过'}</Tag>
+                    : <Tag color="error" icon={<CloseCircleOutlined />}>{lang === 'en' ? 'Failed' : '失败'}</Tag>;
                   if (v === 'reasoning_limit') return (
                     <Tooltip title={r.error || (lang === 'en' ? 'Reasoning/output limit exceeded, scoring interrupted' : '思考/输出超限，已中断判分')}>
                       <Tag color="volcano" icon={<ClockCircleOutlined />}>{lang === 'en' ? 'Reasoning limit' : '思考超限'}</Tag>
