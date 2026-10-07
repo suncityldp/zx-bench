@@ -221,10 +221,11 @@ export const GRADER_CONTRACTS: Record<string, GraderContract> = {
   // ---- 编程修复：code_repair（版本化隔离执行契约，不接受候选自报测试通过） ----
   code_repair: {
     grader: 'code_repair',
-    version: '4.14.0',
+    version: '4.15.0',
+    compatibleVersions: ['4.14.0'],
     dimension: 'program',
-    consumedFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'isolatedJson', 'isolatedJavaJson', 'isolatedCsharpJson', 'isolatedGoJson', 'isolatedPhpJson', 'isolatedPythonJson', 'isolatedJavascriptJson', 'quickJsObservation'],
-    declaredFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'referenceSolution', 'isolatedJson', 'isolatedJavaJson', 'isolatedCsharpJson', 'isolatedGoJson', 'isolatedPhpJson', 'isolatedPythonJson', 'isolatedJavascriptJson', 'quickJsObservation'],
+    consumedFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'isolatedJson', 'isolatedJavaJson', 'isolatedCsharpJson', 'isolatedGoJson', 'isolatedPhpJson', 'isolatedPythonJson', 'isolatedJavascriptJson', 'quickJsObservation', 'submissionContract'],
+    declaredFields: ['functionName', 'initialCode', 'hiddenTests', 'explanationKeywords', 'isCorrectCodeTrap', 'fixture', 'referenceSolution', 'isolatedJson', 'isolatedJavaJson', 'isolatedCsharpJson', 'isolatedGoJson', 'isolatedPhpJson', 'isolatedPythonJson', 'isolatedJavascriptJson', 'quickJsObservation', 'submissionContract', 'programRevision'],
     requiredFields: [],
     capabilities: {
       supportedLanguages: ['javascript', 'typescript', 'python', 'go', 'java', 'c', 'cpp', 'csharp', 'rust', 'php', 'sql', 'bash', 'markdown'],

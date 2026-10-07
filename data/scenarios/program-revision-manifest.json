@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "policy": "program-submission-contracts-20261007-v1",
+  "historicalAnswersUnchanged": true,
+  "historicalScoresUnchanged": true,
+  "deliberateTrapsUnchanged": [
+    "PR-ELITE-001",
+    "PR-ELITE-002",
+    "PR-ELITE-004",
+    "PR-ELITE-005"
+  ],
+  "scenarios": [
+    {
+      "id": "CP-L1-JS-001",
+      "before": "75afacf15f35ee30",
+      "after": "c89395baa16d4dc7"
+    },
+    {
+      "id": "CP-L1-PY-004",
+      "before": "4b441e2c4b9dbfde",
+      "after": "571b3ceedb0ab208"
+    },
+    {
+      "id": "CP-L2-CC-001",
+      "before": "3e50d0c7235fa00e",
+      "after": "277bc4cf0282cabb"
+    },
+    {
+      "id": "CP-L2-TD-GO-001",
+      "before": "f760fbd11025105a",
+      "after": "9155ebe10bede8fb"
+    },
+    {
+      "id": "CP-L3-AW-JS-006",
+      "before": "2a741df8732d4832",
+      "after": "c7e3c3b77bd6a200"
+    },
+    {
+      "id": "CP-L3-CC-003",
+      "before": "5c4a2eafc0a7eedc",
+      "after": "8a90127c6f13b374"
+    },
+    {
+      "id": "CP-L3-CS-004",
+      "before": "dc531c39960a1345",
+      "after": "8e82e64d6e3df1fc"
+    },
+    {
+      "id": "CP-L3-JV-005",
+      "before": "310e03fbe64adca3",
+      "after": "543eea90cef58553"
+    },
+    {
+      "id": "CP-L3-PY-010",
+      "before": "2967c31142be2216",
+      "after": "e930e944a801b793"
+    },
+    {
+      "id": "CP-L3-PY-011",
+      "before": "6fda6dd79e979bb0",
+      "after": "973ccf688caa2300"
+    },
+    {
+      "id": "CP-L3-TS-003",
+      "before": "e2e458e33d8c6bb5",
+      "after": "2bb6e6f8fc33f085"
+    },
+    {
+      "id": "CP-L3-TS-007",
+      "before": "efc20669ce47ad98",
+      "after": "cc489516840117e3"
+    },
+    {
+      "id": "CP-L4-CS-001",
+      "before": "b8b930805776f821",
+      "after": "3eabbd45f869bd26"
+    },
+    {
+      "id": "CP-L4-CS-002",
+      "before": "c09c47d7cbe59f59",
+      "after": "c0ddb09b0f997151"
+    },
+    {
+      "id": "CP-L4-SH-001",
+      "before": "3f3b15d7239dda3f",
+      "after": "9dcc718086a8fc1a"
+    }
+  ]
+}

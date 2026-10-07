@@ -161,6 +161,12 @@ export const CONTAINER_IMAGES: Record<string, string> = {
  * 构建期的 apt / rustup 下载会全部超时。
  */
 const LOCAL_BUILD_IMAGES: Record<string, string> = {
+  // The official Bash image installs /usr/local/bin/bash; repair projects also
+  // submit the conventional /bin/bash shebang. Supply both in an offline layer.
+  'zxbench/bash:5-compatible': [
+    'FROM bash:5',
+    'RUN test -x /usr/local/bin/bash && ln -sf /usr/local/bin/bash /bin/bash',
+  ].join('\n'),
   'zxbench/java-spring:3.2.5': [
     // Spring 工程题在禁网容器内用 Maven offline 模式运行。基础 Maven 镜像
     // 没有 Spring Boot/JPA/H2/Surefire 依赖，必须在构建期填充固定仓库目录。

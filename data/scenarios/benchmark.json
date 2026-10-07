@@ -8419,11 +8419,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "下面的 `sortDesc` 应该把数字数组按从大到小排序，但结果是错的。请修复它，保持函数名和签名不变，只做最小改动。\n\n```javascript\nfunction sortDesc(nums) {\n  return nums.sort();\n}\n```\n\n公开测试：\n```javascript\nconsole.log(sortDesc([3, 1, 2])); // [3, 2, 1]\n```",
+    "promptTemplate": "下面的 `sortDesc` 应该把数字数组按从大到小排序，但结果是错的。请修复它，保持函数名和签名不变，只做最小改动。\n\n```javascript\nfunction sortDesc(nums) {\n  return nums.sort();\n}\n```\n\n公开测试：\n```javascript\nconsole.log(sortDesc([3, 1, 2])); // [3, 2, 1]\n```\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "function sortDesc(nums) {\n  return nums.sort();\n}",
     "functionName": "sortDesc",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -8563,15 +8563,19 @@
             ]
           }
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "javascript",
       "sort_comparator",
       "fix"
     ],
-    "scenarioVersion": "3.2.0",
-    "scenarioHash": "75afacf15f35ee30",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "c89395baa16d4dc7",
     "reviewStatus": "unreviewed"
   },
   {
@@ -9234,7 +9238,7 @@
                     "path": [],
                     "approx": {
                       "value": 2.5,
-                      "absoluteTolerance": 1e-09,
+                      "absoluteTolerance": 1e-9,
                       "inclusive": true
                     }
                   }
@@ -9260,7 +9264,7 @@
                     "path": [],
                     "approx": {
                       "value": 2,
-                      "absoluteTolerance": 1e-09,
+                      "absoluteTolerance": 1e-9,
                       "inclusive": true
                     }
                   }
@@ -9737,12 +9741,12 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "判断下面代码是否存在功能 bug。如存在请修复；如不存在请说明理由，不要为风格偏好改动代码。\n\n```python\ndef squares(values):\n    return [v * v for v in values if v >= 0]\n```",
+    "promptTemplate": "行为契约：squares(values) 仅返回输入中非负数的平方，保留相对顺序；负数应被过滤。输入是有限实数序列。\n\n判断下面代码是否存在功能 bug。如存在请修复；如不存在请说明理由，不要为风格偏好改动代码。\n\n```python\ndef squares(values):\n    return [v * v for v in values if v >= 0]\n```",
     "sourceCode": "def squares(values):\n    return [v * v for v in values if v >= 0]",
     "functionName": "squares",
     "expectedVerdict": "no_bug",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -9784,7 +9788,8 @@
         "v >= 0",
         "正确"
       ],
-      "hiddenTests": []
+      "hiddenTests": [],
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "python",
@@ -9793,8 +9798,8 @@
       "private_validation",
       "blind_holdout"
     ],
-    "scenarioVersion": "3.2.0",
-    "scenarioHash": "4b441e2c4b9dbfde",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "571b3ceedb0ab208",
     "reviewStatus": "unreviewed"
   },
   {
@@ -10211,11 +10216,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "`join` 把两个字符串拼接到 dst，但缓冲区分配少了终止符和分隔符空间，存在越界写。请修复分配大小和拷贝逻辑，保持函数签名不变。\n\n```c\nchar *join(const char *a, const char *b) {\n    char *dst = malloc(strlen(a) + strlen(b));\n    strcpy(dst, a);\n    strcat(dst, b);\n    return dst;\n}\n```\n\n执行接口契约（isolated-fixture-exit-v1）：候选实现与宿主掌握的版本化断言在固定、无网络容器中逐例编译运行；宿主同时检查编译、退出状态与不可伪造的运行完成证据，并独立汇总判分。并发/健全性题另运行固定压力、Miri或源码契约检查。测试断言不作为模型输出的一部分。",
+    "promptTemplate": "`join` 把两个字符串拼接到 dst，但缓冲区分配少了终止符和分隔符空间，存在越界写。请修复分配大小和拷贝逻辑，保持函数签名不变。\n\n```c\nchar *join(const char *a, const char *b) {\n    char *dst = malloc(strlen(a) + strlen(b));\n    strcpy(dst, a);\n    strcat(dst, b);\n    return dst;\n}\n```\n\n执行接口契约（isolated-fixture-exit-v1）：候选实现与宿主掌握的版本化断言在固定、无网络容器中逐例编译运行；宿主同时检查编译、退出状态与不可伪造的运行完成证据，并独立汇总判分。并发/健全性题另运行固定压力、Miri或源码契约检查。测试断言不作为模型输出的一部分。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "char *join(const char *a, const char *b) {\n    char *dst = malloc(strlen(a) + strlen(b));\n    strcpy(dst, a);\n    strcat(dst, b);\n    return dst;\n}",
     "functionName": "join",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -10276,7 +10281,11 @@
           "CP-L2-CC-001-hidden-1",
           "CP-L2-CC-001-hidden-2"
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "c",
@@ -10284,7 +10293,7 @@
       "fix"
     ],
     "scenarioVersion": "5.1.0",
-    "scenarioHash": "3e50d0c7235fa00e",
+    "scenarioHash": "277bc4cf0282cabb",
     "reviewStatus": "unreviewed"
   },
   {
@@ -12283,7 +12292,7 @@
                     "path": [],
                     "approx": {
                       "value": 5.5,
-                      "absoluteTolerance": 1e-09,
+                      "absoluteTolerance": 1e-9,
                       "inclusive": false
                     }
                   }
@@ -12530,11 +12539,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "`Atoi` 简易实现应把十进制字符串转 int，支持负号，遇非法字符返回 error。当前忽略负号且不校验。请修复，保持签名 `func Atoi(s string) (int, error)`。\n\n```go\nfunc Atoi(s string) (int, error) {\n    n := 0\n    for _, c := range s {\n        n = n*10 + int(c-'0')\n    }\n    return n, nil\n}\n```\n\n执行接口契约（isolated-go-json-v1）：提交题面指定的Go声明，运行于固定Go 1.21容器；有限适配器只构造题面涉及的channel、切片、error或字符串输入。期望值与判分留在宿主。无文件、网络或完整Go运行时兼容性承诺；仅验证指定返回、别名或错误链观测，不认证race、调度公平性、性能或一般并发语义。",
+    "promptTemplate": "`Atoi` 简易实现应把十进制字符串转 int，支持负号，遇非法字符返回 error。当前忽略负号且不校验。请修复，保持签名 `func Atoi(s string) (int, error)`。\n\n```go\nfunc Atoi(s string) (int, error) {\n    n := 0\n    for _, c := range s {\n        n = n*10 + int(c-'0')\n    }\n    return n, nil\n}\n```\n\n执行接口契约（isolated-go-json-v1）：提交题面指定的Go声明，运行于固定Go 1.21容器；有限适配器只构造题面涉及的channel、切片、error或字符串输入。期望值与判分留在宿主。无文件、网络或完整Go运行时兼容性承诺；仅验证指定返回、别名或错误链观测，不认证race、调度公平性、性能或一般并发语义。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "func Atoi(s string) (int, error) {\n    n := 0\n    for _, c := range s {\n        n = n*10 + int(c-'0')\n    }\n    return n, nil\n}",
     "functionName": "Atoi",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -12652,7 +12661,11 @@
             ]
           }
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "go",
@@ -12660,8 +12673,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "4.1.0",
-    "scenarioHash": "f760fbd11025105a",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "9155ebe10bede8fb",
     "environmentImage": "zxbench/go@sha256:bbe499b0985c0481a47548381d03e2a46ded78e13411b8e5865b0efbdb391e03",
     "reviewStatus": "unreviewed"
   },
@@ -13538,7 +13551,7 @@
                     ],
                     "approx": {
                       "value": 0.6,
-                      "absoluteTolerance": 1e-09,
+                      "absoluteTolerance": 1e-9,
                       "inclusive": false
                     }
                   },
@@ -13548,7 +13561,7 @@
                     ],
                     "approx": {
                       "value": 0.8,
-                      "absoluteTolerance": 1e-09,
+                      "absoluteTolerance": 1e-9,
                       "inclusive": false
                     }
                   }
@@ -13918,7 +13931,7 @@
                     "path": [],
                     "approx": {
                       "value": 12.566370614359172,
-                      "absoluteTolerance": 1e-09,
+                      "absoluteTolerance": 1e-9,
                       "inclusive": true
                     }
                   }
@@ -14802,12 +14815,12 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "有人报告 Agent 的 `dedupeCalls(calls)` 去重逻辑有 bug，会漏掉调用。该函数用 tool+JSON.stringify(args) 作为去重键，保留每个唯一键首次出现。请判断实现是否真的有 bug：若正确请回答 no_bug 并说明键设计为何足够；若确有会导致漏调用/误合并的缺陷才修复。不要把正确实现改坏。\n\n```javascript\nfunction dedupeCalls(calls) {\n  const seen = new Set();\n  const out = [];\n  for (const c of calls) {\n    const key = c.tool + ':' + JSON.stringify(c.args);\n    if (!seen.has(key)) { seen.add(key); out.push(c); }\n  }\n  return out;\n}",
+    "promptTemplate": "行为契约：args 为可 JSON 序列化的普通 JSON 值；唯一性按 tool 与 JSON.stringify(args) 的结果判断，属性插入顺序属于序列化键的一部分，不要求语义规范化或深排序。\n\n有人报告 Agent 的 `dedupeCalls(calls)` 去重逻辑有 bug，会漏掉调用。该函数用 tool+JSON.stringify(args) 作为去重键，保留每个唯一键首次出现。请判断实现是否真的有 bug：若正确请回答 no_bug 并说明键设计为何足够；若确有会导致漏调用/误合并的缺陷才修复。不要把正确实现改坏。\n\n```javascript\nfunction dedupeCalls(calls) {\n  const seen = new Set();\n  const out = [];\n  for (const c of calls) {\n    const key = c.tool + ':' + JSON.stringify(c.args);\n    if (!seen.has(key)) { seen.add(key); out.push(c); }\n  }\n  return out;\n}",
     "sourceCode": "function dedupeCalls(calls) {\n  const seen = new Set();\n  const out = [];\n  for (const c of calls) {\n    const key = c.tool + ':' + JSON.stringify(c.args);\n    if (!seen.has(key)) { seen.add(key); out.push(c); }\n  }\n  return out;\n}",
     "functionName": "dedupeCalls",
     "expectedVerdict": "no_bug",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -14840,7 +14853,8 @@
           "code": "const r=dedupeCalls([{tool:'a',args:{x:1}},{tool:'a',args:{x:1}},{tool:'a',args:{x:2}}]); if(r.length!==2) throw new Error('impl wrong'); console.log('PASS');",
           "description": "去重正确、不漏不同参数"
         }
-      ]
+      ],
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "javascript",
@@ -14850,8 +14864,8 @@
       "private_validation",
       "blind_holdout"
     ],
-    "scenarioVersion": "3.2.0",
-    "scenarioHash": "2a741df8732d4832",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "c7e3c3b77bd6a200",
     "reviewStatus": "unreviewed"
   },
   {
@@ -15380,11 +15394,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "以下 Builder 在两处产生了不必要的深拷贝（4KB 数据 × N 次）。\n请修复 —— add 与 build 全程零拷贝（移动/省略），且修复后\nmoved-from 对象处于有效可析构状态。不得改变类的外部调用方式。\n\n```cpp\n#include <string>\n#include <utility>\n#include <vector>\n\nstruct Blob {\n    std::string name;\n    std::vector<int> data;\n};\n\nclass Builder {\n    std::vector<Blob> items_;\npublic:\n    void add(std::string name) {\n        Blob b;\n        b.name = std::move(name);\n        b.data.resize(1024);\n        items_.push_back(b);              // BUG —— 左值 push_back 触发深拷贝\n    }\n\n    // BUG —— const 引用逐个拷贝出 out，且返回值无法 NRVO 到调用方期望的省略路径\n    std::vector<Blob> build() const {\n        std::vector<Blob> out;\n        for (const auto& b : items_) out.push_back(b);\n        return out;\n    }\n};\n```\n\n执行接口契约（isolated-fixture-exit-v1）：候选实现与宿主掌握的版本化断言在固定、无网络容器中逐例编译运行；宿主同时检查编译、退出状态与不可伪造的运行完成证据，并独立汇总判分。并发/健全性题另运行固定压力、Miri或源码契约检查。测试断言不作为模型输出的一部分。",
+    "promptTemplate": "以下 Builder 在两处产生了不必要的深拷贝（4KB 数据 × N 次）。\n请修复 —— add 与 build 全程零拷贝（移动/省略），且修复后\nmoved-from 对象处于有效可析构状态。不得改变类的外部调用方式。\n\n```cpp\n#include <string>\n#include <utility>\n#include <vector>\n\nstruct Blob {\n    std::string name;\n    std::vector<int> data;\n};\n\nclass Builder {\n    std::vector<Blob> items_;\npublic:\n    void add(std::string name) {\n        Blob b;\n        b.name = std::move(name);\n        b.data.resize(1024);\n        items_.push_back(b);              // BUG —— 左值 push_back 触发深拷贝\n    }\n\n    // BUG —— const 引用逐个拷贝出 out，且返回值无法 NRVO 到调用方期望的省略路径\n    std::vector<Blob> build() const {\n        std::vector<Blob> out;\n        for (const auto& b : items_) out.push_back(b);\n        return out;\n    }\n};\n```\n\n执行接口契约（isolated-fixture-exit-v1）：候选实现与宿主掌握的版本化断言在固定、无网络容器中逐例编译运行；宿主同时检查编译、退出状态与不可伪造的运行完成证据，并独立汇总判分。并发/健全性题另运行固定压力、Miri或源码契约检查。测试断言不作为模型输出的一部分。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "#include <string>\n#include <utility>\n#include <vector>\n\nstruct Blob {\n    std::string name;\n    std::vector<int> data;\n};\n\nclass Builder {\n    std::vector<Blob> items_;\npublic:\n    void add(std::string name) {\n        Blob b;\n        b.name = std::move(name);\n        b.data.resize(1024);\n        items_.push_back(b);              // BUG —— 左值 push_back 触发深拷贝\n    }\n\n    // BUG —— const 引用逐个拷贝出 out，且返回值无法 NRVO 到调用方期望的省略路径\n    std::vector<Blob> build() const {\n        std::vector<Blob> out;\n        for (const auto& b : items_) out.push_back(b);\n        return out;\n    }\n};",
     "functionName": "Builder",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -15476,7 +15490,11 @@
           "CP-L3-CC-003-hidden-3",
           "CP-L3-CC-003-hidden-4"
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "cpp",
@@ -15485,7 +15503,7 @@
       "private_validation"
     ],
     "scenarioVersion": "5.1.0",
-    "scenarioHash": "5c4a2eafc0a7eedc",
+    "scenarioHash": "8a90127c6f13b374",
     "reviewStatus": "unreviewed"
   },
   {
@@ -16328,11 +16346,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "以下是一个零分配的协议头解析函数，但存在两类缺陷：\n1) IndexOf 返回 -1（无冒号）或 0（冒号在首位）时行为错误 —— 越界异常或接受非法输入；\n2) 按规约 key 需去除尾部空白（不含头部），当前未处理。\n请修复，保持 ref struct / Span 语义 —— 全路径零堆分配（GC 零集合），\n不改变方法签名。\n\n```csharp\nusing System;\n\npublic static class HeaderParser\n{\n    // 规约：格式为 \"<key>:<value>\"；key 为冒号前内容去除尾部空白；\n    // 无冒号或空 key 返回 false。\n    public static bool TryGetKey(ReadOnlySpan<char> header, out ReadOnlySpan<char> key)\n    {\n        int idx = header.IndexOf(':');\n        key = header[..idx];        // BUG —— idx 为 -1 时抛异常；0 时接受空 key\n        return idx > 0;             // BUG —— 先切片后判断，顺序颠倒\n    }\n}\n```\n\n公开测试 —— TryGetKey(\"Host : example.com\", out var k) 返回 true 且 k 为 \"Host \" 去尾后的 \"Host\"。\n\n执行接口契约（isolated-csharp-json-v2）：提交题面指定的C#方法或类，运行于固定.NET 8 SDK容器；有限适配器只构造题面涉及的委托、decimal、Metrics、Money或double数组输入。期望值与判分留在宿主，decimal通过不变量字符串精确比较。无文件、网络或完整CLR兼容性承诺；验证指定返回/集合以及题面限定的同步上下文、异常传播或分配观测，不认证分配、性能、线程、反射或一般类型语义。",
+    "promptTemplate": "以下是一个零分配的协议头解析函数，但存在两类缺陷：\n1) IndexOf 返回 -1（无冒号）或 0（冒号在首位）时行为错误 —— 越界异常或接受非法输入；\n2) 按规约 key 需去除尾部空白（不含头部），当前未处理。\n请修复，保持 ref struct / Span 语义 —— 全路径零堆分配（GC 零集合），\n不改变方法签名。\n\n```csharp\nusing System;\n\npublic static class HeaderParser\n{\n    // 规约：格式为 \"<key>:<value>\"；key 为冒号前内容去除尾部空白；\n    // 无冒号或空 key 返回 false。\n    public static bool TryGetKey(ReadOnlySpan<char> header, out ReadOnlySpan<char> key)\n    {\n        int idx = header.IndexOf(':');\n        key = header[..idx];        // BUG —— idx 为 -1 时抛异常；0 时接受空 key\n        return idx > 0;             // BUG —— 先切片后判断，顺序颠倒\n    }\n}\n```\n\n公开测试 —— TryGetKey(\"Host : example.com\", out var k) 返回 true 且 k 为 \"Host \" 去尾后的 \"Host\"。\n\n执行接口契约（isolated-csharp-json-v2）：提交题面指定的C#方法或类，运行于固定.NET 8 SDK容器；有限适配器只构造题面涉及的委托、decimal、Metrics、Money或double数组输入。期望值与判分留在宿主，decimal通过不变量字符串精确比较。无文件、网络或完整CLR兼容性承诺；验证指定返回/集合以及题面限定的同步上下文、异常传播或分配观测，不认证分配、性能、线程、反射或一般类型语义。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "using System;\n\npublic static class HeaderParser\n{\n    // 规约：格式为 \"<key>:<value>\"；key 为冒号前内容去除尾部空白；\n    // 无冒号或空 key 返回 false。\n    public static bool TryGetKey(ReadOnlySpan<char> header, out ReadOnlySpan<char> key)\n    {\n        int idx = header.IndexOf(':');\n        key = header[..idx];        // BUG —— idx 为 -1 时抛异常；0 时接受空 key\n        return idx > 0;             // BUG —— 先切片后判断，顺序颠倒\n    }\n}",
     "functionName": "TryGetKey",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -16515,7 +16533,11 @@
             ]
           }
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "csharp",
@@ -16523,8 +16545,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "4.4.0",
-    "scenarioHash": "dc531c39960a1345",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "8e82e64d6e3df1fc",
     "environmentImage": "mcr.microsoft.com/dotnet/sdk@sha256:8a80a27ddac789b4cb6d09d244f9c8d840da599c5ad22f7233c04be470e55261",
     "reviewStatus": "unreviewed"
   },
@@ -17345,11 +17367,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "以下工具类在热部署环境下每次重部署都会泄漏旧的 WebappClassLoader ——\n静态缓存钉住应用类，ThreadLocal 在容器线程池中永不清理。\n请修复 —— 提供 unload() 清理静态缓存并在其中清理当前线程的 ThreadLocal；\n缓存改为弱引用键（以 ClassLoader 为键的弱映射思路亦可）。\n不改变 load(String) 的公开行为。\n\n```java\nimport java.util.*;\nimport java.util.concurrent.ConcurrentHashMap;\n\npublic class SchemaCache {\n    private static final Map<String, Class<?>> CACHE = new ConcurrentHashMap<>();\n    private static final ThreadLocal<byte[]> SCRATCH =\n        ThreadLocal.withInitial(() -> new byte[8192]);   // 泄漏点之一\n\n    public static Class<?> load(String name) throws Exception {\n        SCRATCH.get();                                    // 触发绑定\n        return CACHE.computeIfAbsent(name, n -> {\n            try { return Class.forName(n); }\n            catch (Exception e) { throw new RuntimeException(e); }\n        });\n    }\n    // 缺少 unload —— 重部署后 CACHE 钉住旧类加载器\n}\n```\n\n公开测试 —— load(\"java.util.ArrayList\") 两次返回同一 Class 实例。\n\nThreadLocal 验收语义：改用普通 ThreadLocal，在 load 中按需 set，在 unload 中 remove；这样清理后当前线程的 get() 返回 null，而不是由 withInitial 立即重建值。\n\n执行接口契约（isolated-java-json-v2）：提交题面指定的Java方法或类，运行于固定JDK 17容器；适配器只构造题面涉及的int数组、Money、Integer、BigDecimal或字符串输入。期望值与判分留在宿主，返回结果按严格JSON类型、精确值或原题浮点误差比较。无文件、网络或完整JVM兼容性承诺；验证返回/集合以及题面限定的资源、反射或并发观测，不认证复杂度、线程、资源或一般对象身份。",
+    "promptTemplate": "以下工具类在热部署环境下每次重部署都会泄漏旧的 WebappClassLoader ——\n静态缓存钉住应用类，ThreadLocal 在容器线程池中永不清理。\n请修复 —— 提供 unload() 清理静态缓存并在其中清理当前线程的 ThreadLocal；\n缓存改为弱引用键（以 ClassLoader 为键的弱映射思路亦可）。\n不改变 load(String) 的公开行为。\n\n```java\nimport java.util.*;\nimport java.util.concurrent.ConcurrentHashMap;\n\npublic class SchemaCache {\n    private static final Map<String, Class<?>> CACHE = new ConcurrentHashMap<>();\n    private static final ThreadLocal<byte[]> SCRATCH =\n        ThreadLocal.withInitial(() -> new byte[8192]);   // 泄漏点之一\n\n    public static Class<?> load(String name) throws Exception {\n        SCRATCH.get();                                    // 触发绑定\n        return CACHE.computeIfAbsent(name, n -> {\n            try { return Class.forName(n); }\n            catch (Exception e) { throw new RuntimeException(e); }\n        });\n    }\n    // 缺少 unload —— 重部署后 CACHE 钉住旧类加载器\n}\n```\n\n公开测试 —— load(\"java.util.ArrayList\") 两次返回同一 Class 实例。\n\nThreadLocal 验收语义：改用普通 ThreadLocal，在 load 中按需 set，在 unload 中 remove；这样清理后当前线程的 get() 返回 null，而不是由 withInitial 立即重建值。\n\n执行接口契约（isolated-java-json-v2）：提交题面指定的Java方法或类，运行于固定JDK 17容器；适配器只构造题面涉及的int数组、Money、Integer、BigDecimal或字符串输入。期望值与判分留在宿主，返回结果按严格JSON类型、精确值或原题浮点误差比较。无文件、网络或完整JVM兼容性承诺；验证返回/集合以及题面限定的资源、反射或并发观测，不认证复杂度、线程、资源或一般对象身份。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "import java.util.*;\nimport java.util.concurrent.ConcurrentHashMap;\n\npublic class SchemaCache {\n    private static final Map<String, Class<?>> CACHE = new ConcurrentHashMap<>();\n    private static final ThreadLocal<byte[]> SCRATCH =\n        ThreadLocal.withInitial(() -> new byte[8192]);   // 泄漏点之一\n\n    public static Class<?> load(String name) throws Exception {\n        SCRATCH.get();                                    // 触发绑定\n        return CACHE.computeIfAbsent(name, n -> {\n            try { return Class.forName(n); }\n            catch (Exception e) { throw new RuntimeException(e); }\n        });\n    }\n    // 缺少 unload —— 重部署后 CACHE 钉住旧类加载器\n}",
     "functionName": "SchemaCache",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -17503,7 +17525,11 @@
             ]
           }
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "java",
@@ -17511,8 +17537,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "4.3.0",
-    "scenarioHash": "310e03fbe64adca3",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "543eea90cef58553",
     "environmentImage": "maven@sha256:c7baad7b0d2c869227cda4a574cb4b218781c80632bb5afce2282db8e5f7f0bc",
     "reviewStatus": "unreviewed"
   },
@@ -18736,11 +18762,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "下面的 fetch_all 逐个 await，导致请求串行执行。请修复使其真正并发执行，同时保持结果顺序与输入一致、异常正常向上传播。不要改动 fetch 的实现。\n\n```python\nimport asyncio\n\nasync def fetch(url: str) -> str:\n    await asyncio.sleep(1)          # 模拟网络 IO\n    return f\"data:{url}\"\n\nasync def fetch_all(urls: list[str]) -> list[str]:\n    results = []\n    for u in urls:                  # bug —— 逐个 await，串行等待\n        results.append(await fetch(u))\n    return results\n\n```\n\n执行接口契约（isolated-python-json-v1）：提交题面指定的Python函数或类，运行于固定Python 3.12容器；有限适配器只构造题面涉及的列表、回调、状态存储或依赖图。期望值与判分留在宿主；验证跨调用状态、对象身份、异常类型、回调幂等和拓扑约束。无网络、任意依赖、性能或一般对象语义认证。",
+    "promptTemplate": "下面的 fetch_all 逐个 await，导致请求串行执行。请修复使其真正并发执行，同时保持结果顺序与输入一致、异常正常向上传播。不要改动 fetch 的实现。\n\n```python\nimport asyncio\n\nasync def fetch(url: str) -> str:\n    await asyncio.sleep(1)          # 模拟网络 IO\n    return f\"data:{url}\"\n\nasync def fetch_all(urls: list[str]) -> list[str]:\n    results = []\n    for u in urls:                  # bug —— 逐个 await，串行等待\n        results.append(await fetch(u))\n    return results\n\n```\n\n执行接口契约（isolated-python-json-v1）：提交题面指定的Python函数或类，运行于固定Python 3.12容器；有限适配器只构造题面涉及的列表、回调、状态存储或依赖图。期望值与判分留在宿主；验证跨调用状态、对象身份、异常类型、回调幂等和拓扑约束。无网络、任意依赖、性能或一般对象语义认证。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "import asyncio\n\nasync def fetch(url: str) -> str:\n    await asyncio.sleep(1)          # 模拟网络 IO\n    return f\"data:{url}\"\n\nasync def fetch_all(urls: list[str]) -> list[str]:\n    results = []\n    for u in urls:                  # bug —— 逐个 await，串行等待\n        results.append(await fetch(u))\n    return results\n",
     "functionName": "fetch_all",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -18872,7 +18898,11 @@
             ]
           }
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "python",
@@ -18880,8 +18910,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "4.6.0",
-    "scenarioHash": "2967c31142be2216",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "e930e944a801b793",
     "environmentImage": "python:3.12-alpine",
     "reviewStatus": "unreviewed"
   },
@@ -18894,11 +18924,11 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "下面的代码运行正常，但 mypy --strict 报 incompatible type。请仅修改 total_area 的签名（及必要 import），使其接受任意\"元素为 Shape 及其子类的只读序列\"。不要改动类定义与运行时逻辑。\n\n```python\nclass Shape:\n    def area(self) -> float:\n        raise NotImplementedError\n\nclass Circle(Shape):\n    def __init__(self, r: float) -> None:\n        self.r = r\n    def area(self) -> float:\n        return 3.14159 * self.r * self.r\n\ndef total_area(shapes: list[Shape]) -> float:   # bug 所在 —— 不变型容器\n    return sum(s.area() for s in shapes)\n\ncircles: list[Circle] = [Circle(1.0)]\nprint(total_area(circles))   # mypy --strict 此处报错\n\n```\n\n执行接口契约（isolated-python-json-v1）：提交题面指定的Python函数或类，运行于固定Python 3.12容器；有限适配器只构造题面涉及的列表、回调、状态存储或依赖图。期望值与判分留在宿主；验证跨调用状态、对象身份、异常类型、回调幂等和拓扑约束。无网络、任意依赖、性能或一般对象语义认证。",
+    "promptTemplate": "下面的代码运行正常，但 mypy --strict 报 incompatible type。请仅修改 total_area 的签名（及必要 import），使其接受任意\"元素为 Shape 及其子类的只读序列\"。不要改动类定义与运行时逻辑。\n\n```python\nclass Shape:\n    def area(self) -> float:\n        raise NotImplementedError\n\nclass Circle(Shape):\n    def __init__(self, r: float) -> None:\n        self.r = r\n    def area(self) -> float:\n        return 3.14159 * self.r * self.r\n\ndef total_area(shapes: list[Shape]) -> float:   # bug 所在 —— 不变型容器\n    return sum(s.area() for s in shapes)\n\ncircles: list[Circle] = [Circle(1.0)]\nprint(total_area(circles))   # mypy --strict 此处报错\n\n```\n\n执行接口契约（isolated-python-json-v1）：提交题面指定的Python函数或类，运行于固定Python 3.12容器；有限适配器只构造题面涉及的列表、回调、状态存储或依赖图。期望值与判分留在宿主；验证跨调用状态、对象身份、异常类型、回调幂等和拓扑约束。无网络、任意依赖、性能或一般对象语义认证。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "class Shape:\n    def area(self) -> float:\n        raise NotImplementedError\n\nclass Circle(Shape):\n    def __init__(self, r: float) -> None:\n        self.r = r\n    def area(self) -> float:\n        return 3.14159 * self.r * self.r\n\ndef total_area(shapes: list[Shape]) -> float:   # bug 所在 —— 不变型容器\n    return sum(s.area() for s in shapes)\n\ncircles: list[Circle] = [Circle(1.0)]\nprint(total_area(circles))   # mypy --strict 此处报错\n",
     "functionName": "total_area",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -19005,7 +19035,11 @@
             ]
           }
         ]
-      }
+      },
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "python",
@@ -19013,8 +19047,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "4.6.0",
-    "scenarioHash": "6fda6dd79e979bb0",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "973ccf688caa2300",
     "environmentImage": "python:3.12-alpine",
     "reviewStatus": "unreviewed"
   },
@@ -23908,12 +23942,12 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "以下类型定义有一个 bug —— ExtractResponse 把所有路由的响应类型坍缩成了一个联合类型并复制到每个键上，导致 Routes[\"/users\"] 能赋入错误的数据。请修复它，使 tsc --strict 零错误，且每个键精确对应各自的响应类型。\n\n```typescript\ninterface User { id: number }\ninterface Post { title: string }\n\ntype ApiRoute = {\n  \"/users\": { response: User[] };\n  \"/users/:id\": { response: User };\n  \"/posts\": { response: Post[] };\n};\n\ntype ExtractResponse<T extends Record<string, { response: unknown }>> =\n  T[keyof T] extends { response: infer R } ? Record<keyof T, R> : never;\n\ntype Routes = ExtractResponse<ApiRoute>;\n```\n\n\n执行接口契约（isolated-typescript-type-v1）：候选源码只由受内存与时限约束的可信TypeScript编译器进程执行strict类型检查，不执行候选JavaScript。宿主分别验证正向类型断言必须通过、负向误用必须被拒绝；测试源码和判决保留在宿主。",
+    "promptTemplate": "以下类型定义有一个 bug —— ExtractResponse 把所有路由的响应类型坍缩成了一个联合类型并复制到每个键上，导致 Routes[\"/users\"] 能赋入错误的数据。请修复它，使 tsc --strict 零错误，且每个键精确对应各自的响应类型。\n\n```typescript\ninterface User { id: number }\ninterface Post { title: string }\n\ntype ApiRoute = {\n  \"/users\": { response: User[] };\n  \"/users/:id\": { response: User };\n  \"/posts\": { response: Post[] };\n};\n\ntype ExtractResponse<T extends Record<string, { response: unknown }>> =\n  T[keyof T] extends { response: infer R } ? Record<keyof T, R> : never;\n\ntype Routes = ExtractResponse<ApiRoute>;\n```\n\n\n执行接口契约（isolated-typescript-type-v1）：候选源码只由受内存与时限约束的可信TypeScript编译器进程执行strict类型检查，不执行候选JavaScript。宿主分别验证正向类型断言必须通过、负向误用必须被拒绝；测试源码和判决保留在宿主。\n\n提交契约：输出一个 typescript 代码块，可提交完整源码，也可仅提交名为 ExtractResponse 的类型别名。仅提交该别名时，评分器用它替换原题同名定义，保留原题 User、Post、ApiRoute、Routes 声明；不会补写其他模型代码。可在代码块后简要说明，不要求 ANSWER/答案标签。",
     "sourceCode": "interface User { id: number }\ninterface Post { title: string }\n\ntype ApiRoute = {\n  \"/users\": { response: User[] };\n  \"/users/:id\": { response: User };\n  \"/posts\": { response: Post[] };\n};\n\ntype ExtractResponse<T extends Record<string, { response: unknown }>> =\n  T[keyof T] extends { response: infer R } ? Record<keyof T, R> : never;\n\ntype Routes = ExtractResponse<ApiRoute>;\n",
     "functionName": "ExtractResponse",
     "expectedVerdict": "fix",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -24014,15 +24048,22 @@
           "code": "host-owned strict TypeScript compiler assertion",
           "description": "users响应拒绝Post数组"
         }
-      ]
+      ],
+      "submissionContract": {
+        "protocol": "source-or-target-declaration-v1",
+        "targetNames": [
+          "ExtractResponse"
+        ]
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "typescript",
       "conditional_types",
       "fix"
     ],
-    "scenarioVersion": "5.0.0",
-    "scenarioHash": "e2e458e33d8c6bb5",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "2bb6e6f8fc33f085",
     "environmentImage": "trusted-typescript-compiler-worker",
     "reviewStatus": "unreviewed"
   },
@@ -24453,12 +24494,12 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "下面用「Parser<In, Out>」描述带 coerce 和 default 的字段解析，但入参 DTO 误用了 OutputSide（输出类型），\n导致调用方传入字符串年龄（coerce 的合法输入）反而类型报错。\n请修复 —— 入参位置使用 InputSide，实体位置保持 OutputSide，\n并验证：coerce 字段输入可字符串、default 字段输入可为 null、输出侧类型非空。tsc --strict 零错误。\n\n```typescript\n// Parser<In, Out>：In 是调用方传入的输入，Out 是解析后的输出\ntype Parser<In, Out> = (input: In) => Out;\n\ntype Email = Parser<string, string>;\ntype CoerceNumber = Parser<string | number, number>;  // coerce：字符串年龄会被转成数字\ntype DefaultSource = Parser<string | null, string>;    // default：null 表示\"未提供\"，用默认值\n\n// 从 parser 集合里提取「输入侧」/「输出侧」字段类型\ntype InputSide<T> = { [K in keyof T]: T[K] extends (input: infer I) => any ? I : never };\ntype OutputSide<T> = { [K in keyof T]: T[K] extends (input: any) => infer O ? O : never };\n\ninterface CreateUserSpec {\n  email: Email;\n  age: CoerceNumber;\n  source: DefaultSource;\n}\n\n// BUG —— 入参位置误用 OutputSide（输出类型），coerce 的合法字符串输入反而类型报错\ntype CreateUserDTO = OutputSide<CreateUserSpec>;\nexport type UserEntity = OutputSide<CreateUserSpec>;\n\nexport function createUser(dto: CreateUserDTO): UserEntity {\n  return dto as unknown as UserEntity;\n}\n\n// 期望合法 —— \"33\" 会被 coerce 成 33，null 会被默认成 \"web\"\ncreateUser({ email: \"a@b.c\", age: \"33\", source: null });\n```\n\n\n执行接口契约（isolated-typescript-type-v1）：候选源码只由受内存与时限约束的可信TypeScript编译器进程执行strict类型检查，不执行候选JavaScript。宿主分别验证正向类型断言必须通过、负向误用必须被拒绝；测试源码和判决保留在宿主。",
+    "promptTemplate": "下面用「Parser<In, Out>」描述带 coerce 和 default 的字段解析，但入参 DTO 误用了 OutputSide（输出类型），\n导致调用方传入字符串年龄（coerce 的合法输入）反而类型报错。\n请修复 —— 入参位置使用 InputSide，实体位置保持 OutputSide，\n并验证：coerce 字段输入可字符串、default 字段输入可为 null、输出侧类型非空。tsc --strict 零错误。\n\n```typescript\n// Parser<In, Out>：In 是调用方传入的输入，Out 是解析后的输出\ntype Parser<In, Out> = (input: In) => Out;\n\ntype Email = Parser<string, string>;\ntype CoerceNumber = Parser<string | number, number>;  // coerce：字符串年龄会被转成数字\ntype DefaultSource = Parser<string | null, string>;    // default：null 表示\"未提供\"，用默认值\n\n// 从 parser 集合里提取「输入侧」/「输出侧」字段类型\ntype InputSide<T> = { [K in keyof T]: T[K] extends (input: infer I) => any ? I : never };\ntype OutputSide<T> = { [K in keyof T]: T[K] extends (input: any) => infer O ? O : never };\n\ninterface CreateUserSpec {\n  email: Email;\n  age: CoerceNumber;\n  source: DefaultSource;\n}\n\n// BUG —— 入参位置误用 OutputSide（输出类型），coerce 的合法字符串输入反而类型报错\ntype CreateUserDTO = OutputSide<CreateUserSpec>;\nexport type UserEntity = OutputSide<CreateUserSpec>;\n\nexport function createUser(dto: CreateUserDTO): UserEntity {\n  return dto as unknown as UserEntity;\n}\n\n// 期望合法 —— \"33\" 会被 coerce 成 33，null 会被默认成 \"web\"\ncreateUser({ email: \"a@b.c\", age: \"33\", source: null });\n```\n\n\n执行接口契约（isolated-typescript-type-v1）：候选源码只由受内存与时限约束的可信TypeScript编译器进程执行strict类型检查，不执行候选JavaScript。宿主分别验证正向类型断言必须通过、负向误用必须被拒绝；测试源码和判决保留在宿主。\n\n提交契约：输出一个带语言标记的代码块，包含可独立编译或导入的候选源码；保留必要的 import/using/include、类型声明和外层类。可以在代码块后简要说明；不要求 ANSWER/答案标签。题面提供的辅助类型若被候选引用，必须随完整源码保留。评分器不得把已提交的依赖或类包装截掉。",
     "sourceCode": "// Parser<In, Out>：In 是调用方传入的输入，Out 是解析后的输出\ntype Parser<In, Out> = (input: In) => Out;\n\ntype Email = Parser<string, string>;\ntype CoerceNumber = Parser<string | number, number>;  // coerce：字符串年龄会被转成数字\ntype DefaultSource = Parser<string | null, string>;    // default：null 表示\"未提供\"，用默认值\n\n// 从 parser 集合里提取「输入侧」/「输出侧」字段类型\ntype InputSide<T> = { [K in keyof T]: T[K] extends (input: infer I) => any ? I : never };\ntype OutputSide<T> = { [K in keyof T]: T[K] extends (input: any) => infer O ? O : never };\n\ninterface CreateUserSpec {\n  email: Email;\n  age: CoerceNumber;\n  source: DefaultSource;\n}\n\n// BUG —— 入参位置误用 OutputSide（输出类型），coerce 的合法字符串输入反而类型报错\ntype CreateUserDTO = OutputSide<CreateUserSpec>;\nexport type UserEntity = OutputSide<CreateUserSpec>;\n\nexport function createUser(dto: CreateUserDTO): UserEntity {\n  return dto as unknown as UserEntity;\n}\n\n// 期望合法 —— \"33\" 会被 coerce 成 33，null 会被默认成 \"web\"\ncreateUser({ email: \"a@b.c\", age: \"33\", source: null });\n",
     "functionName": "createUser",
     "expectedVerdict": "fix",
     "grader": "code_repair",
-    "graderVersion": "4.14.0",
+    "graderVersion": "4.15.0",
     "scoring": {
       "type": "code_repair",
       "weights": {
@@ -24572,7 +24613,11 @@
           "code": "host-owned strict TypeScript compiler assertion",
           "description": "CP-L3-TS-007-hidden-2"
         }
-      ]
+      ],
+      "submissionContract": {
+        "protocol": "complete-source-v1"
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "typescript",
@@ -24581,8 +24626,8 @@
       "conditional_types",
       "fix"
     ],
-    "scenarioVersion": "5.0.0",
-    "scenarioHash": "efc20669ce47ad98",
+    "scenarioVersion": "5.1.0",
+    "scenarioHash": "cc489516840117e3",
     "environmentImage": "trusted-typescript-compiler-worker",
     "reviewStatus": "unreviewed"
   },
@@ -24760,9 +24805,9 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "工作区是一个 EF Core 订单示例服务，包含以下文件：\n- Data/AppDbContext.cs —— 上下文（全跟踪查询）\n- Models/Catalog.cs、Models/Ordering.cs —— 实体\n- Services/OrderService.cs —— 三处性能缺陷（N+1、逐行保存、跟踪膨胀）\n- Program.cs —— Minimal API 入口\n- tests/OrderServiceTests.cs —— 公开测试（1 个故意失败）\n\n请按顺序完成以下任务：\n1. ReportAsync 改单条 SQL（JOIN 或 GroupBy 投影 DTO），SQL 次数恒为 1，\n   返回类型 ReportRow 不变\n2. ImportAsync 改 AddRange 分批提交（每 500 条 SaveChanges 一次），\n   每批后清理 ChangeTracker；万行导入 < 5s\n3. 上下文默认 QueryTrackingBehavior.NoTracking；写路径显式跟踪；\n   ListProductsAsync 保持只读\n4. EnableRetryOnFailure(maxRetryCount:3) + CommandTimeout(30)，并加\n   SemaphoreSlim(4) 限制并发导入\n\n要求：\n- 公开方法签名与返回结构不变；dotnet test 全绿\n",
+    "promptTemplate": "工作区是一个 EF Core 订单示例服务，包含以下文件：\n- Data/AppDbContext.cs —— 上下文（全跟踪查询）\n- Models/Catalog.cs、Models/Ordering.cs —— 实体\n- Services/OrderService.cs —— 三处性能缺陷（N+1、逐行保存、跟踪膨胀）\n- Program.cs —— Minimal API 入口\n- tests/OrderServiceTests.cs —— 公开测试（1 个故意失败）\n\n请按顺序完成以下任务：\n1. ReportAsync 改单条 SQL（JOIN 或 GroupBy 投影 DTO），SQL 次数恒为 1，\n   返回类型 ReportRow 不变\n2. ImportAsync 改 AddRange 分批提交（每 500 条 SaveChanges 一次），\n   每批后清理 ChangeTracker；万行导入 < 5s\n3. 上下文默认 QueryTrackingBehavior.NoTracking；写路径显式跟踪；\n   ListProductsAsync 保持只读\n4. SQLite 可用的瞬时故障执行策略（SQLITE_BUSY/LOCKED 最多重试3次）+ CommandTimeout(30)，并加\n   SemaphoreSlim(4) 限制并发导入\n\n要求：\n- 公开方法签名与返回结构不变；dotnet test 全绿\n\n\n脚手架保证：原始工程可编译，入口及三个端点均提供完整实现；不要求填补省略号。AppDbContext 保留无参和 DbContextOptions<AppDbContext> 两个公开构造函数，尊重外部配置的 SQLite 连接与拦截器。SQLite 不支持 SQL Server 的 EnableRetryOnFailure 扩展，必须使用 SQLite 兼容策略。输入路径为 /report?customerId=、/import、/products；保留其参数与响应结构。",
     "grader": "project_repair",
-    "graderVersion": "1.2.0",
+    "graderVersion": "1.3.0",
     "scoring": {
       "type": "project_repair",
       "weights": {
@@ -24782,7 +24827,7 @@
         },
         {
           "path": "src/Shop/Data/AppDbContext.cs",
-          "content": "using Microsoft.EntityFrameworkCore;\nusing Shop.Models;\n\npublic class AppDbContext : DbContext\n{\n    public DbSet<Product> Products => Set<Product>();\n    public DbSet<Order> Orders => Set<Order>();\n    public DbSet<OrderLine> Lines => Set<OrderLine>();\n\n    protected override void OnConfiguring(DbContextOptionsBuilder ob)\n        => ob.UseSqlite(\"Data Source=shop.db\");\n    // 任务3 —— 只读路径默认 NoTracking；EnableRetryOnFailure 由任务4 决策\n}\n"
+          "content": "using Microsoft.EntityFrameworkCore;\nusing Shop.Models;\n\npublic class AppDbContext : DbContext\n{\n    public AppDbContext() { }\n    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }\n    public DbSet<Product> Products => Set<Product>();\n    public DbSet<Order> Orders => Set<Order>();\n    public DbSet<OrderLine> Lines => Set<OrderLine>();\n\n    protected override void OnConfiguring(DbContextOptionsBuilder ob)\n        { if (!ob.IsConfigured) ob.UseSqlite(\"Data Source=shop.db\"); }\n    // 任务3 —— 只读路径默认 NoTracking；SQLite 兼容执行策略由任务4 决策\n}\n"
         },
         {
           "path": "src/Shop/Models/Catalog.cs",
@@ -24794,11 +24839,11 @@
         },
         {
           "path": "src/Shop/Services/OrderService.cs",
-          "content": "using Microsoft.EntityFrameworkCore;\n\nnamespace Shop.Services;\n\npublic record ReportRow(int OrderId, int LineCount);\n\npublic class OrderService(AppDbContext db)\n{\n    // BUG1 —— 每单一次 Lines 查询：经典应用层 N+1\n    public async Task<List<ReportRow>> ReportAsync(int customerId)\n    {\n        var orders = await db.Orders.Where(o => o.CustomerId == customerId).ToListAsync();\n        var rows = new List<ReportRow>();\n        foreach (var o in orders)\n        {\n            var cnt = await db.Lines.Where(l => l.OrderId == o.Id).CountAsync();\n            rows.Add(new ReportRow(o.Id, cnt));\n        }\n        return rows;\n    }\n\n    // BUG2 —— 逐行 SaveChanges + ChangeTracker 永不清理：万行导入 O(n²) 劣化\n    public async Task<int> ImportAsync(IEnumerable<(string Sku, decimal Price)> items)\n    {\n        int n = 0;\n        foreach (var (sku, price) in items)\n        {\n            db.Products.Add(new Product { Sku = sku, Price = price });\n            await db.SaveChangesAsync();   // 每行一次事务\n            n++;\n        }\n        return n;\n    }\n\n    // BUG3 —— 只读列表走跟踪查询，长生命周期上下文中内存膨胀\n    public async Task<List<Product>> ListProductsAsync() => await db.Products.ToListAsync();\n}\n"
+          "content": "using Shop.Models;\nusing Microsoft.EntityFrameworkCore;\n\nnamespace Shop.Services;\n\npublic record ReportRow(int OrderId, int LineCount);\n\npublic class OrderService(AppDbContext db)\n{\n    // BUG1 —— 每单一次 Lines 查询：经典应用层 N+1\n    public async Task<List<ReportRow>> ReportAsync(int customerId)\n    {\n        var orders = await db.Orders.Where(o => o.CustomerId == customerId).ToListAsync();\n        var rows = new List<ReportRow>();\n        foreach (var o in orders)\n        {\n            var cnt = await db.Lines.Where(l => l.OrderId == o.Id).CountAsync();\n            rows.Add(new ReportRow(o.Id, cnt));\n        }\n        return rows;\n    }\n\n    // BUG2 —— 逐行 SaveChanges + ChangeTracker 永不清理：万行导入 O(n²) 劣化\n    public async Task<int> ImportAsync(IEnumerable<(string Sku, decimal Price)> items)\n    {\n        int n = 0;\n        foreach (var (sku, price) in items)\n        {\n            db.Products.Add(new Product { Sku = sku, Price = price });\n            await db.SaveChangesAsync();   // 每行一次事务\n            n++;\n        }\n        return n;\n    }\n\n    // BUG3 —— 只读列表走跟踪查询，长生命周期上下文中内存膨胀\n    public async Task<List<Product>> ListProductsAsync() => await db.Products.ToListAsync();\n}\n"
         },
         {
           "path": "src/Shop/Program.cs",
-          "content": "using Shop.Services;\nvar db = new AppDbContext();\ndb.Database.EnsureCreated();\nvar svc = new OrderService(db);\n// Minimal API 端点：GET /report?customerId= 、POST /import 、GET /products\napp.MapGet(\"/report\", ...) /* 略 */;\n"
+          "content": "using Shop.Services;\nvar builder = WebApplication.CreateBuilder(args);\nbuilder.Services.AddDbContext<AppDbContext>();\nbuilder.Services.AddScoped<OrderService>();\nvar app = builder.Build();\nusing (var scope = app.Services.CreateScope())\n    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();\napp.MapGet(\"/report\", (int customerId, OrderService svc) => svc.ReportAsync(customerId));\napp.MapPost(\"/import\", (List<ImportItem> items, OrderService svc) => svc.ImportAsync(items.Select(i => (i.Sku, i.Price))));\napp.MapGet(\"/products\", (OrderService svc) => svc.ListProductsAsync());\napp.Run();\npublic record ImportItem(string Sku, decimal Price);\npublic partial class Program { }\n"
         },
         {
           "path": "tests/OrderServiceTests.cs",
@@ -24828,7 +24873,7 @@
         },
         {
           "path": "tests/Shop.Tests/RetryOnFailureTests.cs",
-          "content": "using Microsoft.EntityFrameworkCore;\nusing Xunit;\n\nnamespace Shop.Tests;\n\n// 任务4：EnableRetryOnFailure(3) + CommandTimeout(30)。buggy 版两者皆缺判负。\npublic class RetryOnFailureTests\n{\n    [Fact]\n    public void RetryingStrategyAndTimeoutConfigured()\n    {\n        var (db, _, _) = H.New();\n        var strat = db.Database.CreateExecutionStrategy();\n        Assert.Contains(\"Retrying\", strat.GetType().Name);\n        Assert.True(db.Database.GetCommandTimeout() == 30,\n            $\"CommandTimeout={db.Database.GetCommandTimeout()}（期望 30）\");\n    }\n}\n"
+          "content": "using Microsoft.Data.Sqlite;\nusing Microsoft.EntityFrameworkCore;\nusing Microsoft.EntityFrameworkCore.Storage;\nusing Xunit;\nnamespace Shop.Tests;\npublic class RetryOnFailureTests {\n [Fact] public void RetryingStrategyAndTimeoutConfigured() {\n  var (db, _, _) = H.New();\n  Assert.Equal(30, db.Database.GetCommandTimeout());\n  var strategy = db.Database.CreateExecutionStrategy();\n  int attempts = 0;\n  Assert.Equal(7, strategy.Execute(() => { if (++attempts < 3) throw new SqliteException(\"busy\", 5); return 7; }));\n  Assert.Equal(3, attempts);\n  attempts = 0;\n  var failure = Assert.ThrowsAny<Exception>(() => strategy.Execute(() => { attempts++; throw new SqliteException(\"locked\", 6); }));\n  var sqlite = failure as SqliteException ?? failure.InnerException as SqliteException;\n  Assert.NotNull(sqlite);\n  Assert.Equal(6, sqlite.SqliteErrorCode);\n  Assert.Equal(4, attempts);\n  attempts = 0;\n  Assert.Throws<InvalidOperationException>(() => strategy.Execute(() => { attempts++; throw new InvalidOperationException(\"permanent\"); }));\n  Assert.Equal(1, attempts);\n }\n}\n"
         },
         {
           "path": "tests/Shop.Tests/RegressionTests.cs",
@@ -24884,7 +24929,8 @@
           "timeoutMs": 120000
         },
         "coldStartTimeoutIsEnvironmentError": true
-      }
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "csharp",
@@ -24892,8 +24938,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "1.2.0",
-    "scenarioHash": "b8b930805776f821",
+    "scenarioVersion": "1.3.0",
+    "scenarioHash": "3eabbd45f869bd26",
     "reviewStatus": "unreviewed"
   },
   {
@@ -24905,9 +24951,9 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "工作区是一个遥测采集 API，包含以下文件：\n- Program.cs —— 组装（Singleton DbContext）\n- Data/AppDbContext.cs、Data/Entities.cs —— 上下文与实体\n- Services/TelemetryWriter.cs —— 后台写服务（事务泄漏 + 跟踪膨胀）\n- Debug/Monitor.cs —— 待实现的诊断端点\n- tests/LoadTests.cs —— 公开测试（1 个故意失败）\n\n请按顺序完成以下任务：\n1. 修正 DI 生命周期 —— DbContext 改 Scoped；BackgroundService 通过\n   IServiceScopeFactory 每轮创建作用域获取短命上下文\n2. 事务边界修复 —— using 包裹事务；所有异常路径必回滚；周期器异常不终止服务\n3. 内存治理 —— 后台查询 AsNoTracking；写入后 Clear；模拟 1 小时高频写入\n   托管内存增量 < 150MB\n4. /debug/db 端点返回 {activeConnections, trackerEntries}；压测回归\n\n要求：\n- 既有端点路径与响应字段兼容；dotnet test 全绿\n",
+    "promptTemplate": "工作区是一个遥测采集 API，包含以下文件：\n- Program.cs —— 组装（Singleton DbContext）\n- Data/AppDbContext.cs、Data/Entities.cs —— 上下文与实体\n- Services/TelemetryWriter.cs —— 后台写服务（事务泄漏 + 跟踪膨胀）\n- Debug/Monitor.cs —— 待实现的诊断端点\n- tests/LoadTests.cs —— 公开测试（1 个故意失败）\n\n请按顺序完成以下任务：\n1. 修正 DI 生命周期 —— DbContext 改 Scoped；BackgroundService 通过\n   IServiceScopeFactory 每轮创建作用域获取短命上下文\n2. 事务边界修复 —— using 包裹事务；所有异常路径必回滚；周期器异常不终止服务\n3. 内存治理 —— 后台查询 AsNoTracking；写入后 Clear；模拟 1 小时高频写入\n   托管内存增量 < 150MB\n4. /debug/db 端点返回 {activeConnections, trackerEntries}；压测回归\n\n要求：\n- 既有端点路径与响应字段兼容；dotnet test 全绿\n\n\n公开端点契约：GET /events 返回事件数组；POST /events 接收 Source、Payload 并创建事件；GET /events/count 返回 {count}；GET /debug/db 返回 {activeConnections, trackerEntries}。隐藏测试通过公开 AppDbContext 所在程序集定位入口，不要求额外公开顶层 Program。AppDbContext 保留无参和 DbContextOptions<AppDbContext> 两个公开构造函数，并尊重外部配置。原始入口没有省略号，可正常编译和启动。",
     "grader": "project_repair",
-    "graderVersion": "1.2.0",
+    "graderVersion": "1.3.0",
     "scoring": {
       "type": "project_repair",
       "weights": {
@@ -24927,11 +24973,11 @@
         },
         {
           "path": "src/Api/Program.cs",
-          "content": "using Microsoft.EntityFrameworkCore;\n\nvar builder = WebApplication.CreateBuilder(args);\n// BUG1 —— DbContext 注册为 Singleton：并发请求共享一个上下文 +\n//         长寿命跟踪实体 + 连接占用不释放 → 连接池耗尽\nbuilder.Services.AddDbContext<AppDbContext>(o =>\n    o.UseSqlite(\"Data Source=tele.db\"), ServiceLifetime.Singleton, ServiceLifetime.Singleton);\nbuilder.Services.AddHostedService<TelemetryWriter>();   // 后台服务直接注入同一 Singleton\nvar app = builder.Build();\napp.MapGet(\"/events\", ...);      // 只读查询端点\napp.MapPost(\"/events\", ...);     // 写入端点\napp.MapGet(\"/debug/db\", ...);    // 任务4 —— 池监控\napp.Run();\n"
+          "content": "using Microsoft.EntityFrameworkCore;\n\nvar builder = WebApplication.CreateBuilder(args);\n// BUG1 —— DbContext 注册为 Singleton：并发请求共享一个上下文 +\n//         长寿命跟踪实体 + 连接占用不释放 → 连接池耗尽\nbuilder.Services.AddDbContext<AppDbContext>(o =>\n    o.UseSqlite(\"Data Source=tele.db\"), ServiceLifetime.Singleton, ServiceLifetime.Singleton);\nbuilder.Services.AddHostedService<TelemetryWriter>();   // 后台服务直接注入同一 Singleton\nvar app = builder.Build();\napp.MapGet(\"/events\", (AppDbContext db) => db.Events.ToList());\napp.MapGet(\"/events/count\", (AppDbContext db) => new { count = db.Events.Count() });\napp.MapPost(\"/events\", (AppDbContext db, TeleEvent ev) => { db.Events.Add(ev); db.SaveChanges(); return Results.Created($\"/events/{ev.Id}\", ev); });\napp.MapGet(\"/debug/db\", () => new { activeConnections = 0, trackerEntries = 0 }); // 任务4：实现真实监控\nusing (var scope = app.Services.CreateScope()) scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.EnsureCreated();\napp.Run();\n"
         },
         {
           "path": "src/Api/Data/AppDbContext.cs",
-          "content": "using Microsoft.EntityFrameworkCore;\npublic class AppDbContext : DbContext\n{\n    public DbSet<TeleEvent> Events => Set<TeleEvent>();\n    protected override void OnConfiguring(DbContextOptionsBuilder ob)\n        => ob.UseSqlite(\"Data Source=tele.db\");\n}\n"
+          "content": "using Microsoft.EntityFrameworkCore;\npublic class AppDbContext : DbContext\n{\n    public AppDbContext() { }\n    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }\n    public DbSet<TeleEvent> Events => Set<TeleEvent>();\n    protected override void OnConfiguring(DbContextOptionsBuilder ob)\n        { if (!ob.IsConfigured) ob.UseSqlite(\"Data Source=tele.db\"); }\n}\n"
         },
         {
           "path": "src/Api/Data/Entities.cs",
@@ -24961,7 +25007,7 @@
         },
         {
           "path": "tests/Api.Tests/Harness.cs",
-          "content": "using Microsoft.AspNetCore.Hosting;\nusing Microsoft.AspNetCore.Mvc.Testing;\nusing System.Net.Http.Json;\nusing Xunit;\n\nnamespace Api.Tests;\n\npublic class AppFactory : WebApplicationFactory<Program>\n{\n    protected override void ConfigureWebHost(IWebHostBuilder b) => b.UseEnvironment(\"Testing\");\n}\n\npublic static class U\n{\n    public static string SrcFile(string rel)\n    {\n        var dir = Directory.GetCurrentDirectory();\n        while (dir is not null && !File.Exists(Path.Combine(dir, \"src\", \"Api\", \"Api.csproj\")))\n            dir = Path.GetDirectoryName(dir);\n        Assert.True(dir is not null, \"未找到 src/Api 目录\");\n        var path = Path.Combine(dir!, \"src\", \"Api\", rel.Replace('/', Path.DirectorySeparatorChar));\n        Assert.True(File.Exists(path), $\"源文件不存在: {path}\");\n        return File.ReadAllText(path);\n    }\n\n    public static async Task<long> CountAsync(HttpClient c)\n    {\n        var j = await c.GetFromJsonAsync<System.Text.Json.JsonElement>(\"/events/count\");\n        return j.GetProperty(\"count\").GetInt64();\n    }\n\n    public static async Task<int> PostAsync(HttpClient c, int kb, string tag)\n    {\n        var resp = await c.PostAsJsonAsync(\"/events\",\n            new { Source = \"test\", Payload = new string('x', kb * 1024) + tag });\n        return (int)resp.StatusCode;\n    }\n}\n"
+          "content": "using Microsoft.AspNetCore.Hosting;\nusing Microsoft.AspNetCore.Mvc.Testing;\nusing System.Net.Http.Json;\nusing Xunit;\n\nnamespace Api.Tests;\n\npublic class AppFactory : WebApplicationFactory<AppDbContext>\n{\n    protected override void ConfigureWebHost(IWebHostBuilder b) => b.UseEnvironment(\"Testing\");\n}\n\npublic static class U\n{\n    public static string SrcFile(string rel)\n    {\n        var dir = Directory.GetCurrentDirectory();\n        while (dir is not null && !File.Exists(Path.Combine(dir, \"src\", \"Api\", \"Api.csproj\")))\n            dir = Path.GetDirectoryName(dir);\n        Assert.True(dir is not null, \"未找到 src/Api 目录\");\n        var path = Path.Combine(dir!, \"src\", \"Api\", rel.Replace('/', Path.DirectorySeparatorChar));\n        Assert.True(File.Exists(path), $\"源文件不存在: {path}\");\n        return File.ReadAllText(path);\n    }\n\n    public static async Task<long> CountAsync(HttpClient c)\n    {\n        var j = await c.GetFromJsonAsync<System.Text.Json.JsonElement>(\"/events/count\");\n        return j.GetProperty(\"count\").GetInt64();\n    }\n\n    public static async Task<int> PostAsync(HttpClient c, int kb, string tag)\n    {\n        var resp = await c.PostAsJsonAsync(\"/events\",\n            new { Source = \"test\", Payload = new string('x', kb * 1024) + tag });\n        return (int)resp.StatusCode;\n    }\n}\n"
         },
         {
           "path": "tests/Api.Tests/PoolExhaustionTests.cs",
@@ -25033,7 +25079,8 @@
           "timeoutMs": 120000
         },
         "coldStartTimeoutIsEnvironmentError": true
-      }
+      },
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "csharp",
@@ -25041,8 +25088,8 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "1.2.0",
-    "scenarioHash": "c09c47d7cbe59f59",
+    "scenarioVersion": "1.3.0",
+    "scenarioHash": "c0ddb09b0f997151",
     "reviewStatus": "unreviewed"
   },
   {
@@ -26606,9 +26653,9 @@
     "locale": "zh-CN",
     "status": "valid",
     "tier": "public_dev",
-    "promptTemplate": "工作区是一个多服务器部署工程，包含以下文件：\n- deploy.sh —— 部署入口（当前串行且无保护）\n- lib/common.sh —— 公共变量与日志\n- lib/remote.sh —— 单机传输\n- lib/health.sh —— 健康探测\n- config/servers.list —— 主机清单\n- rollback.sh —— 回滚（待实现）\n- tests/run_tests.sh —— fake ssh/rsync 干跑测试\n\n请按顺序完成以下任务：\n1. deploy.sh 加 set -Eeuo pipefail 与 ERR trap；用 flock 文件锁防并发部署\n   （抢不到锁输出 locked 并退出非 0）\n2. 并行部署 —— 最多同时 3 台（xargs -P 或作业控制），单台失败不影响其他台，\n   结束后输出汇总（成功/失败清单）并以非 0 退出表示存在失败\n3. 发布原子化 —— 每次传到 releases/<timestamp>/，健康检查通过后\n   ln -sfn 切换 current 符号链接；清理超出 KEEP_RELEASES 的旧目录\n4. 健康检查失败自动调用 rollback.sh 将该主机切回上一个可用 release\n\n要求：\n- lib/remote.sh 与 lib/health.sh 的调用接口不变；fake ssh 环境下全部测试通过\n",
+    "promptTemplate": "工作区是一个多服务器部署工程，包含以下文件：\n- deploy.sh —— 部署入口（当前串行且无保护）\n- lib/common.sh —— 公共变量与日志\n- lib/remote.sh —— 单机传输\n- lib/health.sh —— 健康探测\n- config/servers.list —— 主机清单\n- rollback.sh —— 回滚（待实现）\n- tests/run_tests.sh —— fake ssh/rsync 干跑测试\n\n请按顺序完成以下任务：\n1. deploy.sh 加 set -Eeuo pipefail 与 ERR trap；用 flock 文件锁防并发部署\n   （抢不到锁输出 locked 并退出非 0）\n2. 并行部署 —— 最多同时 3 台（xargs -P 或作业控制），单台失败不影响其他台，\n   结束后输出汇总（成功/失败清单）并以非 0 退出表示存在失败\n3. 发布原子化 —— 每次传到 releases/<timestamp>/，健康检查通过后\n   ln -sfn 切换 current 符号链接；清理超出 KEEP_RELEASES 的旧目录\n4. 健康检查失败自动调用 rollback.sh 将该主机切回上一个可用 release\n\n要求：\n- lib/remote.sh 与 lib/health.sh 的调用接口不变；fake ssh 环境下全部测试通过\n\n\n运行环境契约：固定 Bash 5 兼容镜像，/bin/bash 与 /usr/bin/env bash 均可用，并提供 flock、timeout、awk。构建离线完成；候选执行仍禁网。",
     "grader": "project_repair",
-    "graderVersion": "1.2.0",
+    "graderVersion": "1.3.0",
     "scoring": {
       "type": "project_repair",
       "weights": {
@@ -26725,7 +26772,8 @@
         "锁",
         "lock"
       ],
-      "image": null
+      "image": "zxbench/bash:5-compatible",
+      "programRevision": "program-submission-contracts-20261007-v1"
     },
     "tags": [
       "shell",
@@ -26733,9 +26781,10 @@
       "fix",
       "private_validation"
     ],
-    "scenarioVersion": "1.2.0",
-    "scenarioHash": "3f3b15d7239dda3f",
-    "reviewStatus": "unreviewed"
+    "scenarioVersion": "1.3.0",
+    "scenarioHash": "9dcc718086a8fc1a",
+    "reviewStatus": "unreviewed",
+    "environmentImage": "zxbench/bash:5-compatible"
   },
   {
     "id": "CP-L4-SQL-001",

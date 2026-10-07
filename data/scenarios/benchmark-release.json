@@ -2409,5 +2409,26 @@
         "scenarioVersion": "3.6.0"
       }
     ]
+  },
+  "programRevision": {
+    "policy": "program-submission-contracts-20261007-v1",
+    "scenarioIds": [
+      "CP-L1-JS-001",
+      "CP-L1-PY-004",
+      "CP-L2-CC-001",
+      "CP-L2-TD-GO-001",
+      "CP-L3-AW-JS-006",
+      "CP-L3-CC-003",
+      "CP-L3-CS-004",
+      "CP-L3-JV-005",
+      "CP-L3-PY-010",
+      "CP-L3-PY-011",
+      "CP-L3-TS-003",
+      "CP-L3-TS-007",
+      "CP-L4-CS-001",
+      "CP-L4-CS-002",
+      "CP-L4-SH-001"
+    ],
+    "historicalAnswersUnchanged": true
   }
 }

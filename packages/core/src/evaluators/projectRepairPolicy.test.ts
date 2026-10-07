@@ -12,7 +12,7 @@ type ExecutionPolicy = {
 };
 
 type ProjectRepairScenario = Scenario & {
-  requirements: { executionPolicy?: ExecutionPolicy };
+  requirements: { executionPolicy?: ExecutionPolicy; programRevision?: string };
 };
 
 const benchmarkPath = resolve(
@@ -36,8 +36,8 @@ describe('project_repair executionPolicy 题库契约', () => {
   it('20 道工程题版本和 hash 与当前配置一致', () => {
     expect(projectRepair).toHaveLength(20);
     for (const scenario of projectRepair) {
-      expect(scenario.graderVersion).toBe('1.2.0');
-      expect(scenario.scenarioVersion).toBe(scenario.id === 'CP-L4-RS-001' ? '1.2.1' : '1.2.0');
+      expect(scenario.graderVersion).toBe(scenario.requirements.programRevision ? '1.3.0' : '1.2.0');
+      expect(scenario.scenarioVersion).toBe(scenario.requirements.programRevision ? '1.3.0' : scenario.id === 'CP-L4-RS-001' ? '1.2.1' : '1.2.0');
       expect(scenario.scenarioHash).toBe(hashScenarioShort(scenario));
     }
   });
