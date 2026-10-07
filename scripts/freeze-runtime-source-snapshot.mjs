@@ -13,10 +13,11 @@ const toolPaths = ['packages/core/src/evaluators/toolCallTrace.ts','packages/cor
 const visibleContractPaths = ['scripts/lib/workflow-visible-contracts.mjs','scripts/build-tool-world-pilots.mjs','packages/core/src/evaluators/agentTrace.ts'];
 const reviewPaths = ['packages/core/src/scoring.ts','packages/core/src/quality.ts','packages/core/src/referenceAnswerReview.ts','packages/core/src/evaluators/exactAnswerLine.ts','packages/core/src/evaluators/mathAnswerFields.ts','packages/core/src/evaluators/ultraBatchPart.ts','packages/core/src/evaluationLab/examExpansion/index.ts','packages/core/src/evaluationLab/examExpansion/math-candidates.json','packages/core/src/evaluationLab/examPaper/index.ts','apps/server/src/routes/index.ts','scripts/lib/tool-content-delivery-review.mjs','scripts/build-recovery-world-docker.mjs','scripts/build-advanced-cli-docker.mjs'];
 const programPaths = ['packages/core/src/evaluators/repairSubmission.ts','packages/core/src/execution/goSubmission.ts','packages/core/src/execution/isolatedGoJson.ts','packages/core/src/execution/typescriptTypeWorker.ts','scripts/revise-program-contracts.mjs','data/scenarios/program-revision-manifest.json'];
-const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths])].sort();
+const semanticPaths = ['packages/core/src/evaluators/semanticMeaningReview.ts','packages/core/src/evaluators/semanticMeaningReview.test.ts','docs/semantic-meaning-review-v2.md','scripts/freeze-runtime-source-snapshot.mjs'];
+const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths])].sort();
 const snapshot = {
   schemaVersion: 1,
-  version: 'runtime-source-2026-10-07-math-tool-program-contract-review',
+  version: 'runtime-source-2026-10-07-v0.2.10-bounded-meaning-v2',
   applicationVersion: JSON.parse(read('package.json')).version,
   baselineCommit: '8d9f90ff6bb444b76fc511987c9ba21209cfeb10',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',

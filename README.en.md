@@ -12,6 +12,8 @@ Recent updates move execution-oriented questions in five dimensions toward reset
 
 **v0.2.9** adds startup bank checks, actionable missing-question errors, post-import verification, and Docker image diagnostics. New installations and upgrades must sync their local database as described below.
 
+**v0.2.10** consolidates math, tool, programming and safety contract/grading repairs, preserves complete programming submissions, and freezes semantic review v2 with exact-fact and quote-stance guards for new runs. Live results show the graded outcome, and CI verifies the current source fingerprint. See the [release and historical regrading notes](docs/release-v0.2.10.md).
+
 The math/tool contract revision separates verified content from final submission and clarifies exact compound interest, CRT totals, archive member paths and scaling deltas. See the [revision and historical scoring policy](docs/math-tool-contract-review-2026-10-07.md).
 
 ## Quick start

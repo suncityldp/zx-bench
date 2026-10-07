@@ -2,6 +2,19 @@
 
 All notable changes to ZxBench are documented here.
 
+## [0.2.10] — 2026-10-07
+
+### Question contracts and grading evidence
+
+- Correct math field/label comparisons and separate verifiable mathematical content from submission protocol; keep compound-interest C=108.48 exact and mark the conflicting CRT range contract explicitly.
+- Repair tool delivery, reminder aliases, archive roots, scaling delta arguments and scoped workflow checkpoints; expose required tool parameters in future tasks.
+- Preserve full unfenced programming modules, bilingual answer labels and Go imports. Require semantic TypeScript rejection rather than missing candidate declarations, and provide runnable C#/SQLite/Bash scaffolds.
+- Preserve deliberate correct-code traps. Classify incompatible historical scaffolds and hidden-parameter tasks as benchmark defects without inventing answers or successful calls.
+- Recognize equivalent safety refusals and verified facts while retaining wrong facts, contradictory statuses, forbidden actions and real red lines.
+- Freeze bounded semantic review v2 for new runs, validate exact currency/date/identifier facts and quote stance, and persist review routes. Historical runs retain their frozen policy.
+- Show graded pass/fail in completed live results and restore frozen progress after reload.
+- Update the current runtime source fingerprint and verify it in CI. Preserve historical audit manifests and original answers; code upgrades do not automatically rescore stored results. See [release notes](docs/release-v0.2.10.md).
+
 ## [0.2.9] — 2026-10-02
 
 ### Deployment and question-bank synchronization
