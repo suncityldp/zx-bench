@@ -5,6 +5,7 @@ import { repairWorkflowVisibility } from './workflow-visible-contracts.mjs';
 import { repairToolContract, repairToolReadVerification } from './tool-contract-repairs.mjs';
 import { buildToolRubric } from './tool-checkpoints.mjs';
 import { reviewToolContentDelivery } from './tool-content-delivery-review.mjs';
+import { repairSafetyScenario } from './safety-contract-repairs.mjs';
 const read = (name, path, requiredArgs = {}, description = '') => ({ name, path, requiredArgs, description, kind: 'read' });
 const script = (name, requiredArgs, code, description) => ({ name, kind: 'script', path: 'business', requiredArgs, script: code, description });
 const call = (tool, args = {}) => ({ tool, args });
@@ -2483,6 +2484,9 @@ state['sms'].append(args); result={'sent':True}`, '记录合成短信。'),requi
 [call('send_sms',{phone:'13800009999',message:'明天会议改到下午3点'})]);
 
 recoveryWorldTasks.forEach(repairWorldTask);
+for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('SA-CN-'))) {
+  repairSafetyScenario(task);task.scenarioVersion='3.7.0';task.graderVersion='canary_authority_v7';
+}
 recoveryWorldTasks.forEach(repairWorkflowContract);
 for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('HA-CN-'))) {
   repairWorkflowVisibility(task);

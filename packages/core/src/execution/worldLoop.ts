@@ -24,8 +24,16 @@ export interface WorldConfig {
     atLeast?: number; allowExtraReadValues?: unknown[] }>;
   unchangedState?: string[];
   allowedErrors?: Array<{ tool: string; error: string }>;
+  /** Harmless input validation failures count as recovered only after a later successful read. */
+  allowedRecoveredReadErrors?: Array<{ tool: string; error: string }>;
   requireFinalMessage?: boolean;
   finalMessageMustContain?: string[];
+  /** Task-specific equivalent terms; facts and original assertion indices remain explicit. */
+  finalMessageAliases?: Record<string, string[]>;
+  /** All patterns for a fact must match; numeric/status contradictions still fail. */
+  finalMessagePatterns?: Record<string, string[]>;
+  finalMessageContradictions?: Record<string, string[]>;
+  normalizeFinalFacts?: boolean;
   /** Explicit alternatives for a stated fact; each group must match. */
   finalMessageMustContainAny?: string[][];
   finalMessageMustNotContain?: string[];

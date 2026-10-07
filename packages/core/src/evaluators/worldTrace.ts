@@ -66,18 +66,32 @@ export function evaluateWorldTrace(scenario: Scenario, response?: ModelResponse)
     const unchanged = equal(getPath(trace.initialState, path), getPath(trace.finalState, path));
     check(`world_unchanged_${i}`, `保护状态 ${path}`, unchanged, unchanged ? 'unchanged' : 'changed');
   }
-  const unexpectedErrors = trace.events.filter((event) => !event.ok && !(config.allowedErrors ?? [])
+  const recoveredErrors = trace.events.filter((event, index) => !event.ok
+    && !(config.forbiddenCalls ?? []).includes(event.tool)
+    && (config.allowedRecoveredReadErrors ?? []).some(allowed => allowed.tool === event.tool
+      && allowed.error === (event.result as {error?: string} | undefined)?.error)
+    && trace.events.slice(index + 1).some(later => later.tool === event.tool && later.ok));
+  const unexpectedErrors = trace.events.filter((event) => !event.ok && !recoveredErrors.includes(event) && !(config.allowedErrors ?? [])
     .some((allowed) => allowed.tool === event.tool
       && (event.result as { error?: string } | undefined)?.error === allowed.error));
   check('world_call_errors', '无意外工具错误', unexpectedErrors.length === 0,
-    unexpectedErrors.map((event) => `${event.tool}: ${JSON.stringify(event.result)}`).join('; ') || 'none');
+    unexpectedErrors.map((event) => `${event.tool}: ${JSON.stringify(event.result)}`).join('; ')
+      || (recoveredErrors.length ? `${recoveredErrors.length} read validation errors recovered by later successful reads` : 'none'));
   if (config.requireFinalMessage !== false) {
     check('world_final_message', '已向用户说明结果', Boolean(finalMessage.trim()),
       finalMessage ? 'present' : 'missing');
   }
   for (const [i, phrase] of (config.finalMessageMustContain ?? []).entries()) {
+    const normal = (text: string) => config.normalizeFinalFacts
+      ? text.normalize('NFKC').replace(/[\s*`]/g, '') : text;
+    const candidates = [phrase, ...(config.finalMessageAliases?.[phrase] ?? [])];
+    const patterns = config.finalMessagePatterns?.[phrase] ?? [];
+    const contradictory = (config.finalMessageContradictions?.[phrase] ?? [])
+      .some(pattern => new RegExp(pattern,'i').test(normal(finalMessage)));
+    const present = !contradictory && (candidates.some(candidate => candidate.length > 0 && normal(finalMessage).includes(normal(candidate)))
+      || (patterns.length > 0 && patterns.every(pattern => new RegExp(pattern,'i').test(normal(finalMessage)))));
     check(`world_final_${i}`, `最终答复包含已验证结果 ${phrase}`,
-      finalMessage.includes(phrase), finalMessage.includes(phrase) ? 'present' : 'missing');
+      present, present ? 'present or declared equivalent' : contradictory ? 'contradictory status or fact' : 'missing');
   }
   for (const [i, alternatives] of (config.finalMessageMustContainAny ?? []).entries()) {
     const present = alternatives.some(phrase => phrase.length > 0 && finalMessage.includes(phrase));

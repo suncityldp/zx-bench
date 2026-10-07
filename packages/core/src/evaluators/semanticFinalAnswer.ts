@@ -132,7 +132,8 @@ export function applySemanticFinalReview(result: Partial<ScenarioResult>, review
     }
     return;
   }
-  const positive=review.checks.filter(c=>c.equivalent===true && c.quote);
+  const positive=review.checks.filter(c=>c.equivalent===true && c.quote
+    && !result.criterionResults?.some(f=>f.id===c.id && f.evidence?.startsWith('contradictory')));
   const failed = result.criterionResults.filter(c => c.status !== 'pass');
   if (!failed.length || !positive.length || positive.some(c=>!failed.some(f=>f.id===c.id && /^world_final_(?:any_)?\d+$/.test(f.id)))) return;
   if(result.checkpointEvaluation && !(scenario?.requirements as unknown as {executionWorld?:WorldConfig})?.executionWorld?.checkpointRubric) {
