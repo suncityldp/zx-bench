@@ -73,7 +73,7 @@ export function analyzeRunQuality(results: QualityRow[], totalScenarios: number)
     },0)/families.length : null,
   };
   const benchmarkDefects = results.filter(r => {
-    try { const m=JSON.parse(r.outputMetadata || '{}');return [m.mathRevision,m.toolRevision].some(v=>v?.disposition === 'excluded_defective_question'); } catch { return false; }
+    try { const m=JSON.parse(r.outputMetadata || '{}');return [m.mathRevision,m.toolRevision,m.programRevision].some(v=>v?.disposition === 'excluded_defective_question'); } catch { return false; }
   });
   const runtimeEnvironmentErrors = results.filter(r => r.environmentError && !benchmarkDefects.includes(r));
   const valid = results.filter(r => !r.environmentError);
