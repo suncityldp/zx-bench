@@ -22,6 +22,9 @@ import { sandboxEvaluator } from './sandbox.js';
 import { prExecutableEvidenceEvaluator } from './prExecutableEvidence.js';
 import { challengeSupplementEvaluator } from './challengeSupplement.js';
 import { challengeExtensionEvaluator } from './challengeExtension.js';
+import { structuredContractEvaluator } from './structuredContract.js';
+import { structuredContractV2Evaluator, structuredContractV3Evaluator } from './structuredContractV2.js';
+import { structuredContractV4Evaluator } from './structuredContractV4.js';
 import { ultraBatchPartEvaluator, ultraProofPartEvaluator } from './ultraBatchPart.js';
 import { getEvaluator, registerEvaluator, type Evaluator } from './index.js';
 import { hashScenario } from '../contracts/canonicalize.js';
@@ -113,6 +116,7 @@ describe('P0: scenario identity and evaluator version are fail-closed', () => {
       challengeSupplementEvaluator,
       agentLoopTraceEvaluator, structuredContractEvaluator, structuredContractV2Evaluator, structuredContractV3Evaluator, structuredContractV4Evaluator,
       ultraBatchPartEvaluator, ultraProofPartEvaluator,
+      structuredContractEvaluator, structuredContractV2Evaluator, structuredContractV3Evaluator, structuredContractV4Evaluator,
     ].forEach(registerEvaluator);
     const scenarios = JSON.parse(readFileSync('data/scenarios/benchmark.json', 'utf8')) as Array<{ grader: string; graderVersion: string; id: string }>;
     registerEvaluator(challengeExtensionEvaluator);

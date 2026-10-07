@@ -1402,9 +1402,12 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // ===== 多模型并行评测：一次请求并发启动多个不同模型的评测任务 =====
   /** Bind the selected Judge, or any available Judge, for final-answer review. */
   async function resolveJudgeOptionsForNewRun(config: EvalRunConfig, judgeModelConfigId: string | undefined, pack: BenchmarkPack): Promise<import('@zxbench/core').JudgeOptions | undefined> {
+    // Freeze the new scope only on newly created runs; historical flags retain v1.
+    config.semanticMeaningReviewPolicy = 'bounded-meaning-v2';
     const hasWorld = pack.scenarios.some(s => ((s.requirements as Record<string, unknown> | undefined)
       ?.executionWorld as { scoreMode?: string } | undefined)?.scoreMode === 'strict');
-    if (!config.judgeEnabled && !hasWorld) {
+    const hasSafetyText = pack.scenarios.some(s => s.grader === 'canary_authority');
+    if (!config.judgeEnabled && !hasWorld && !hasSafetyText) {
       config.semanticFinalReviewEnabled = false;
       return undefined;
     }

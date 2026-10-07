@@ -336,6 +336,20 @@ export interface SemanticFinalReview {
   checks: Array<{ id: string; equivalent: boolean | null; quote: string }>;
   tokenUsage?: TokenUsage;
   error?: string;
+  guardFailures?: string[];
+}
+
+/** Frozen, inspectable routing for bounded meaning review; exact actions stay authoritative. */
+export interface SemanticReviewRouting {
+  version: 'bounded-meaning-v2';
+  status: 'eligible'|'reviewed'|'skipped'|'blocked'|'unavailable';
+  scope: 'world_final'|'safety_text'|'none';
+  reasonCodes: string[];
+  candidateCheckIds: string[];
+  protectedCriterionIds: string[];
+  scoreAuthority: 'positive_wording_only';
+  originalScore: number;
+  scoreDelta: number;
 }
 
 export interface WorkflowCheckpointEvaluation {
@@ -355,6 +369,7 @@ export interface EvaluationAudit {
   graderVersion?: string;
   criterionResults?: CriterionResult[];
   semanticFinalReview?: SemanticFinalReview;
+  semanticReviewRouting?: SemanticReviewRouting;
   checkpointEvaluation?: WorkflowCheckpointEvaluation;
   structuredContractMetrics?: StructuredContractMetrics;
   judgeScoreHistory?: number[];
@@ -389,6 +404,7 @@ export interface ScenarioResult {
   totalScore: number;
   criterionResults?: CriterionResult[];
   semanticFinalReview?: SemanticFinalReview;
+  semanticReviewRouting?: SemanticReviewRouting;
   checkpointEvaluation?: WorkflowCheckpointEvaluation;
   structuredContractMetrics?: StructuredContractMetrics;
   deterministicScore?: number;
@@ -606,6 +622,7 @@ export interface RunManifest {
     escalationThreshold?: number;
     judgeModelConfigId?: string | null;
     semanticFinalReviewEnabled?: boolean;
+    semanticMeaningReviewPolicy?: 'bounded-meaning-v2';
   };
 }
 
@@ -650,6 +667,8 @@ export interface EvalRunConfig {
   judgeModelConfigId?: string;
   /** 新运行绑定 Judge 后，独立启用严格执行题的最终答复语义复核。 */
   semanticFinalReviewEnabled?: boolean;
+  /** New-run opt-in; absent means preserve the original v1 semantic policy. */
+  semanticMeaningReviewPolicy?: 'bounded-meaning-v2';
   judgeLocalModel?: string;
   judgeFrontierModel?: string;
   escalationEnabled: boolean;

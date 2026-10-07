@@ -55,6 +55,8 @@ export interface WorldTurn {
 }
 
 export interface WorldTrace {
+  /** Optional protocol identity on independently produced traces. */
+  toolProtocol?: 'native' | 'call-say';
   /** The frozen request explicitly asked for the ANSWER label. */
   answerFirstRequested?: boolean;
   originalTerminationReason?: WorldTrace['terminationReason'];
