@@ -7,14 +7,17 @@ import { exactAnswerLineEvaluator, normalizeSkeletonSeparators } from './exactAn
 const bank: Scenario[] = JSON.parse(readFileSync(new URL('../../../../data/scenarios/benchmark.json', import.meta.url), 'utf8'));
 const scenario = (id: string): Scenario => bank.find((s) => s.id === id)!;
 const meta = { truncated: false, incomplete: false } as OutputMetadata;
+// These regressions preserve the pre-review, all-or-nothing contract.
+const legacyScenario = (id:string):Scenario => ({...scenario(id),graderVersion:'exact_answer_v4',
+  scoring:{...scenario(id).scoring,mathReviewPolicy:undefined} as Scenario['scoring']});
 
 /** 取 answer_accuracy 轴分（strict 模式下恒为 0 或 100） */
 const acc = async (id: string, answer: string) =>
-  (await exactAnswerLineEvaluator.evaluate(scenario(id), `ANSWER: ${answer}`, meta)).axisScores?.answer_accuracy;
+  (await exactAnswerLineEvaluator.evaluate(legacyScenario(id), `ANSWER: ${answer}`, meta)).axisScores?.answer_accuracy;
 
 /** 取计算后的总分（format_valid 100 → 0.1×100 + 0.9×acc） */
 const total = async (id: string, answer: string) =>
-  (await exactAnswerLineEvaluator.evaluate(scenario(id), `ANSWER: ${answer}`, meta)).totalScore;
+  (await exactAnswerLineEvaluator.evaluate(legacyScenario(id), `ANSWER: ${answer}`, meta)).totalScore;
 
 describe('strict 答案比较 —— 分隔符等价类（RM-CN-012 回归）', () => {
   // 2026-09-15 run 实测：模型最后一行输出与 gold 只差「列表分隔符」（逗号 vs 连字符），

@@ -10,6 +10,7 @@
 
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence, RuntimeEvaluation } from '@zxbench/types';
 import type { Evaluator } from './index.js';
+import { stripRepairAnswerLabel, extractUnfencedRepairModule, materializeTypeRepair } from './repairSubmission.js';
 import { runReplacedCodeTest, runReplacedCodeTestPython, summarizeTestResults, calculateTestScore, getPythonBin } from '../hidden-tests/index.js';
 import { runTypeScriptTypeCheck, type TypeCheckCase } from '../execution/tsTypeCheck.js';
 import { runGoTestsInContainer, runGoProgramInContainer, type GoFixture } from '../execution/goRunner.js';
@@ -216,7 +217,9 @@ export function heuristicExtractCode(output: string, language: string, functionN
   // Answer-first models sometimes add a label even when the task requests raw
   // code. Strip only that conventional label; the existing patch-extraction
   // axis still penalizes an answer that was not submitted in a code fence.
-  const normalized = output.trim().replace(/^ANSWER\s*:\s*/i, '').trim();
+  const normalized = stripRepairAnswerLabel(output);
+  const module = extractUnfencedRepairModule(normalized, language);
+  if (module) return module;
   if (language.toLowerCase() === 'sql' && /^(?:SELECT|WITH)\b/i.test(normalized)) {
     return normalized;
   }
@@ -1267,10 +1270,11 @@ export function isolatedCodeRepairUnavailable(scenario: Scenario): string | null
   return null;
 }
 
-/** Official v4.1 scorer: untrusted execution cannot self-certify test success.
+/** Official v4.15.1 scorer: untrusted execution cannot self-certify test success.
  * The trusted-host development switch does NOT bypass this scoring boundary. */
 export const codeRepairEvaluator: Evaluator = {
-  name: 'code_repair', version: '4.14.0', aliases: ['code_repair_v3'],
+  name: 'code_repair', version: '4.15.1', aliases: ['code_repair_v3'],
+  compatibleVersions: ['4.14.0', '4.15.0'], // Same task contracts; fixes parsing and negative-type verification.
   async evaluate(scenario, output, metadata, response) {
     // No-bug classification is a text/rule task, not a claim of runtime testing.
     if (scenario.expectedVerdict === 'no_bug') {
@@ -1304,6 +1308,7 @@ export const codeRepairEvaluator: Evaluator = {
     const patch = rankBlocks(blocks, scenario.functionName, lang)[0] ?? heuristicExtractCode(output, lang!, scenario.functionName);
     if (!patch) return { totalScore: 0, axisCoverage: 0, codeExtractionFailed: true, safetyLevel: 'safe',
       evidence: ['No code found in output'], axisEvidence: { test_pass: 'unmeasured' } };
+    const candidate = materializeTypeRepair(patch, scenario.sourceCode, requirements?.submissionContract);
     const observed=validQuickJsObservationContract(observation),javaObserved=validIsolatedJavaJsonContract(java),csharpObserved=validIsolatedCsharpJsonContract(csharp),goObserved=validIsolatedGoJsonContract(go),phpObserved=validIsolatedPhpJsonContract(php),pythonObserved=validIsolatedPythonJsonContract(python),javascriptObserved=validIsolatedJavascriptJsonContract(javascript),sqlObserved=validIsolatedSqlJsonContract(sql),typescriptObserved=validIsolatedTypescriptJsonContract(typescript),typescriptTypeObserved=validIsolatedTypescriptTypeContract(typescriptType),fixtureExitObserved=validIsolatedFixtureExitContract(fixtureExit);
     const suite = observed
       ? await runQuickJsScoringSuite(patch,lang as 'javascript'|'typescript',observation)
@@ -1315,13 +1320,13 @@ export const codeRepairEvaluator: Evaluator = {
                 : javascriptObserved?await runIsolatedJavascriptJsonSuite(patch,javascript)
                   : sqlObserved?await runIsolatedSqlJsonSuite(patch,sql)
                     : typescriptObserved?await runIsolatedTypescriptJsonSuite(patch,typescript)
-                      : typescriptTypeObserved?await runIsolatedTypescriptTypeSuite(patch,typescriptType)
+                      : typescriptTypeObserved?await runIsolatedTypescriptTypeSuite(candidate,typescriptType)
                         : fixtureExitObserved?await runIsolatedFixtureExitSuite(patch,fixtureExit,scenario.hiddenTests??[],requirements?.fixture,{forbidMutex:requirements?.forbidMutex===true,forbidTransmute:requirements?.forbidTransmute===true})
         : validIsolatedJsonContract(contract)?await runIsolatedJsonSuite(patch, lang!, contract):null;
     if(!suite)return pending('Invalid observation contract');
     if (suite.infrastructureError) return pending(suite.infrastructureError);
-    const quality = calculateDiffQuality(scenario.sourceCode, patch);
-    const scope = calculateScopeDiscipline(scenario.sourceCode, patch);
+    const quality = calculateDiffQuality(scenario.sourceCode, candidate);
+    const scope = calculateScopeDiscipline(scenario.sourceCode, candidate);
     const scores = { patch_extraction: blocks.length ? 100 : 40, compilation: suite.compiled ? 100 : 0,
       test_pass: Math.round(100 * suite.passed / suite.total), patch_quality: quality.score, scope_discipline: scope.score };
     const totalScore = Math.round(scores.patch_extraction * .1 + scores.compilation * .2
@@ -1332,7 +1337,8 @@ export const codeRepairEvaluator: Evaluator = {
       evidence: [observed?`${observation.protocol.replaceAll('-','_').toUpperCase()}: ${suite.passed}/${suite.total}; separate WASM guest and trusted service contexts; engine-owned observations`
         :`${javaObserved?java.protocol.replaceAll('-','_').toUpperCase():csharpObserved?csharp.protocol.replaceAll('-','_').toUpperCase():goObserved?go.protocol.replaceAll('-','_').toUpperCase():phpObserved?php.protocol.replaceAll('-','_').toUpperCase():pythonObserved?python.protocol.replaceAll('-','_').toUpperCase():javascriptObserved?javascript.protocol.replaceAll('-','_').toUpperCase():sqlObserved?sql.protocol.replaceAll('-','_').toUpperCase():typescriptObserved?typescript.protocol.replaceAll('-','_').toUpperCase():typescriptTypeObserved?typescriptType.protocol.replaceAll('-','_').toUpperCase():fixtureExitObserved?fixtureExit.protocol.replaceAll('-','_').toUpperCase():validIsolatedJsonContract(contract)?contract.protocol.replaceAll('-','_').toUpperCase():'INVALID'}: ${suite.passed}/${suite.total}; host compares values; candidate reports have no score authority`,
         observed?'Synchronous JSON data properties, native reference identity, engine throws; v2 additionally observes message data without getters/coercion and compares literal strings; not error provenance, construction history, descriptors, alias graphs, performance or TypeScript types'
-          :'Behavior-only JSON observations; no identity, complexity, type-system or side-effect certification', quality.evidence, scope.evidence],
+          :'Behavior-only JSON observations; no identity, complexity, type-system or side-effect certification',
+        ...(candidate !== patch ? ['SUBMISSION_CONTRACT: original surrounding declarations preserved; only the explicitly allowed target alias is replaced'] : []), quality.evidence, scope.evidence],
       runtimeEvaluation: { compilePassed: suite.compiled, compileError: suite.compileError,
         testsPassed: suite.passed, testsFailed: suite.total - suite.passed, testsTotal: suite.total,
         hiddenTestsPassed: suite.passed, hiddenTestsFailed: suite.total - suite.passed, hiddenTestsTotal: suite.total, details: suite.details },

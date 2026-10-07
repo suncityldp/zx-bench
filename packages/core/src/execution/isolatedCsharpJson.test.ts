@@ -37,6 +37,6 @@ it('binds every C# pilot to the reviewed bank without changing original test IDs
     const s=bank.find((x:any)=>x.id===id);
     expect(s.requirements.isolatedCsharpJson).toEqual(p.contract);
     expect(s.hiddenTests.map((t:any)=>t.id)).toEqual(p.contract.cases.map(c=>c.id));
-    expect(s.graderVersion).toBe('4.14.0');expect(s.scenarioVersion).toBe(p.contract.protocol==='isolated-csharp-json-v2'?'4.4.0':'4.0.0');
+    expect(s.graderVersion).toBe(s.requirements.programRevision === 'program-submission-contracts-20261007-v1' ? '4.15.0' : '4.14.0');expect(s.scenarioVersion).toBe(s.requirements.programRevision ? '5.1.0' : p.contract.protocol==='isolated-csharp-json-v2'?'4.4.0':'4.0.0');
   }
 });

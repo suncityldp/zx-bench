@@ -273,6 +273,8 @@ export interface EngineeringFailureInput {
   evidence?: string[] | string | null;
   /** 可选；仅当显式传入且为空白时作为空输出佐证 */
   modelOutput?: string | null;
+  /** 保存的工具交互轨迹，用来区分无最终回复和真正的空响应。 */
+  outputMetadata?: string | Record<string, unknown> | null;
 }
 
 const NO_EVALUATOR_RE = /No evaluator found/i;
@@ -305,13 +307,32 @@ function normalizeEvidence(evidence: string[] | string | null | undefined): stri
   }
 }
 
+/** Missing SAY is distinct from an empty model response. */
+export function worldCapabilityFailure(r: EngineeringFailureInput): 'protocol_error' | 'turn_limit' | 'no_action' | null {
+  const ev = normalizeEvidence(r.evidence);
+  // Protocol failures and exhausted tool rounds are measured task failures,
+  // even when no SAY final answer was produced. Evidence also covers callers
+  // that intentionally omit metadata from their aggregation projection.
+  for (const reason of ['protocol_error','turn_limit','no_action'] as const)
+    if (ev.includes(`WORLD_EXECUTION_TERMINATION: ${reason}`)) return reason;
+  let meta: Record<string, unknown> | null = null;
+  try { meta = typeof r.outputMetadata === 'string' ? JSON.parse(r.outputMetadata) : r.outputMetadata ?? null; } catch { /* malformed metadata is not evidence */ }
+  const world = meta?.executionWorldTrace as {terminationReason?: string; turns?: Array<{assistantRaw?: string}>} | undefined;
+  if (world && ['protocol_error','turn_limit'].includes(world.terminationReason ?? '')
+    && world.turns?.some(t => typeof t.assistantRaw === 'string' && t.assistantRaw.trim())) return world.terminationReason as 'protocol_error' | 'turn_limit';
+  const review=meta?.toolRevision as {policy?:string}|undefined;
+  if(world?.terminationReason==='no_action' && review?.policy==='tool-contract-content-delivery-20261007-v1'
+    && world.turns?.some(t=>typeof t.assistantRaw==='string' && t.assistantRaw.trim()))return 'no_action';
+  return null;
+}
+
 /** 判定样本是否为工程失败（测量伪影），返回失败类别；正常样本返回 null。 */
 export function classifyEngineeringFailure(r: EngineeringFailureInput): EngineeringFailureKind | null {
   if (r.environmentError === true) return 'environment_error';
   const ev = normalizeEvidence(r.evidence);
   if (ev.some((e) => NO_EVALUATOR_RE.test(e))) return 'no_evaluator';
-  // 生成阶段抛异常（后端不可达/超时/鉴权失败）优先按环境故障隔离
   if (ev.some((e) => EVALUATION_FAILED_RE.test(e))) return 'environment_error';
+  if (worldCapabilityFailure(r)) return null;
   if (ev.some(e => e.startsWith('STRUCTURED_EMPTY_ANSWER:'))) return null;
   // 统一能力约束内未作答：按 0 分计入总分，不能再被空输出证据/空 modelOutput 剔除。
   if (ev.some((e) => LIMIT_EXCEEDED_EVIDENCE_RE.test(e))) return null;

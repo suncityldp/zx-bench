@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { snapshotHash } from '../../contracts/pack.js';
-import { committedItems, type ExamSubmission, type ExamAnswer } from '../examPaper/index.js';
+import { committedItems, quoteLongIntegerLiterals, type ExamSubmission, type ExamAnswer } from '../examPaper/index.js';
 import { parseExactExpression } from '../frontierChallenge/annihilatingMaps.js';
 import { verifyLinearOptimization, type LinearOptimization } from '../linearOptimizationCertificate.js';
 import { exactKeys, rational, add, mul, type Rational } from '../challengeTypes.js';
@@ -139,7 +139,7 @@ export function buildExamPaper(options?: { groupIds?: string[] }) {
     const id = `${g.id}-P${i + 1}`, hardSeconds = source.hardSeconds[i], points = p.items.reduce((s, x) => s + x.points, 0);
     const prompt = `数学大题「${g.title}」，第${i + 1}/4问，${points}分，时限${hardSeconds}秒。\n共同题干：${g.stem}\n本问：${p.task}\n` +
       `评分项：${p.items.map(x => `${x.key}(${x.points}分)`).join('、')}。每项单独提交完整JSON：{"item":"评分项编号","answer":答案}。` +
-      '可逐项提交和修订；最后一条完整记录为准。超时、截断保留完整提交项的得分，未完成项0分；前问得分不受影响。数值可提交精确整数、分数或仅用整数及+-*/^括号的表达式字符串。不要提交代码，不使用外部工具。';
+      '可逐项提交和修订；最后一条完整记录为准。超时、截断保留完整提交项的得分，未完成项0分；前问得分不受影响。每项原分值中数学内容占90%、规范提交占10%；规范提交且正确可得该项全分。完整合并JSON对象中可明确识别的正确评分项获得90%的该项分值，错误项0分，不补全截断对象。数值可提交精确整数、分数或仅用整数及+-*/^括号的表达式字符串。不要提交代码，不使用外部工具。';
     const question = { id, dimension: 'reasoning_math' as const, messages: [{ role: 'user' as const, content: prompt }] };
     return { id, groupId: g.id, family: g.family, number: i + 1, points, hardSeconds, items: p.items,
       question: { ...question, questionHash: snapshotHash(question) } };
@@ -165,6 +165,22 @@ export function gradePart(part: ExamPaper['parts'][number], output: string) {
   return { items, points: part.points, earned: items.reduce((s, i) => s + i.earned, 0),
     acceptedRecords: parsed.accepted, rejectedRecords: parsed.rejected, incompleteTail: parsed.incompleteTail, overflow: parsed.overflow };
 }
+/** Content credit for one complete combined object; canonical item records keep full points.
+ * Only recognized keys and exact values count. Never guess a truncated record.
+ */
+export function gradeReviewedMathPart(part: ExamPaper['parts'][number], output: string) {
+  const original=gradePart(part,output);
+  const text=output.trim().replace(/^```(?:json)?\s*|\s*```$/g,'');
+  if(!text||text.length>2_000_000)return {...original,contentEarned:original.earned,protocolValid:original.rejectedRecords===0&&!original.incompleteTail};
+  let combined:unknown;
+  try{combined=JSON.parse(quoteLongIntegerLiterals(text));}catch{return {...original,contentEarned:original.earned,protocolValid:original.rejectedRecords===0&&!original.incompleteTail};}
+  if(!combined||typeof combined!=='object'||Array.isArray(combined)
+    ||!Object.keys(combined).length||Object.keys(combined).some(k=>!part.items.some(i=>i.key===k)))
+    return {...original,contentEarned:original.earned,protocolValid:original.rejectedRecords===0&&!original.incompleteTail};
+  const records=Object.entries(combined).map(([item,answer])=>JSON.stringify({item,answer})).join('\n');
+  const content=gradePart(part,records);
+  return {...content,earned:content.earned*.9,contentEarned:content.earned,protocolValid:false};
+}
 export function scoreExam(paper: ExamPaper, input: Submission) {
   assertExamPaper(paper);
   if (!input || input.contractHash !== paper.contractHash || !Array.isArray(input.answers) || [input.runId, input.modelId, input.modelFamily].some(x => typeof x !== 'string' || !x.trim())) throw new Error('Invalid submission');
@@ -176,7 +192,7 @@ export function scoreExam(paper: ExamPaper, input: Submission) {
   }
   const rows = paper.parts.map(p => {
     const a = input.answers.find(a => a.id === p.id);
-    return { id: p.id, groupId: p.groupId, number: p.number, hardSeconds: p.hardSeconds, state: a?.outcome ?? 'not_attempted', ...gradePart(p, a?.output ?? '') };
+    return { id: p.id, groupId: p.groupId, number: p.number, hardSeconds: p.hardSeconds, state: a?.outcome ?? 'not_attempted', ...gradeReviewedMathPart(p, a?.output ?? '') };
   });
   const scores = paper.groups.map(g => {
     const r = rows.filter(r => r.groupId === g.id), earned = r.reduce((s, x) => s + x.earned, 0), points = r.reduce((s, x) => s + x.points, 0);

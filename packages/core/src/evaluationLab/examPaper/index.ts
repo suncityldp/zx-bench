@@ -104,7 +104,7 @@ function normalizeItemKey(value: string): string {
  * 修法：在 JSON.parse 之前，把「字符串字面量之外的、整数位 ≥16 且后面不是
  * `.`/`e`」的整数用引号包起来，让它以字符串形态进入精确表达式解析。
  */
-function quoteLongIntegerLiterals(text: string): string {
+export function quoteLongIntegerLiterals(text: string): string {
   let out = '', inString = false, escaped = false;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];

@@ -1,5 +1,7 @@
 # 执行题最终答复的同义表达复核
 
+以下描述历史 v1 策略。新运行采用已冻结版本的 [有边界的语义复核 v2](./semantic-meaning-review-v2.md)：增加纯文本安全轴复核，允许在保留独立执行失败的同时诊断最终措辞，并记录每次跳过或阻止的原因。旧运行没有 v2 字段时保留下述规则。
+
 适用范围：`executionWorld` 严格评分题（`scoreMode: 'strict'`）。工具调用、最终状态、未修改状态、禁止动作、工具错误、协议和完成状态先由执行轨迹确定性验证。最终答复的 `finalMessageMustContain` / `finalMessageMustContainAny` 先做字面匹配。
 
 ## 复核触发条件

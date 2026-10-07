@@ -19,6 +19,7 @@ const tasks = recoveryWorldTasks.map(task=>{
   const scenario = {...source,id:`${source.id}-RECOVERY-${task.variant}`,tier:'private_dev',status:'valid',
     ...(task.graderVersion?{grader:task.grader??'agent_trace',graderVersion:task.graderVersion}:source.grader==='cli_command'?{grader:'agent_trace',graderVersion:'agent_trace_v5'}:{}),
     scenarioVersion:task.scenarioVersion??'3.0.0',reviewStatus:'unreviewed',responseMode:'live_execution',promptTemplate:task.prompt,
+    ...(task.toolReviewPolicy?{scoring:{...source.scoring,toolReviewPolicy:task.toolReviewPolicy}}:{}),
     requirements:{migrationSourceId:source.id,developmentShadow:true,executionWorld:{...task.config,
       image:task.image??'python:3.12-alpine',
       expectedImageId:task.imageId??'sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31'}}};

@@ -35,6 +35,9 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Verify current runtime source fingerprint
+        run: node scripts/freeze-runtime-source-snapshot.mjs
+
       - name: Run tests
         run: pnpm test
 

@@ -39,6 +39,7 @@ import { buildOutputMetadata } from '@zxbench/utils';
 import { runTieredJudge, runJudgeEnsemble, computeJudgeScore, type JudgeOptions } from './judge/index.js';
 import { getEvaluator } from './evaluators/index.js';
 import { applySemanticFinalReview, reviewSemanticFinalAnswer } from './evaluators/semanticFinalAnswer.js';
+import { MEANING_REVIEW_POLICY, runMeaningReview } from './evaluators/semanticMeaningReview.js';
 import { prepareStructuredContract } from './evaluators/structuredContract.js';
 import { prepareExtendedContract, type ExtendedContract } from './evaluators/structuredContractV2.js';
 import type { StructuredContractRequirements } from './evaluators/structuredContract.js';
@@ -762,7 +763,10 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
 
   // The execution trace remains authoritative. Only a literal miss in the
   // positive final-answer wording can be reconsidered by the configured Judge.
-  if (scenarioRequirements.executionWorld && evalConfig.semanticFinalReviewEnabled === true && judgeOptions?.localModel
+  if (evalConfig.semanticMeaningReviewPolicy === MEANING_REVIEW_POLICY) {
+    await runMeaningReview(scenario, modelResponse, outputMetadata, result,
+      evalConfig.semanticFinalReviewEnabled === true ? judgeOptions?.localModel : undefined, options.signal);
+  } else if (scenarioRequirements.executionWorld && evalConfig.semanticFinalReviewEnabled === true && judgeOptions?.localModel
     && judgeOptions.localModel.modelType !== 'tested') {
     const semanticReview = await reviewSemanticFinalAnswer(
       scenario, modelResponse, outputMetadata, result, judgeOptions.localModel, options.signal);
@@ -799,6 +803,9 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     weights = { deterministic: 1, judge: 0 };
   }
   if (scenarioRequirements.executionWorld) weights = { deterministic: 1, judge: 0 };
+  if (evalConfig.semanticMeaningReviewPolicy === MEANING_REVIEW_POLICY && scenario.grader === 'canary_authority') {
+    weights = { deterministic: 1, judge: 0 };
+  }
   if (scenarioRequirements.executionShell) weights = { deterministic: 1, judge: 0 };
 
   if (evaluator?.name === 'code_repair' && ['3.5.0', '3.6.0', '3.7.0', '3.8.0', '3.9.0', '4.0.0', '4.1.0', '4.2.0', '4.3.0', '4.4.0', '4.5.0', '4.6.0', '4.7.0', '4.8.0', '4.9.0', '4.10.0', '4.11.0', '4.12.0', '4.13.0', '4.14.0'].includes(evaluator.version)) {
@@ -1029,6 +1036,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     totalScore: result.totalScore ?? 0,
     criterionResults: result.criterionResults,
     semanticFinalReview: result.semanticFinalReview,
+    semanticReviewRouting: result.semanticReviewRouting,
     checkpointEvaluation: result.checkpointEvaluation,
     structuredContractMetrics: result.structuredContractMetrics,
     deterministicScore: result.deterministicScore,
@@ -1085,7 +1093,8 @@ export function generateManifest(
       scenarioHash,
     },
     scorers: {
-      version: 'scorer-2026-10-01-workflow-checkpoints-v1',
+      version: evalConfig.semanticMeaningReviewPolicy === MEANING_REVIEW_POLICY
+        ? 'scorer-2026-10-07-bounded-meaning-v2' : 'scorer-2026-10-01-workflow-checkpoints-v1',
       configHash: snapshotHash(evalConfig),
     },
     models: [{
@@ -1127,6 +1136,7 @@ export function generateManifest(
       escalationThreshold: evalConfig.escalationThreshold,
       judgeModelConfigId: evalConfig.judgeModelConfigId ?? null,
       semanticFinalReviewEnabled: evalConfig.semanticFinalReviewEnabled,
+      semanticMeaningReviewPolicy: evalConfig.semanticMeaningReviewPolicy,
     },
   };
 }

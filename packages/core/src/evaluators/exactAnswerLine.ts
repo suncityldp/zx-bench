@@ -7,11 +7,12 @@
 import type { Scenario, ScenarioResult, OutputMetadata, ModelResponse, AxisEvidence } from '@zxbench/types';
 import type { Evaluator } from './index.js';
 import { formatValidScore } from './responseState.js';
+import {reviewAnswerFields,type MathAnswerField} from './mathAnswerFields.js';
 
 export const exactAnswerLineEvaluator: Evaluator = {
   name: 'exact_answer_line',
-  version: 'exact_answer_v5',
-  compatibleVersions: ['exact_answer_v2', 'exact_answer_v3', 'exact_answer_v4'],
+  version: 'exact_answer_v6',
+  compatibleVersions: ['exact_answer_v2', 'exact_answer_v3', 'exact_answer_v4', 'exact_answer_v5'],
   aliases: ['exact_answer_v3'],
 
   async evaluate(
@@ -98,7 +99,11 @@ export const exactAnswerLineEvaluator: Evaluator = {
     // ===== 5. 比较答案（移除 reasoning_valid 伪轴：它只测截断、不测推理） =====
     const variants = Array.isArray(requirements.acceptedVariants)
       ? requirements.acceptedVariants.filter((v): v is string => typeof v === 'string') : [];
-    const scoreAnswer = (answer: string | number) => strict
+    const reviewedFields = scoring.mathReviewPolicy === 'math-content-protocol-20261007-v1'
+      && Array.isArray(requirements.answerFields) ? requirements.answerFields as MathAnswerField[] : null;
+    const scoreAnswer = (answer: string | number) => reviewedFields
+      ? reviewAnswerFields(String(answer),reviewedFields,(a,b)=>compareStrictAnswer(a,b,scoring.answerUnit)).accuracy
+      : strict
       ? Math.max(...[expectedAnswer, ...variants].map(v => compareStrictAnswer(answer, v, scoring.answerUnit)))
       : compareAnswer(answer, expectedAnswer, tolerance, toleranceMode);
     let extractedAnswer = extractedAnswers[0];
@@ -109,6 +114,12 @@ export const exactAnswerLineEvaluator: Evaluator = {
         extractedAnswer = candidate;
         accuracy = candidateAccuracy;
       }
+    }
+    if(reviewedFields){
+      const review=reviewAnswerFields(String(extractedAnswer),reviewedFields,(a,b)=>compareStrictAnswer(a,b,scoring.answerUnit));
+      axisScores.content_accuracy=review.accuracy;axisEvidence.content_accuracy='rule';
+      if(review.completeFields&&!review.validShape)axisScores.format_valid=0;
+      evidence.push('MATH_FIELD_REVIEW: '+JSON.stringify(review.fields));
     }
     evidence.push(`Extracted answer: ${JSON.stringify(extractedAnswer)}`);
     if (extractedAnswers.length > 1) evidence.push('Answer-first and default answer positions were both evaluated');

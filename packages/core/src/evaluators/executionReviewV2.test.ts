@@ -15,10 +15,20 @@ describe('frozen instruction v5 contracts',()=>{
   it('freezes all 171 contracts and the scoring/execution source fingerprint',()=>{
     const manifest=JSON.parse(readFileSync('data/scenarios/execution-review-manifest.json','utf8'));
     const runtime=JSON.parse(readFileSync('data/scenarios/runtime-source-snapshot.json','utf8'));
+    const revision=JSON.parse(readFileSync('data/scenarios/program-revision-manifest.json','utf8'));
     const hash=(text:string)=>createHash('sha256').update(text.replaceAll('\r\n','\n')).digest('hex');
     expect(runtime.historicalSnapshots['data/scenarios/execution-review-manifest.json'].sha256).toBe(hash(readFileSync('data/scenarios/execution-review-manifest.json','utf8')));
     expect(manifest.scenarios).toHaveLength(171);
-    for(const row of manifest.scenarios) expect(hashScenarioShort(get(row.id))).toBe(row.scenarioHash);
+    expect(revision.policy).toBe('program-submission-contracts-20261007-v1');
+    expect(revision.scenarios).toHaveLength(15);
+    for(const row of manifest.scenarios) {
+      const overlay=revision.scenarios.find((r:any)=>r.id===row.id);
+      if(overlay) {
+        expect(overlay.before).toBe(row.scenarioHash);
+        expect(get(row.id).requirements?.programRevision).toBe(revision.policy);
+      }
+      expect(hashScenarioShort(get(row.id))).toBe(overlay?.after??row.scenarioHash);
+    }
     for(const path of Object.keys(manifest.sourceHashes)) expect(hash(readFileSync(path,'utf8')),path).toBe(runtime.sourceHashes[path]);
     expect(manifest.independentHumanReview).toBe(false);
   });
