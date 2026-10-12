@@ -37,6 +37,14 @@ pnpm --version
 
 Start Docker before checking it. Docker Desktop on Windows must use Linux containers. For `IMAGE_STORE_IDENTITY`, use a compatible containerd store as explained in the [Docker documentation](https://docs.docker.com/desktop/features/containerd/). Switching stores hides images and containers in the inactive store; the preparation tool never changes this global setting. Do not delete images, disable frozen-ID checks or rewrite the bank to hide an installation error.
 
+If the CLI is installed but the engine is stopped, start the installed service and poll `docker version` until the Server is available. Skip this when it is already healthy. For the usual Windows installation path:
+
+```powershell
+Start-Process -FilePath "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -WindowStyle Hidden
+```
+
+Locate the installed application first if its path differs. For a Linux systemd installation use `sudo systemctl start docker`; for macOS Docker Desktop use `open -g -a Docker`. Report missing privileges, virtualization prerequisites or a required reboot instead of proceeding with an unavailable execution environment.
+
 ### 2. Install, configure, initialize and build
 
 ```sh

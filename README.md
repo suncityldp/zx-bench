@@ -37,6 +37,14 @@ pnpm --version
 
 Docker 应先启动再检查。Windows Docker Desktop 使用 Linux containers；若诊断提示 `IMAGE_STORE_IDENTITY`，按 [Docker 存储说明](https://docs.docker.com/desktop/features/containerd/) 使用兼容的 containerd 存储。切换存储会隐藏另一模式已有的镜像和容器，准备工具不会自行修改该全局设置。检查缺失镜像时，不要删除镜像、关闭冻结 ID 校验或重写题库。
 
+若 CLI 已安装但引擎未运行，智能体可启动已安装的服务，再轮询 `docker version` 直至 Server 返回正常；已有健康引擎时跳过。Windows 常规安装路径可用下列命令，路径不同则先定位已安装的 Docker Desktop，不要猜测后继续：
+
+```powershell
+Start-Process -FilePath "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -WindowStyle Hidden
+```
+
+Linux 的 systemd 安装可用 `sudo systemctl start docker`；macOS Docker Desktop 可用 `open -g -a Docker`。若缺少启动权限、虚拟化条件或要求系统重启，报告该前置条件，停止准备执行题环境。
+
 ### 2. 安装、配置、初始化并构建
 
 ```sh
