@@ -18,4 +18,12 @@ describe('unfenced SQL and Shell repair extraction', () => {
   it('does not mistake ordinary prose for code', () => {
     expect(heuristicExtractCode('This query needs an index.', 'sql', 'query')).toBeNull();
   });
+  it('keeps an unfenced PHP function intact across blank lines and excludes trailing prose', () => {
+    const fn = 'function padCenterUnicode($s, $n) {\n    $length = mb_strlen($s);\n    $pad = max(0, $n - $length);\n\n    if ($pad === 0) {\n        return $s;\n    }\n    return str_repeat(" ", $pad) . $s;\n}';
+    expect(heuristicExtractCode('ANSWER:\n'+fn+'\n说明文字', 'php', 'padCenterUnicode')).toBe(fn);
+  });
+  it('ignores braces in PHP comments, escaped strings and heredocs', () => {
+    const fn = ['function example() {','  $url = "https://x/{";','  $s = \'\\\' }\';','  /* }','   * { */','  # }','  $x = <<<\'BODY\'','{ } }','BODY;','  return $s;','}'].join('\n');
+    expect(heuristicExtractCode(fn+'\ntrailing prose', 'php', 'example')).toBe(fn);
+  });
 });

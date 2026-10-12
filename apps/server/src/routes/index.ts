@@ -33,7 +33,7 @@ import { pipeline } from 'node:stream/promises';
 import { spawnSync } from 'node:child_process';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { URL } from 'node:url';
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
+import { encryptApiKey, decryptApiKey, maskApiKey } from '../modelSecrets.js';
 import { selectLatestResultsByKey, selectLatestScenarioResults } from '../resultSelection.js';
 import { releasedBenchmark, releasedEligibility, selectReleasedPack } from '../releasedBenchmark.js';
 import { computeSourceQuestionDimAvgs } from '@zxbench/core';
@@ -373,39 +373,7 @@ function findPackJson(dir: string, depth = 0): string | null {
 // ===== GPT5.6 P0-4: API Key 加密存储 =====
 
 /** 加密密钥（从环境变量或固定默认值） */
-const ENCRYPTION_KEY = process.env.ZXBENCH_ENCRYPTION_KEY || 'zxbench-default-key-change-me!';
-const ENCRYPTION_ALGO = 'aes-256-cbc';
 
-function getEncryptionKey(): Buffer {
-  return scryptSync(ENCRYPTION_KEY, 'zxbench-salt', 32);
-}
-
-function encryptApiKey(plainText: string): string {
-  const key = getEncryptionKey();
-  const iv = randomBytes(16);
-  const cipher = createCipheriv(ENCRYPTION_ALGO, key, iv);
-  let encrypted = cipher.update(plainText, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  return iv.toString('hex') + ':' + encrypted;
-}
-
-function decryptApiKey(encrypted: string): string {
-  const key = getEncryptionKey();
-  const [ivHex, data] = encrypted.split(':');
-  if (!ivHex || !data) return encrypted; // 未加密的旧数据直接返回
-  const iv = Buffer.from(ivHex, 'hex');
-  const decipher = createDecipheriv(ENCRYPTION_ALGO, key, iv);
-  let decrypted = decipher.update(data, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
-}
-
-/** 脱敏 API Key：仅显示最后 4 位 */
-function maskApiKey(key: string | null | undefined): string | null {
-  if (!key) return null;
-  if (key.length <= 4) return '****';
-  return '*'.repeat(key.length - 4) + key.slice(-4);
-}
 
 /** 默认评测配置 */
 const DEFAULT_EVAL_CONFIG: EvalRunConfig = {

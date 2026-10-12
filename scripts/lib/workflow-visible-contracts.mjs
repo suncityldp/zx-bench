@@ -3,7 +3,7 @@ export const workflowVisibleSources = ['HA-CN-001','HA-CN-002','HA-CN-009','HA-C
   'HA-CN-014','HA-CN-015','HA-CN-016','HA-CN-019','HA-CN-023','HA-CN-024','HA-CN-025','HA-CN-026','HA-CN-028',
   'HA-CN-029','HA-CN-030','HA-CN-032','HA-CN-034','HA-CN-035','HA-CN-040','HA-CN-041','HA-CN-044'];
 
-export function repairWorkflowVisibility(task) {
+export function repairWorkflowVisibility(task, { generated = false } = {}) {
   const w=task.config, source=task.sourceId;
   if(!workflowVisibleSources.includes(source)) return false;
   const tool=name=>w.tools.find(t=>t.name===name);
@@ -67,6 +67,13 @@ export function repairWorkflowVisibility(task) {
     if(!name)throw Error('Missing project contract');
     normalizePath('fs.mkdir','path','/workspace');normalizePath('fs.write','path','/workspace');
     replace(tool('fs.mkdir'),"if args['path'] not in state['dirs']: state['dirs'].append(args['path'])","if args['path'] not in state['dirs']: state['dirs'].append(args['path'])\nstate.setdefault('createdDirs',{})[args['path'].replace('/','.')]=True");
+    // Future definitions record all ancestors; frozen published scripts stay intact.
+    if (generated) replace(tool('fs.mkdir'),"result={'created':args['path']}",`for created in [args['path'], *PurePosixPath(args['path']).parents]:
+    created=str(created)
+    if created=='.': continue
+    if created not in state['dirs']: state['dirs'].append(created)
+    state.setdefault('createdDirs',{})[created.replace('/','.')]=True
+result={'created':args['path']}`);
     relax('fs.mkdir');relax('fs.write');
     let mkdirSeen=false;
     w.requiredCalls=w.requiredCalls.filter(c=>c.tool!=='fs.mkdir'||(!mkdirSeen&&(mkdirSeen=true)));

@@ -4,9 +4,9 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench is a locally deployed LLM evaluation platform with Docker execution, deterministic scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. Application **v0.2.11** uses bank **1.60.0**, with **803 source questions and 920 execution instances**: 614 ordinary questions and 306 execution instances for 189 migrated sources, grouped by source for scoring.
+ZxBench is a locally deployed LLM evaluation platform with Docker execution, deterministic scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. Application **v0.2.12** uses bank **1.60.0**, with **803 source questions and 920 execution instances**: 614 ordinary questions and 306 execution instances for 189 migrated sources, grouped by source for scoring.
 
-This release adds selective image preparation, image preflight before generation, automatic local configuration and deployment acceptance. An agent can follow the steps below without a model API key or candidate/Judge requests. [Release notes](docs/release-v0.2.11.md)
+This release fixes credential loading, request cancellation, PHP extraction and semantic/state checks, and retains selective image preparation and deployment acceptance. An agent can follow the steps below without a model API key or candidate/Judge requests. [Release notes](docs/release-v0.2.12.md)
 
 ## Deployment: follow these steps in order
 
@@ -88,7 +88,7 @@ mkdir -p logs
 echo $! > logs/server.pid
 ```
 
-Poll `GET http://127.0.0.1:3001/api/health` for up to 60 seconds. Require HTTP 200, `status: "ok"` and `version: "0.2.11"`. Use `curl.exe -fsS http://127.0.0.1:3001/api/health` on Windows, or `curl -fsS` elsewhere. On failure, inspect `logs/server.err.log` and `logs/server.out.log`. Identify the owner of a conflicting port before stopping anything; do not kill another deployment or user process. The backend serves the built frontend; no separate Vite process is needed.
+Poll `GET http://127.0.0.1:3001/api/health` for up to 60 seconds. Require HTTP 200, `status: "ok"` and `version: "0.2.12"`. Use `curl.exe -fsS http://127.0.0.1:3001/api/health` on Windows, or `curl -fsS` elsewhere. On failure, inspect `logs/server.err.log` and `logs/server.out.log`. Identify the owner of a conflicting port before stopping anything; do not kill another deployment or user process. The backend serves the built frontend; no separate Vite process is needed.
 
 ### 4. Sync and verify the released bank
 

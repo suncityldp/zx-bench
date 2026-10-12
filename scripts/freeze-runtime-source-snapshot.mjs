@@ -15,12 +15,13 @@ const reviewPaths = ['packages/core/src/scoring.ts','packages/core/src/quality.t
 const programPaths = ['packages/core/src/evaluators/repairSubmission.ts','packages/core/src/execution/goSubmission.ts','packages/core/src/execution/isolatedGoJson.ts','packages/core/src/execution/typescriptTypeWorker.ts','scripts/revise-program-contracts.mjs','data/scenarios/program-revision-manifest.json'];
 const semanticPaths = ['packages/core/src/evaluators/semanticMeaningReview.ts','packages/core/src/evaluators/semanticMeaningReview.test.ts','docs/semantic-meaning-review-v2.md','scripts/freeze-runtime-source-snapshot.mjs'];
 const deploymentPaths = ['packages/core/src/execution/imagePreflight.ts','packages/core/src/execution/sessionRunner.ts','packages/core/src/orchestrator.ts','apps/server/src/index.ts','apps/server/src/applicationVersion.ts','scripts/check-docker-images.mjs','scripts/prepare-docker-images.mjs','scripts/export-docker-images.mjs','scripts/configure-server-env.mjs','scripts/check-deployment.mjs','docker/execution-images/runtime.json'];
-const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths,...deploymentPaths])].sort();
+const bugfixPaths = ["apps/server/src/modelSecrets.ts","packages/core/src/model/caller.ts","packages/core/src/evaluators/codeRepair.ts","packages/core/src/evaluators/reviewedWorldFacts.ts","scripts/lib/safety-contract-repairs.mjs"];
+const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths,...deploymentPaths,...bugfixPaths])].sort();
 const snapshot = {
   schemaVersion: 1,
-  version: 'runtime-source-2026-10-12-v0.2.11-runtime-preparation',
+  version: 'runtime-source-2026-10-12-v0.2.12-local-bugfixes',
   applicationVersion: JSON.parse(read('package.json')).version,
-  baselineCommit: '098246a990ac7cf5b9f5f7f7c336f4f180b9fa28',
+  baselineCommit: '5c4648973dd1ad5034a6eb7671042bd9dd93afe3',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',
   independentHumanGold: false,
   historicalRescoring: false,

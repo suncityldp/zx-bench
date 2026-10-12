@@ -20,6 +20,13 @@ beforeEach(() => {
   });
 });
 describe('world reply and termination contract', () => {
+  it('permits a reply-only task without demanding an unnecessary tool call', async () => {
+    mocks.call.mockResolvedValue(response('SAY 无法执行这个操作，请先确认权限。'));
+    const {trace}=await run();
+    expect(trace.events).toHaveLength(0);expect(trace.terminationReason).toBe('completed');
+    expect(mocks.call.mock.calls[0][0].systemPrompt).toContain('任务要求直接答复、澄清或拒绝而无须操作时');
+    expect(mocks.call).toHaveBeenCalledOnce();
+  });
   it('shows tool schemas without function parentheses and discloses prior calls', async () => {
     mocks.call.mockResolvedValue(response('SAY ok'));
     await runWorldLoop({config:{initialState:{},maxTurns:2,tools:[
