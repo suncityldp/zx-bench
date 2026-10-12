@@ -26,11 +26,11 @@ export function collectImageContracts(scenarios) {
   return [...contracts.values()];
 }
 
-function docker(args) {
+export function dockerCommand(args) {
   return spawnSync('docker', args, { encoding: 'utf8', timeout: 15_000, windowsHide: true, maxBuffer: 2 * 1024 * 1024 });
 }
 
-export function checkDockerImages(contracts, run = docker) {
+export function checkDockerImages(contracts, run = dockerCommand) {
   const daemon = run(['version', '--format', '{{json .Server}}']);
   if (daemon.error || daemon.status !== 0) return {
     ok: false, daemon: { status: daemon.error?.code === 'ENOENT' ? 'cli_missing' : 'unavailable',
@@ -57,6 +57,7 @@ export function checkDockerImages(contracts, run = docker) {
     let status = inspected.status;
     if (status === 'ready' && contract.expectedImageId && contract.expectedImageId !== inspected.actualImageId) status = 'id_mismatch';
     if (status === 'ready' && inspected.os !== 'linux') status = 'unsupported_image_os';
+    if (status === 'ready' && inspected.architecture !== server.Arch) status = 'unsupported_image_architecture';
     return { ...contract, ...inspected, status };
   });
   return { ok: server.Os === 'linux' && images.every(image => image.status === 'ready'),
@@ -86,7 +87,7 @@ export function main(args = process.argv.slice(2)) {
     console.log(`Blocked explicit image contracts: ${report.blockedScenarioIds.length} questions.`);
     console.log('Scope: explicit images in the question bank only; language runtimes embedded in graders, mounts and container execution still need verification.');
     if (report.daemon.status !== 'ready') console.log('Make the Docker CLI and Linux engine accessible to the user/process running the server.');
-    if (report.images.some(image => image.status !== 'ready')) console.log('See docs/docker-deployment-troubleshooting.md for exact-image transfer; pulling a tag or rebuilding can change its ID.');
+    if (report.images.some(image => image.status !== 'ready')) console.log('Run pnpm runtime:prepare --check, then pnpm runtime:prepare to fetch only missing images by frozen digest or verified per-image archive. ID mismatch can also indicate Docker image-store mode differences; see docs/docker-deployment-troubleshooting.md.');
   }
   return report.ok ? 0 : 1;
 }

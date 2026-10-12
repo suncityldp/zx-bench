@@ -14,12 +14,13 @@ const visibleContractPaths = ['scripts/lib/workflow-visible-contracts.mjs','scri
 const reviewPaths = ['packages/core/src/scoring.ts','packages/core/src/quality.ts','packages/core/src/referenceAnswerReview.ts','packages/core/src/evaluators/exactAnswerLine.ts','packages/core/src/evaluators/mathAnswerFields.ts','packages/core/src/evaluators/ultraBatchPart.ts','packages/core/src/evaluationLab/examExpansion/index.ts','packages/core/src/evaluationLab/examExpansion/math-candidates.json','packages/core/src/evaluationLab/examPaper/index.ts','apps/server/src/routes/index.ts','scripts/lib/tool-content-delivery-review.mjs','scripts/build-recovery-world-docker.mjs','scripts/build-advanced-cli-docker.mjs'];
 const programPaths = ['packages/core/src/evaluators/repairSubmission.ts','packages/core/src/execution/goSubmission.ts','packages/core/src/execution/isolatedGoJson.ts','packages/core/src/execution/typescriptTypeWorker.ts','scripts/revise-program-contracts.mjs','data/scenarios/program-revision-manifest.json'];
 const semanticPaths = ['packages/core/src/evaluators/semanticMeaningReview.ts','packages/core/src/evaluators/semanticMeaningReview.test.ts','docs/semantic-meaning-review-v2.md','scripts/freeze-runtime-source-snapshot.mjs'];
-const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths])].sort();
+const deploymentPaths = ['packages/core/src/execution/imagePreflight.ts','packages/core/src/execution/sessionRunner.ts','packages/core/src/orchestrator.ts','apps/server/src/index.ts','apps/server/src/applicationVersion.ts','scripts/check-docker-images.mjs','scripts/prepare-docker-images.mjs','scripts/export-docker-images.mjs','scripts/configure-server-env.mjs','scripts/check-deployment.mjs','docker/execution-images/runtime.json'];
+const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths,...deploymentPaths])].sort();
 const snapshot = {
   schemaVersion: 1,
-  version: 'runtime-source-2026-10-07-v0.2.10-bounded-meaning-v2',
+  version: 'runtime-source-2026-10-12-v0.2.11-runtime-preparation',
   applicationVersion: JSON.parse(read('package.json')).version,
-  baselineCommit: '8d9f90ff6bb444b76fc511987c9ba21209cfeb10',
+  baselineCommit: '098246a990ac7cf5b9f5f7f7c336f4f180b9fa28',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',
   independentHumanGold: false,
   historicalRescoring: false,

@@ -50,6 +50,7 @@ import { attachEvaluationAudit } from './audit.js';
 import { snapshotHash } from './contracts/pack.js';
 import { isDockerAvailable } from './execution/containerRunner.js';
 import { dockerNotReadyError } from './execution/dockerReadiness.js';
+import { scenarioImageContracts, assertScenarioImagesReady } from './execution/imagePreflight.js';
 import { assertNoKnownScenarioDefects } from './contracts/knownDefects.js';
 
 export interface OrchestrateOptions {
@@ -347,9 +348,11 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
   };
 
   // ===== Stage 2: 调用模型（推理模型可能 reasoning token 溢出） =====
-  if (!options.savedCandidate && (scenario.dimension === 'program' || scenario.grader === 'sandbox')) {
+  const requiredImages = scenarioImageContracts(scenario.requirements);
+  if (!options.savedCandidate && (scenario.dimension === 'program' || scenario.grader === 'sandbox' || requiredImages.length)) {
     onProgress?.('docker_preflight');
     if (!(await isDockerAvailable())) throw dockerNotReadyError();
+    await assertScenarioImagesReady(requiredImages);
   }
   onProgress?.(options.savedCandidate ? 'replaying_saved_answer' : 'calling_model');
 

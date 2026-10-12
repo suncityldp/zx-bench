@@ -74,7 +74,8 @@ export class DockerSession {
       const imageId = (JSON.parse(inspect.stdout) as Array<{ Id?: string }>)[0]?.Id;
       if (!imageId) throw new Error(`Docker image inspect returned no ID: ${options.image}`);
       if (options.expectedImageId && options.expectedImageId !== imageId) {
-        throw new Error(`Docker image ID drift: ${options.image}`);
+        throw new Error(`Docker image ID drift: ${options.image}; expected=${options.expectedImageId}; actual=${imageId}. `
+          + 'Run pnpm runtime:prepare; check Docker image store mode.');
       }
       session.imageId = imageId;
       const mount = `type=bind,src=${root.replaceAll('\\', '/')},dst=/seed,readonly`;
@@ -88,7 +89,7 @@ export class DockerSession {
         '--user', '65534:65534', '--mount', mount, '-w', '/workspace',
         // /workspace tmpfs is owned by root. Scope Git trust to this isolated workspace.
         '-e', 'GIT_CONFIG_COUNT=1', '-e', 'GIT_CONFIG_KEY_0=safe.directory', '-e', 'GIT_CONFIG_VALUE_0=/workspace',
-        '--entrypoint', 'sh', options.image, '-lc', 'cp -R /seed/. /workspace/ && sleep 3600',
+        '--entrypoint', 'sh', imageId, '-lc', 'cp -R /seed/. /workspace/ && sleep 3600',
       ], { timeout: 30_000 });
       if (run.status !== 0) throw new Error(`Docker session start failed: ${run.stderr.slice(0, 500)}`);
       for (const file of options.files ?? []) {

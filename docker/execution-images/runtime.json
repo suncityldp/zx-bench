@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "version": "execution-images-2026-10-12",
+  "description": "Frozen explicit image dependencies; public digests and independently verified per-image archives",
+  "images": [
+    {
+      "image": "node:22-alpine",
+      "imageId": "sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32",
+      "configDigest": "sha256:395425e54d98ebbd748d388685a0c2de151a30fa92fffc10ba30fa63f3db64d6",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "registry",
+        "repository": "node",
+        "digest": "sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32"
+      }
+    },
+    {
+      "image": "python:3.12-alpine",
+      "imageId": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31",
+      "configDigest": "sha256:1148adc3b50891ee01e6add44be22d277dedeb8dcac2f7cc8b700dd710c75c4d",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "registry",
+        "repository": "python",
+        "digest": "sha256:d09d15e60962ca365d1cd544a48773bac9d33f2fb1b00f2aa0deec78ade7dc31"
+      }
+    },
+    {
+      "image": "gcc:13",
+      "imageId": "sha256:056fa682471704249f619f65ccec87d671ad5f1b20878da54d60b0b863486621",
+      "configDigest": "sha256:f855d3725b373b1bad5dc7098e62acd3cb5692e054d1f0f30658fd0624779d39",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "registry",
+        "repository": "gcc",
+        "digest": "sha256:056fa682471704249f619f65ccec87d671ad5f1b20878da54d60b0b863486621"
+      }
+    },
+    {
+      "image": "benchlocal/cli-40-verifier:local",
+      "imageId": "sha256:2cde3ddc15a55504784cc1e45f37faec3ddb22957436a6bbac0bb03c8ef664ee",
+      "configDigest": "sha256:7e911311279b74d7cd8901750d4a5953a5e631bb895c809823b8b6a1f0f69c65",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "archive",
+        "asset": "cli-verifier.tar",
+        "url": "https://github.com/suncityldp/zx-bench/releases/download/v0.2.11/cli-verifier.tar",
+        "sha256": "6742837e744e8297bd1edf3fcc65289052216f484c5e2120771077a24889457a",
+        "bytes": 191617536
+      }
+    },
+    {
+      "image": "zxbench-java-spring:3.2.5",
+      "imageId": "sha256:c3a80d8022a3ef34f67672be85dbf8ebd7dd687dbf1135ada90bab9bd6166624",
+      "configDigest": "sha256:9558ee5ec5a86054baad46e2c59bef17d2aa42ddcd8afc8e679a497a8d1a21c0",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "archive",
+        "asset": "java.tar",
+        "url": "https://github.com/suncityldp/zx-bench/releases/download/v0.2.11/java.tar",
+        "sha256": "9a9254cc2a1456f6c9868096045cbaf89387413452fc803b53af889b4a4ce8a0",
+        "bytes": 294816768
+      }
+    },
+    {
+      "image": "zxbench/bash:5-compatible",
+      "imageId": "sha256:c9656f011384481e6558bea1ed777bd85369f75fc94968b034f4445a0638c29f",
+      "configDigest": "sha256:64718a5fa339f4065113cbe7c681cf5c9035bfbaa90fe397c6f511dd5c50d182",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "archive",
+        "asset": "bash.tar",
+        "url": "https://github.com/suncityldp/zx-bench/releases/download/v0.2.11/bash.tar",
+        "sha256": "377bebcf21826dd176d78ad2f5141154086c4fd582a92784fb1deb963e1b24f6",
+        "bytes": 6816256
+      }
+    },
+    {
+      "image": "zxbench/python-node:2026-09-26",
+      "imageId": "sha256:661e99543f1a8ac4c15a96aba687ac6b327f849e3070a2157168435052992834",
+      "configDigest": "sha256:4c3d277b62fa19975ef53538605676193b1af2f265d12806532fbd57fd776175",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "archive",
+        "asset": "python-node.tar",
+        "url": "https://github.com/suncityldp/zx-bench/releases/download/v0.2.11/python-node.tar",
+        "sha256": "719de5470fe8f00018af655438d282574941a084a3c70277b36c4302c4f41858",
+        "bytes": 69171712
+      }
+    },
+    {
+      "image": "zxbench/workflow-contracts:2026-10-01",
+      "imageId": "sha256:5018eb2a931ff693b16846b6ad210b707571bb4750ec6b09974b89a8072d0bc5",
+      "configDigest": "sha256:fcafec17de426f82c6c79a6aae6de748b0a87ad8ed2465b5c5fe4cbb5394b4c0",
+      "imageIdKind": "oci_index",
+      "platform": "linux/amd64",
+      "source": {
+        "type": "archive",
+        "asset": "workflow.tar",
+        "url": "https://github.com/suncityldp/zx-bench/releases/download/v0.2.11/workflow.tar",
+        "sha256": "288ec0db10bcfb1fb4134524ec99e9e3ecf43ffe84c2af7d3ec424d3e1923729",
+        "bytes": 18530304
+      }
+    }
+  ]
+}
