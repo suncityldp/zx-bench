@@ -118,7 +118,14 @@ pnpm runtime:prepare --image python:3.12-alpine
 
 按范围准备后，用相同筛选再执行 `runtime:prepare --check`，确认全部为 `[skip] ... ready`；全库 `runtime:check` 仍会报告范围外的缺失项，这是完整检查的预期结果。小型 Python 离线包约 18 MiB；GCC 约 474 MiB、Java 约 281 MiB，仅在对应题目需要时获取。
 
-离线机器把所需 Release 单镜像资产放进同一目录，再用 `pnpm runtime:prepare --cache-dir /path/to/archives`；不修改 manifest 或校验值。具体镜像、大小、固定 ID、下载地址见 [runtime manifest](docker/execution-images/runtime.json)，恢复步骤见 [Docker 排错](docs/docker-deployment-troubleshooting.md)。
+离线部署时，自定义镜像使用 Release 资产，放进同一目录后运行 `pnpm runtime:prepare --cache-dir /path/to/archives`。公共 Python/Node/GCC 不重复附在 Release 中：先在联网机器按固定 digest 准备，再用 `runtime:export` 导出所需镜像；离线端核对随附 SHA-256 后执行 `docker image load --input /path/to/python.tar`，按相同方式处理其他所需公共镜像。之后已满足契约的公共镜像会被跳过，目录内自定义资产会复用。仅指定缓存目录不会阻止缺失公共镜像的在线拉取。
+
+```sh
+# 联网机器示例（已核验冻结 ID）：
+pnpm runtime:export --image python:3.12-alpine --output /path/to/transfer/python.tar
+```
+
+不修改 manifest 或校验值。具体镜像、大小、固定 ID、下载地址见 [runtime manifest](docker/execution-images/runtime.json)，恢复步骤见 [Docker 排错](docs/docker-deployment-troubleshooting.md)。
 
 `runtime:check` / `runtime:prepare` 覆盖题库**显式声明**的镜像。评分器内部的其他语言运行时、网络依赖和目录挂载仍需按实际题目验证；准备通过不等于所有语言测试已经执行。评测会在生成前检查显式镜像契约，缺失或 ID 不符时暂停且尚未请求模型。已生成的历史环境错误不会自动改分。
 

@@ -10,6 +10,8 @@ pnpm runtime:check
 
 `--check` 只输出计划；实际准备跳过已满足契约的镜像，公共镜像按固定 digest 拉取，自定义镜像按独立 Release 资产下载并校验后导入。可用重复的 `--dimension`、`--scenario`、`--image` 限定范围，`--cache-dir` 指向预先下载的离线资产目录。下载地址、大小和内容摘要见 [运行时清单](../docker/execution-images/runtime.json)。未发布的冻结 ID 或不支持的镜像存储模式会在下载前报告阻断原因，不会修改题库。
 
+离线目录复用针对 manifest 中的自定义镜像资产。公共镜像需先在联网机器按固定 digest 准备并单镜像导出，在离线机器核对 SHA-256 后 `docker image load`，再运行准备检查；`--cache-dir` 本身不会禁用公共镜像拉取。归档下载支持 HTTP_PROXY/HTTPS_PROXY/NO_PROXY；Docker 拉取另用引擎自己的代理配置。
+
 如果创建评测时提示 `Released benchmark database incomplete`，先补齐数据库题库：保持后端运行，在项目根目录执行 `node scripts/seed-benchmark.mjs`，确认失败、缺失、哈希不符均为 0，然后刷新页面重新创建评测。该错误在 Docker 执行前产生；更新代码和磁盘上的 JSON 不会自动更新 SQLite 中的题目。默认导入只新增或更新发行定义，不删除其他题目或历史成绩。
 
 在项目根目录、以运行后端的同一账号和环境执行：

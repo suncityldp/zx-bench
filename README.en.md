@@ -118,7 +118,14 @@ pnpm runtime:prepare --image python:3.12-alpine
 
 Repeat `runtime:prepare --check` with the same selection and require every entry to be `[skip] ... ready`. A full-bank `runtime:check` can still report missing images outside that scope. The separate Python archive is about 18 MiB; GCC is about 474 MiB and Java about 281 MiB, needed only for their corresponding tasks.
 
-For offline installation, place the selected release assets in one directory and use `pnpm runtime:prepare --cache-dir /path/to/archives`, with the same selection flags if applicable. Do not edit the manifest or checksum values. See the [runtime manifest](docker/execution-images/runtime.json) for images, sizes, IDs and URLs, and [Docker troubleshooting](docs/docker-deployment-troubleshooting.md) for recovery.
+For offline installation, place the selected custom-image release assets in one directory and use `pnpm runtime:prepare --cache-dir /path/to/archives`. Public Python/Node/GCC images are not duplicated in the release: prepare their frozen digests on a connected machine and export the needed images with `runtime:export`. On the offline host verify the supplied SHA-256, then run `docker image load --input /path/to/python.tar` and repeat for the other needed public images. Preparation then skips ready public images and reuses the custom archives. A cache directory alone does not disable online pulls of missing public images.
+
+```sh
+# Connected machine, after verifying the frozen ID:
+pnpm runtime:export --image python:3.12-alpine --output /path/to/transfer/python.tar
+```
+
+Do not edit the manifest or checksum values. See the [runtime manifest](docker/execution-images/runtime.json) for images, sizes, IDs and URLs, and [Docker troubleshooting](docs/docker-deployment-troubleshooting.md) for recovery.
 
 These commands cover **explicit** question-bank image dependencies. Language runtimes embedded in graders, network dependencies and filesystem mounts still need verification for the actual tasks; preparation is not proof that every language test has run. Explicit image contracts are checked before new generation; missing or mismatched IDs pause evaluation before a model request. Existing environment-error results are not automatically rescored.
 
