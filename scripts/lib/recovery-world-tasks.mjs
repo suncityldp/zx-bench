@@ -2489,7 +2489,7 @@ for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('SA-CN-')))
 }
 recoveryWorldTasks.forEach(repairWorkflowContract);
 for(const task of recoveryWorldTasks.filter(t=>t.sourceId.startsWith('HA-CN-'))) {
-  repairWorkflowVisibility(task);
+  repairWorkflowVisibility(task, { generated: true });
   task.config.checkpointRubric=buildWorkflowRubric(task.config,task.sourceId);
   task.scenarioVersion='3.4.0';task.graderVersion='agent_trace_v8';
 }
