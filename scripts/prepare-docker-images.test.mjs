@@ -4,6 +4,8 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readdirSync, readFileSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createServer } from 'node:http';
+import { connect } from 'node:net';
 import { ensureArchive, planPreparation, prepareDockerImages, selectScenarios, validateRuntimeManifest } from './prepare-docker-images.mjs';
 
 const id = `sha256:${'a'.repeat(64)}`, config = `sha256:${'b'.repeat(64)}`;
@@ -108,4 +110,37 @@ test('downloads are bounded and hashed before cache promotion, and verified cach
     await ensureArchive(source, dir, fetchImpl);
     assert.equal(downloads, 2);
   } finally { for (const file of readdirSync(dir)) unlinkSync(join(dir, file)); rmdirSync(dir); }
+});
+
+test('real archive transport honors proxy environment without external network requests', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'zxbench-runtime-proxy-'));
+  const bytes = Buffer.from('proxied archive');
+  const target = createServer((req, res) => { res.end(bytes); });
+  const proxy = createServer();
+  let tunnels = 0;
+  await new Promise(resolve => target.listen(0, '127.0.0.1', resolve));
+  proxy.on('connect', (request, client, head) => {
+    tunnels++;
+    const upstream = connect(target.address().port, '127.0.0.1', () => {
+      client.write('HTTP/1.1 200 Connection Established\r\n\r\n');
+      if (head.length) upstream.write(head);
+      client.pipe(upstream); upstream.pipe(client);
+    });
+    client.on('error', () => upstream.destroy());
+    upstream.on('error', () => client.destroy());
+  });
+  await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
+  const keys = ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'no_proxy', 'NO_PROXY'];
+  const prior = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  try {
+    for (const key of keys) process.env[key] = key.toLowerCase() === 'no_proxy' ? '' : `http://127.0.0.1:${proxy.address().port}`;
+    const path = await ensureArchive({ asset: 'image.tar', url: 'http://archive.example.invalid/test.tar', bytes: bytes.length,
+      sha256: createHash('sha256').update(bytes).digest('hex') }, dir);
+    assert.equal(readFileSync(path).toString(), bytes.toString());
+    assert.equal(tunnels, 1);
+  } finally {
+    for (const key of keys) { if (prior[key] === undefined) delete process.env[key]; else process.env[key] = prior[key]; }
+    await Promise.all([new Promise(resolve => proxy.close(resolve)), new Promise(resolve => target.close(resolve))]);
+    for (const file of readdirSync(dir)) unlinkSync(join(dir, file)); rmdirSync(dir);
+  }
 });

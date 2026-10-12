@@ -6,6 +6,7 @@ import { basename, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { EnvHttpProxyAgent, fetch as fetchThroughDispatcher } from 'undici';
 import { collectImageContracts, checkDockerImages, dockerCommand } from './check-docker-images.mjs';
 
 export function selectScenarios(bank, { scenarios = [], dimensions = [] } = {}) {
@@ -67,13 +68,16 @@ async function fileSha256(path) {
   return hash.digest('hex');
 }
 
-export async function ensureArchive(source, cacheDir, fetchImpl = fetch) {
+export async function ensureArchive(source, cacheDir, fetchImpl) {
   mkdirSync(cacheDir, { recursive: true });
   const archive = resolve(cacheDir, source.asset);
   if (existsSync(archive) && await fileSha256(archive) === source.sha256) return archive;
   const partial = `${archive}.${randomUUID()}.partial`;
+  // Node 22's built-in fetch does not honor proxy environment variables by itself.
+  const dispatcher = fetchImpl ? undefined : new EnvHttpProxyAgent();
+  const download = fetchImpl ?? ((url, options) => fetchThroughDispatcher(url, { ...options, dispatcher }));
   try {
-    const response = await fetchImpl(source.url, { signal: AbortSignal.timeout(600_000) });
+    const response = await download(source.url, { signal: AbortSignal.timeout(600_000) });
     if (!response.ok || !response.body) throw new Error(`Archive download failed: HTTP ${response.status}`);
     const hash = createHash('sha256');
     let bytes = 0;
@@ -87,6 +91,7 @@ export async function ensureArchive(source, cacheDir, fetchImpl = fetch) {
     renameSync(partial, archive);
     return archive;
   } catch (error) { rmSync(partial, { force: true }); throw error; }
+  finally { await dispatcher?.close(); }
 }
 
 function runDocker(args) {
