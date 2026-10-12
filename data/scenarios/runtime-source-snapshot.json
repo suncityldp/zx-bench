@@ -154,7 +154,7 @@
     "scripts/lib/workflow-contract-repairs.mjs": "9feaa459fe137f1c536641b1271a174e07d7355c5d8eb1051a640d0c4a2296a6",
     "scripts/lib/workflow-read-verification.mjs": "1f637186b9a69a9a7b7b6610b164cdbf1ded2d12ce5b8152b6571337a99c27f0",
     "scripts/lib/workflow-visible-contracts.mjs": "c0e385ffd96bf02937e35ba83038ee9dd4f6233905c9a0961974613261a2faf7",
-    "scripts/prepare-docker-images.mjs": "48f84ad09220f759e2ef9a20f20b975d8e07bd768ef14ef758b0e1eb6a2ce1a0",
+    "scripts/prepare-docker-images.mjs": "80da0ed606c8e4423690b571b17ab218c5b78bc693b45234b085ed9e20506ab9",
     "scripts/prepare-workflow-runtime.mjs": "c2a4107cde5c789de134fbc8e42a9f379ebb82320b39f12b7cb355198c107e2e",
     "scripts/revise-program-contracts.mjs": "df70bdbf62e2e372d52a0ac0aa52c393b39bfa8440efed6247576a9423df1989",
     "scripts/sync-reviewed-question-contracts.mjs": "267ab1ed6070aea2bbfb1dcbc5902aed60227eb5fcd4740e2538e8679fae287a",

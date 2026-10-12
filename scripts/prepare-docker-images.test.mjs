@@ -42,6 +42,15 @@ test('ready images and dry-run plans perform no downloads or mutations', async (
   assert.equal(missing.mutations.length, 0);
 });
 
+test('an unavailable daemon stops before cached image inspection or network work', async () => {
+  const calls = [];
+  const host = { run: args => { calls.push(args); return { status: 1, stdout: '', stderr: 'Docker unavailable' }; },
+    command: async () => { throw new Error('No mutations allowed'); }, log: () => {} };
+  const plan = await prepareDockerImages({ contracts, manifest, checkOnly: true }, host);
+  assert.equal(plan.blocked, true);
+  assert(calls.every(args => ['info', 'version'].includes(args[0])));
+});
+
 test('pulls by immutable digest, validates before retagging, and skips on subsequent runs', async () => {
   const host = makeHost('wrong');
   assert.equal((await prepareDockerImages({ contracts, manifest }, host)).ready, true);

@@ -44,6 +44,7 @@ export function probeImageStore(run = dockerCommand) {
 
 function cachedIdentities(contracts, report, manifest, run) {
   const identities = new Map();
+  if (report.daemon.status !== 'ready') return identities;
   for (const contract of contracts) {
     const checked = report.images.find(row => row.image === contract.image && row.expectedImageId === contract.expectedImageId);
     if (checked?.status === 'ready') continue;
