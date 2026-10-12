@@ -19,9 +19,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { installFileLogging, getExecutionLogPath } from './logging.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = parseInt(process.env.PORT || '3000', 10);
-// GPT5.6 P1-9: 默认绑定 127.0.0.1，仅本地访问
-const HOST = process.env.ZXBENCH_HOST || '127.0.0.1';
 
 // ===== 手动加载 apps/server/.env（DATABASE_URL 等），支持直接 node dist/index.js 启动 =====
 function loadEnv() {
@@ -41,6 +38,9 @@ function loadEnv() {
   }
 }
 loadEnv();
+// Resolve after loading .env; otherwise its PORT/HOST settings never reach listen().
+const PORT = parseInt(process.env.PORT || '3001', 10);
+const HOST = process.env.ZXBENCH_HOST || '127.0.0.1';
 
 // R1：进程级执行日志兜底。必须在任何业务日志之前安装——
 // watchdog 死亡后评测常由非托管进程执行，此时 stdout 无人接管，日志全部丢失。

@@ -4,6 +4,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../index.js';
+import { applicationVersion } from '../applicationVersion.js';
 import { decodeScenario } from '../evaluationSnapshot.js';
 import { computeRunTimeline } from '../runTimeline.js';
 import { registerCalibrationRoutes } from '../calibration/routes.js';
@@ -986,7 +987,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       graderPaper = { error: err instanceof Error ? err.message : String(err) };
     }
     return {
-      status: 'ok', version: '0.2.1', buildTime: process.env.BUILD_TIME || 'dev',
+      status: 'ok', version: applicationVersion, buildTime: process.env.BUILD_TIME || 'dev',
       executionLog: getExecutionLogPath(),
       graderPaper,
     };
@@ -996,7 +997,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/version', async () => {
     const now = new Date().toISOString();
     return {
-      version: '0.2.1',
+      version: applicationVersion,
       buildTime: process.env.BUILD_TIME || 'dev',
       serverStartTime: serverStartTime,
       uptimeSeconds: serverStartTime ? Math.round((Date.now() - serverStartTime.getTime()) / 1000) : 0,

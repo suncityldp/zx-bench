@@ -4,44 +4,158 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench is a local evaluation platform with Docker execution, rule scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. The released bank **1.60.0 / v0.2.6** defaults to the adopted nine-model question set: **803 source questions**, comprising **614 ordinary questions + 306 execution instances for 189 migrated sources**. The 920 execution instances are grouped by source for scoring.
+ZxBench is a locally deployed LLM evaluation platform with Docker execution, deterministic scoring, optional AI Judge, live monitoring, frozen runs, reports and leaderboards. Application **v0.2.11** uses bank **1.60.0**, with **803 source questions and 920 execution instances**: 614 ordinary questions and 306 execution instances for 189 migrated sources, grouped by source for scoring.
 
-Recent updates move execution-oriented questions in five dimensions toward resettable Docker task packs and improve frozen question packs, progressive multi-part context, execution evidence, and score audits. **v0.2.4** also adds optional semantic Judge review of strict execution-task final answers. It is considered only after the other checks pass, preserves the literal rule score and audit trail, and sends invalid Judge output to manual review.
+This release adds selective image preparation, image preflight before generation, automatic local configuration and deployment acceptance. An agent can follow the steps below without a model API key or candidate/Judge requests. [Release notes](docs/release-v0.2.11.md)
 
-**v0.2.6** repairs workflow task contracts, repeated read verification, and requested `ANSWER/SAY` final-answer parsing. All 87 agent workflow instances use objective checkpoints; failed final delivery is capped at 40 and safety violations score 0. See the [repair and validation notes](docs/workflow-repair-2026-10-01.md).
+## Deployment: follow these steps in order
 
-**v0.2.9** adds startup bank checks, actionable missing-question errors, post-import verification, and Docker image diagnostics. New installations and upgrades must sync their local database as described below.
+Run every `pnpm` command from the repository root. Use a separate directory for a new deployment; use the upgrade procedure below for an existing installation.
 
-**v0.2.10** consolidates math, tool, programming and safety contract/grading repairs, preserves complete programming submissions, and freezes semantic review v2 with exact-fact and quote-stance guards for new runs. Live results show the graded outcome, and CI verifies the current source fingerprint. See the [release and historical regrading notes](docs/release-v0.2.10.md).
+### 1. Check prerequisites and obtain the code
 
-The math/tool contract revision separates verified content from final submission and clarifies exact compound interest, CRT totals, archive member paths and scaling deltas. See the [revision and historical scoring policy](docs/math-tool-contract-review-2026-10-07.md).
+| Dependency | Requirement | Check |
+| --- | --- | --- |
+| Git | Access to this repository | `git --version` |
+| Node.js / npm | Node.js ≥22.13; a supported LTS is recommended | `node --version`, `npm --version` |
+| pnpm | Pin to 11.21.0 from `packageManager` | `pnpm --version` |
+| Docker | Accessible Linux engine for execution tasks; frozen images are verified for linux/amd64 | `docker version`, `docker info` |
+| Image store | Frozen OCI index IDs require a containerd image store | `docker info --format '{{json .DriverStatus}}'` |
 
-## Quick start
+If Node.js or Docker is missing, use the host's package manager and official installation instructions: [Node.js](https://nodejs.org/en/download), [Docker](https://docs.docker.com/get-started/get-docker/). Installation privileges, WSL/virtualization and host restarts are prerequisites; report a specific blocker instead of skipping the check and claiming success. If pnpm is missing or differs from the pinned version:
 
-Requires Node.js ≥22.13 and pnpm ≥11. Programming and Docker execution tasks also require a running Docker installation and the local images specified by the tasks. A missing image or unavailable daemon is an environment issue, not evidence of model failure.
+```sh
+npm install --global pnpm@11.21.0
+```
 
-```bash
-pnpm install
+```sh
+git clone https://github.com/suncityldp/zx-bench.git
+cd zx-bench
+git rev-parse HEAD
+pnpm --version
+```
+
+Start Docker before checking it. Docker Desktop on Windows must use Linux containers. For `IMAGE_STORE_IDENTITY`, use a compatible containerd store as explained in the [Docker documentation](https://docs.docker.com/desktop/features/containerd/). Switching stores hides images and containers in the inactive store; the preparation tool never changes this global setting. Do not delete images, disable frozen-ID checks or rewrite the bank to hide an installation error.
+
+If the CLI is installed but the engine is stopped, start the installed service and poll `docker version` until the Server is available. Skip this when it is already healthy. For the usual Windows installation path:
+
+```powershell
+Start-Process -FilePath "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -WindowStyle Hidden
+```
+
+Locate the installed application first if its path differs. For a Linux systemd installation use `sudo systemctl start docker`; for macOS Docker Desktop use `open -g -a Docker`. Report missing privileges, virtualization prerequisites or a required reboot instead of proceeding with an unavailable execution environment.
+
+### 2. Install, configure, initialize and build
+
+```sh
+pnpm install --frozen-lockfile
+pnpm setup:env
 pnpm --filter server prisma:generate
-# Copy apps/server/.env.example to apps/server/.env and configure as needed
 pnpm db:push
 pnpm build
+```
+
+`setup:env` creates `apps/server/.env` with port 3001, loopback binding, the SQLite URL and a random encryption key. It never prints the key or overwrites an existing file. The default database is **`apps/data/zxbench.db`**, because `DATABASE_URL` is resolved relative to `apps/server/prisma`. Initialization preserves an existing database. Keep `.env` and the database private, and preserve the encryption key after model settings have been saved.
+
+Success means every command exits with code 0 and the Prisma client, database tables and frontend/backend `dist` outputs exist. Stop at a failing step, fix the original error and retry; do not serve an old build.
+
+For a custom port, use `pnpm setup:env --port 31001` when creating the file, or edit `PORT` in an existing configuration. Set `BASE_URL` for the online checks: `$env:BASE_URL='http://127.0.0.1:31001'` in PowerShell or `export BASE_URL=http://127.0.0.1:31001` in a POSIX shell.
+
+### 3. Start the service and wait for health
+
+Foreground command:
+
+```sh
 pnpm --filter server start
 ```
 
-Workflow skill tasks require the frozen PyYAML image. Run `pnpm runtime:workflow` to download the v0.2.6 image asset and verify both archive SHA-256 and Docker image ID. For offline installation use `pnpm runtime:workflow --archive /path/to/image.tar.gz`. The image targets Linux amd64; Docker Desktop on Windows must use Linux containers.
+This is a long-running process. Agents can start it in the background and proceed to step 4, retaining its PID and logs. Do not start a duplicate of a healthy service running the same version.
 
-Keep the backend running. In a **second terminal**, enter the project root, import and check the bank, then open <http://127.0.0.1:3001>:
+Windows PowerShell:
 
-```bash
+```powershell
+$deploymentRoot = (Get-Location).Path
+New-Item -ItemType Directory -Path logs -Force | Out-Null
+$serverProcess = Start-Process -FilePath (Get-Command node).Source -ArgumentList 'dist/index.js' -WorkingDirectory (Join-Path $deploymentRoot 'apps/server') -RedirectStandardOutput (Join-Path $deploymentRoot 'logs/server.out.log') -RedirectStandardError (Join-Path $deploymentRoot 'logs/server.err.log') -WindowStyle Hidden -PassThru
+$serverProcess.Id | Set-Content logs/server.pid
+```
+
+macOS / Linux shell:
+
+```sh
+mkdir -p logs
+(cd apps/server && exec node dist/index.js) >logs/server.out.log 2>logs/server.err.log &
+echo $! > logs/server.pid
+```
+
+Poll `GET http://127.0.0.1:3001/api/health` for up to 60 seconds. Require HTTP 200, `status: "ok"` and `version: "0.2.11"`. Use `curl.exe -fsS http://127.0.0.1:3001/api/health` on Windows, or `curl -fsS` elsewhere. On failure, inspect `logs/server.err.log` and `logs/server.out.log`. Identify the owner of a conflicting port before stopping anything; do not kill another deployment or user process. The backend serves the built frontend; no separate Vite process is needed.
+
+### 4. Sync and verify the released bank
+
+Keep the backend running and execute these commands in another terminal or in the agent session after background startup:
+
+```sh
 pnpm bank:sync
 pnpm bank:check
+```
+
+Require exit code 0 and **zero failures, missing/invalid definitions and hash mismatches**. The default import upserts release definitions and preserves unrelated questions, historical runs and answers. Do not use `--reset` for deployment. `Released benchmark database incomplete` means this step remains incomplete; code or JSON updates do not synchronize SQLite automatically.
+
+### 5. Prepare only missing images
+
+For all released questions:
+
+```sh
+pnpm runtime:prepare --check
+pnpm runtime:prepare
 pnpm runtime:check
 ```
 
-Windows users can start the backend with `start.bat`; use the pnpm commands on macOS/Linux. **Run `pnpm bank:sync` on first use and after every bank update** (equivalent to `node scripts/seed-benchmark.mjs`). Verify zero failures, missing/invalid definitions and hash mismatches. For `Released benchmark database incomplete`, sync while the server remains running and refresh the page. Set `BASE_URL` to the actual backend URL if using another port.
+The first command is a read-only plan. The second skips ready images, pulls public Python/Node/GCC images by frozen digest, verifies them before restoring the required tags, and downloads custom images as separate release assets. Archives are hashed and size-checked before `docker load`; actual image IDs are verified afterward. Verified archives are cached in `tmp/runtime`. **No complete image bundle, historical-tag search or private Harbor account is required.**
 
-Default imports only upsert released definitions and preserve unrelated questions, historical runs and answers. Formal runs still select released IDs and hashes. `bank:check` reads the online bank; `runtime:check` reads Docker engine and explicit bank image contracts. It does not cover every language image embedded in graders or download images. See [deployment troubleshooting](docs/docker-deployment-troubleshooting.md). **Updating GitHub code does not sync the database or change a running evaluation's frozen questions**; see the [bank update note](docs/question-refresh-2026-09-28.md).
+If the frozen image content is already local and only its tag is missing or points elsewhere, the plan shows `[retag]` and restores the tag without a registry request or archive download.
+
+Archive downloads honor `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` and their lowercase forms. Docker pulls use the engine's own proxy settings. The tool does not print proxy URLs/credentials or disable TLS verification.
+
+For a smaller evaluation, prepare its actual scope. Selection flags can be repeated:
+
+```sh
+pnpm runtime:prepare --dimension cli_deep_tasks --check
+pnpm runtime:prepare --dimension cli_deep_tasks
+pnpm runtime:prepare --scenario CLI-CN-002-DOCKER
+pnpm runtime:prepare --image python:3.12-alpine
+```
+
+Repeat `runtime:prepare --check` with the same selection and require every entry to be `[skip] ... ready`. A full-bank `runtime:check` can still report missing images outside that scope. The separate Python archive is about 18 MiB; GCC is about 474 MiB and Java about 281 MiB, needed only for their corresponding tasks.
+
+For offline installation, place the selected custom-image release assets in one directory and use `pnpm runtime:prepare --cache-dir /path/to/archives`. Public Python/Node/GCC images are not duplicated in the release: prepare their frozen digests on a connected machine and export the needed images with `runtime:export`. On the offline host verify the supplied SHA-256, then run `docker image load --input /path/to/python.tar` and repeat for the other needed public images. Preparation then skips ready public images and reuses the custom archives. A cache directory alone does not disable online pulls of missing public images.
+
+```sh
+# Connected machine, after verifying the frozen ID:
+pnpm runtime:export --image python:3.12-alpine --output /path/to/transfer/python.tar
+```
+
+Do not edit the manifest or checksum values. See the [runtime manifest](docker/execution-images/runtime.json) for images, sizes, IDs and URLs, and [Docker troubleshooting](docs/docker-deployment-troubleshooting.md) for recovery.
+
+These commands cover **explicit** question-bank image dependencies. Language runtimes embedded in graders, network dependencies and filesystem mounts still need verification for the actual tasks; preparation is not proof that every language test has run. Explicit image contracts are checked before new generation; missing or mismatched IDs pause evaluation before a model request. Existing environment-error results are not automatically rescored.
+
+### 6. Verify deployment
+
+```sh
+pnpm deploy:check
+```
+
+Require exit code 0, `ready: true`, the correct version, `frontend: "ready"` and zero bank missing/hash mismatches. The checker reads health/version APIs, the homepage and JavaScript assets, and the online bank. It makes no writes or model requests (`modelRequests: 0`). Execution image readiness is established separately by step 5 for the intended scope.
+
+Open <http://127.0.0.1:3001>. When handing off deployment, report the actual commit, service URL/PID, bank verification, image scope and unresolved dependencies. A running process alone is not completion. Add model settings afterward according to the user's choice; connectivity tests, Judge preflight and evaluation invoke models and are outside deployment acceptance.
+
+## Upgrade an existing installation
+
+1. Pause evaluations and stop this deployment's service. Back up the SQLite file from the actual `DATABASE_URL`, remaining WAL/SHM files and `apps/server/.env`. Do not stop unrelated services.
+2. In a clean checkout run `git pull --ff-only`, then repeat step 2. Preserve local changes instead of using `git reset --hard`; `setup:env` preserves configuration and keys.
+3. Restart, verify the new health version, and run `bank:sync`, `bank:check`, `runtime:prepare` for the intended scope, and `deploy:check`.
+
+Updating code, the bank or images does not rescore saved answers or replace the frozen pack of an existing run. [Historical regrading](docs/release-v0.2.10.md) · [Saved programming-answer recovery](docs/docker-readiness-and-saved-answer-recovery.md)
 
 ## Question bank and scoring
 

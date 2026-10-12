@@ -4,46 +4,158 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则评分与可选 AI Judge、实时监控、冻结题集、报告和排行榜。发布题库 **1.60.0 / v0.2.7** 默认采用九模型实际使用的题包：**803 道来源题**，由 **614 道普通题 + 189 道来源题的 306 个迁移执行实例**组成。全量执行 920 个实例，计分归并回来源题。
+ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则评分、可选 AI Judge、实时监控、冻结运行、报告和排行榜。当前应用版本 **v0.2.11**；发布题库 **1.60.0** 有 **803 道来源题、920 个执行实例**，其中 614 道普通题及 189 道来源题对应的 306 个迁移实例按来源题归并计分。
 
-最近的更新把五个执行相关维度的题目逐步迁到可重置的 Docker 任务包，并改进了冻结题集、渐进式多问上下文、执行证据与评分审计。**v0.2.4** 还加入严格执行题最终答复的可选语义 Judge 复核：它只在其他检查通过后参与判定，保留原规则分和审计记录；无效 Judge 输出进入人工复核。
+本版提供按需镜像准备、生成前的镜像预检、自动本地配置及部署验收。下面的步骤可以由智能体执行；部署过程不需要模型 API Key，也不会调用候选模型或 Judge。[发布说明](docs/release-v0.2.11.md)
 
-**v0.2.7** 修复工具/CLI的隐藏参数、日期基准、SQLite查询与初始化、只读确认和Git保护输入判分；98个执行实例采用客观检查点 rubric，最终未通过最高40分，安全违规为0分。详见[工具/CLI修复验收](docs/tool-cli-repair-2026-10-01.md)。
+## 部署：按顺序执行
 
-**v0.2.6** 修复工作流题目契约、只读确认规则和 `ANSWER/SAY` 最终答复解析；87 个智能体实例采用检查点 rubric，最终未通过最高 40 分，安全违规为 0 分。详见[修复与验收说明](docs/workflow-repair-2026-10-01.md)。
+所有 `pnpm` 命令均从仓库根目录执行。首次部署用独立目录；已有部署按后面的升级步骤处理，不要覆盖运行中的工作区。
 
-**v0.2.9** 增加启动时的题库同步检查、可操作的缺题提示、导入后完整性校验及 Docker 镜像诊断。首次部署和升级后均需同步本地数据库，步骤见下文。
+### 1. 检查环境并获取代码
 
-**v0.2.10** 汇总数学、工具、编程和安全权限题的契约与评分修复，保留完整编程提交，并为新运行冻结带精确事实及引用立场校验的语义复核 v2。实时页面显示实际判分结果；CI 校验当前源码指纹。升级及历史重评边界见[发布说明](docs/release-v0.2.10.md)。
+| 依赖 | 要求 | 检查方式 |
+| --- | --- | --- |
+| Git | 能访问本仓库 | `git --version` |
+| Node.js / npm | Node.js ≥22.13；建议使用受支持的 LTS | `node --version`、`npm --version` |
+| pnpm | 按 `packageManager` 固定到 11.21.0 | `pnpm --version` |
+| Docker | 执行题需要可访问的 Linux 引擎；当前冻结镜像验证平台为 linux/amd64 | `docker version`、`docker info` |
+| 镜像存储 | 冻结 OCI index ID 需要 containerd 镜像存储 | `docker info --format '{{json .DriverStatus}}'` |
 
-数学与工具题契约修订：分开评价可验证内容和最终提交，明确复利精确值、CRT求和范围、归档路径及扩容增量接口。参见[修订政策与历史评分说明](docs/math-tool-contract-review-2026-10-07.md)。
+缺少 Node.js 或 Docker 时，智能体先按宿主系统通过官方安装入口准备：[Node.js](https://nodejs.org/en/download)、[Docker](https://docs.docker.com/get-started/get-docker/)。安装权限、WSL/虚拟化、系统重启属于宿主环境前置条件；遇到限制应报告具体缺项，不能跳过后声称部署完成。pnpm 不存在或版本不符时执行：
 
-## 快速开始
+```sh
+npm install --global pnpm@11.21.0
+```
 
-需要 Node.js ≥22.13、pnpm ≥11；运行编程和 Docker 执行任务还需要已启动的 Docker，以及题目指定的本地镜像。缺失镜像或 Docker 不可用属于环境未就绪，不应解释为模型能力失败。
+```sh
+git clone https://github.com/suncityldp/zx-bench.git
+cd zx-bench
+git rev-parse HEAD
+pnpm --version
+```
 
-```bash
-pnpm install
+Docker 应先启动再检查。Windows Docker Desktop 使用 Linux containers；若诊断提示 `IMAGE_STORE_IDENTITY`，按 [Docker 存储说明](https://docs.docker.com/desktop/features/containerd/) 使用兼容的 containerd 存储。切换存储会隐藏另一模式已有的镜像和容器，准备工具不会自行修改该全局设置。检查缺失镜像时，不要删除镜像、关闭冻结 ID 校验或重写题库。
+
+若 CLI 已安装但引擎未运行，智能体可启动已安装的服务，再轮询 `docker version` 直至 Server 返回正常；已有健康引擎时跳过。Windows 常规安装路径可用下列命令，路径不同则先定位已安装的 Docker Desktop，不要猜测后继续：
+
+```powershell
+Start-Process -FilePath "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -WindowStyle Hidden
+```
+
+Linux 的 systemd 安装可用 `sudo systemctl start docker`；macOS Docker Desktop 可用 `open -g -a Docker`。若缺少启动权限、虚拟化条件或要求系统重启，报告该前置条件，停止准备执行题环境。
+
+### 2. 安装、配置、初始化并构建
+
+```sh
+pnpm install --frozen-lockfile
+pnpm setup:env
 pnpm --filter server prisma:generate
-# 将 apps/server/.env.example 复制为 apps/server/.env，并按需配置
 pnpm db:push
 pnpm build
+```
+
+`setup:env` 自动生成 `apps/server/.env`，设置端口 3001、监听 `127.0.0.1`、SQLite 路径及随机加密密钥，不打印密钥；已有文件原样保留。默认数据库实际位于 `apps/data/zxbench.db`，因为 `DATABASE_URL` 相对 `apps/server/prisma` 解析。初始化不会清空已有数据库。不要上传 `.env` 或数据库，也不要在已有模型配置后更换加密密钥。
+
+成功条件：每条命令退出码为 0，生成 Prisma 客户端、数据库表及前后端 `dist`。命令失败即停在该步，修复原始报错后重试；不要继续启动旧构建。
+
+需要其他端口时，首次生成配置用 `pnpm setup:env --port 31001`；已有配置修改其 `PORT`。后续在线检查使用对应的 `BASE_URL`：PowerShell 用 `$env:BASE_URL='http://127.0.0.1:31001'`，POSIX shell 用 `export BASE_URL=http://127.0.0.1:31001`。
+
+### 3. 启动服务并等待健康检查
+
+前台运行：
+
+```sh
 pnpm --filter server start
 ```
 
-工作流技能题还需要发布时冻结的 PyYAML 镜像。运行 `pnpm runtime:workflow`，自动下载 v0.2.6 镜像资产并校验 SHA-256 与 Docker image ID。离线可用 `pnpm runtime:workflow --archive /path/to/image.tar.gz`。镜像为 Linux amd64；Windows Docker Desktop 需使用 Linux 容器。
+这是长期运行的服务，不会自行退出。智能体可在后台启动后继续执行第 4 步；保留 PID 和日志。已启动同版本服务时不要重复启动。
 
-保持后端运行，在**另一个终端**进入项目根目录，导入并检查题库，然后打开 <http://127.0.0.1:3001>：
+Windows PowerShell：
 
-```bash
+```powershell
+$deploymentRoot = (Get-Location).Path
+New-Item -ItemType Directory -Path logs -Force | Out-Null
+$serverProcess = Start-Process -FilePath (Get-Command node).Source -ArgumentList 'dist/index.js' -WorkingDirectory (Join-Path $deploymentRoot 'apps/server') -RedirectStandardOutput (Join-Path $deploymentRoot 'logs/server.out.log') -RedirectStandardError (Join-Path $deploymentRoot 'logs/server.err.log') -WindowStyle Hidden -PassThru
+$serverProcess.Id | Set-Content logs/server.pid
+```
+
+macOS / Linux shell：
+
+```sh
+mkdir -p logs
+(cd apps/server && exec node dist/index.js) >logs/server.out.log 2>logs/server.err.log &
+echo $! > logs/server.pid
+```
+
+轮询 `GET http://127.0.0.1:3001/api/health`，等待最多 60 秒；成功条件是 HTTP 200、`status: "ok"`、`version: "0.2.11"`。Windows 可用 `curl.exe -fsS http://127.0.0.1:3001/api/health`，其他系统用 `curl -fsS`。失败时读 `logs/server.err.log`、`logs/server.out.log`；端口冲突先确认进程归属，不要强杀其他部署或用户进程。服务会提供已构建的前端，不需要再启动 Vite。
+
+### 4. 同步并核验题库
+
+保持后端运行，在另一个终端或后台启动后的同一智能体会话执行：
+
+```sh
 pnpm bank:sync
 pnpm bank:check
+```
+
+成功条件：**失败 0、缺失或非有效 0、哈希不符 0**，两条命令退出码为 0。导入默认只新增或更新发行定义，保留其他题目、历史运行与答卷，不需要 `--reset`。`Released benchmark database incomplete` 表示这一步未完成；更新代码或磁盘 JSON 不会自动更新数据库。
+
+### 5. 检查缺哪些镜像，只准备缺失项
+
+运行全部发行题目时：
+
+```sh
+pnpm runtime:prepare --check
+pnpm runtime:prepare
 pnpm runtime:check
 ```
 
-Windows 也可使用 `start.bat` 启动后端；macOS/Linux 使用上面的 pnpm 命令。**首次使用和题库更新后都必须执行 `pnpm bank:sync`**（等价于 `node scripts/seed-benchmark.mjs`）；确认失败、缺失或非有效、哈希不符均为 0。若创建评测提示 `Released benchmark database incomplete`，保持服务运行，同步后刷新页面重试。端口不同可通过 `BASE_URL` 指向实际后端。
+第一条只生成计划，不下载；第二条自动跳过已满足契约的镜像。Python、Node、GCC 按固定 digest 拉取，校验后恢复题库所需 tag；自定义镜像按独立资产下载，校验文件 SHA-256 和大小后导入，再核验实际镜像 ID。缓存位于 `tmp/runtime`，再次执行会复用已验证内容。**不需要下载整包，不遍历历史 tag，不需要私有 Harbor 账号。**
 
-默认导入只新增或更新发行题目，保留集合外定义、历史运行和答卷；正式评测仍按发行题目 ID 与内容哈希选择。`bank:check` 只读检查在线题库，`runtime:check` 检查 Docker 引擎和题库显式镜像；它不覆盖评分器内部所有语言镜像，也不自动下载。详见 [Docker 部署排错](docs/docker-deployment-troubleshooting.md)。**更新 GitHub 代码不会自动同步数据库或改变运行中任务的冻结题目**；发布步骤见[题库更新说明](docs/question-refresh-2026-09-28.md)。
+若冻结 ID 对应的镜像内容已在本地、只是 tag 缺失或指向其他镜像，计划显示 `[retag]`，直接恢复 tag，不访问仓库或重新下载归档。
+
+镜像资产下载遵循 `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY`（也支持小写），无需智能体把代理写进代码；Docker 拉取使用引擎自身的代理配置。工具不打印代理地址或凭据，也不关闭 TLS 验证。
+
+只运行部分题目时，可以按实际范围准备；筛选参数可重复使用：
+
+```sh
+pnpm runtime:prepare --dimension cli_deep_tasks --check
+pnpm runtime:prepare --dimension cli_deep_tasks
+pnpm runtime:prepare --scenario CLI-CN-002-DOCKER
+pnpm runtime:prepare --image python:3.12-alpine
+```
+
+按范围准备后，用相同筛选再执行 `runtime:prepare --check`，确认全部为 `[skip] ... ready`；全库 `runtime:check` 仍会报告范围外的缺失项，这是完整检查的预期结果。小型 Python 离线包约 18 MiB；GCC 约 474 MiB、Java 约 281 MiB，仅在对应题目需要时获取。
+
+离线部署时，自定义镜像使用 Release 资产，放进同一目录后运行 `pnpm runtime:prepare --cache-dir /path/to/archives`。公共 Python/Node/GCC 不重复附在 Release 中：先在联网机器按固定 digest 准备，再用 `runtime:export` 导出所需镜像；离线端核对随附 SHA-256 后执行 `docker image load --input /path/to/python.tar`，按相同方式处理其他所需公共镜像。之后已满足契约的公共镜像会被跳过，目录内自定义资产会复用。仅指定缓存目录不会阻止缺失公共镜像的在线拉取。
+
+```sh
+# 联网机器示例（已核验冻结 ID）：
+pnpm runtime:export --image python:3.12-alpine --output /path/to/transfer/python.tar
+```
+
+不修改 manifest 或校验值。具体镜像、大小、固定 ID、下载地址见 [runtime manifest](docker/execution-images/runtime.json)，恢复步骤见 [Docker 排错](docs/docker-deployment-troubleshooting.md)。
+
+`runtime:check` / `runtime:prepare` 覆盖题库**显式声明**的镜像。评分器内部的其他语言运行时、网络依赖和目录挂载仍需按实际题目验证；准备通过不等于所有语言测试已经执行。评测会在生成前检查显式镜像契约，缺失或 ID 不符时暂停且尚未请求模型。已生成的历史环境错误不会自动改分。
+
+### 6. 完成部署验收
+
+```sh
+pnpm deploy:check
+```
+
+成功条件：退出码为 0，输出 `ready: true`、正确版本、`frontend: "ready"`、题库缺失与哈希不符均为 0。该命令检查健康 API、版本 API、首页及前端资源、在线题库，只读且 `modelRequests: 0`。执行题的镜像就绪还需满足第 5 步所选范围的检查。
+
+最后打开 <http://127.0.0.1:3001>。智能体交付部署结果时报告实际 commit、服务地址/PID、题库检查结果、镜像准备范围与尚未满足的依赖，不能仅凭进程启动就报告完成。此后按用户选择在 WebUI 添加模型；连通性测试、Judge 预检和正式评测会请求模型，不属于部署验收。
+
+## 升级已有部署
+
+1. 暂停评测并停止本部署的服务进程；按实际 `DATABASE_URL` 备份 SQLite 文件及仍存在的 WAL/SHM，备份 `apps/server/.env`。不要停止其他部署。
+2. 在干净工作区执行 `git pull --ff-only`，重复第 2 步安装、初始化、构建。已有本地改动先保留，不使用 `git reset --hard`；配置和密钥不会被 `setup:env` 覆盖。
+3. 重新启动服务，确认健康接口显示新版本，再执行 `bank:sync`、`bank:check`、所选范围的 `runtime:prepare` 和 `deploy:check`。
+
+代码升级、题库导入、镜像准备均不会自动重评历史成绩或替换运行中冻结的题包。[历史重评说明](docs/release-v0.2.10.md) · [已保存编程答案恢复](docs/docker-readiness-and-saved-answer-recovery.md)
 
 ## 题库与评分
 

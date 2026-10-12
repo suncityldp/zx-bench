@@ -1,6 +1,6 @@
 {
   "name": "zxbench-webui",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "private": true,
   "description": "ZxBench Pro WebUI - 大模型评测系统",
   "scripts": {
@@ -14,7 +14,7 @@
     "type-check": "pnpm -r run type-check",
     "pretest": "pnpm test:world-contracts && pnpm -r --filter \"./packages/*\" run build",
     "test": "vitest run",
-    "test:deployment": "node --test scripts/seed-benchmark.test.mjs scripts/check-docker-images.test.mjs scripts/init-database.test.mjs",
+    "test:deployment": "node --test scripts/seed-benchmark.test.mjs scripts/check-docker-images.test.mjs scripts/init-database.test.mjs scripts/export-docker-images.test.mjs scripts/prepare-docker-images.test.mjs scripts/configure-server-env.test.mjs scripts/check-deployment.test.mjs",
     "bank:sync": "node scripts/seed-benchmark.mjs",
     "bank:check": "node scripts/seed-benchmark.mjs --check",
     "runtime:check": "node scripts/check-docker-images.mjs",
@@ -57,22 +57,19 @@
     "test:world-contracts": "node --test scripts/recovery-world-search.test.mjs scripts/tool-visible-contracts.test.mjs scripts/workflow-visible-contracts.test.mjs scripts/tool-content-delivery-review.test.mjs",
     "runtime:workflow": "node scripts/prepare-workflow-runtime.mjs",
     "test:workflow-containers": "node scripts/test-workflow-containers.mjs",
-    "test:tool-containers": "pnpm -r --filter \"./packages/*\" run build && node scripts/test-tool-containers.mjs"
+    "test:tool-containers": "pnpm -r --filter \"./packages/*\" run build && node scripts/test-tool-containers.mjs",
+    "setup:env": "node scripts/configure-server-env.mjs",
+    "runtime:prepare": "node scripts/prepare-docker-images.mjs",
+    "runtime:export": "node scripts/export-docker-images.mjs",
+    "deploy:check": "node scripts/check-deployment.mjs"
   },
   "engines": {
     "node": ">=22.13.0",
     "pnpm": ">=11.0.0"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "esbuild",
-      "prisma"
-    ]
-  },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "undici": "^7.30.0",
     "vitest": "^2.1.8"
   },
   "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
