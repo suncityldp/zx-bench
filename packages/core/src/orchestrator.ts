@@ -31,7 +31,7 @@ import type {
 } from '@zxbench/types';
 import { callModelWithRetry } from './model/caller.js';
 import { runAgentLoop, type AgentLoopConfig } from './agentLoop/loop.js';
-import { runWorldLoop, extractWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from './execution/worldLoop.js';
+import { runWorldLoop, verifiedWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from './execution/worldLoop.js';
 import { runShellLoop, type ShellConfig } from './execution/shellLoop.js';
 import { executionTimeoutMs } from './execution/budget.js';
 import { createHash } from 'node:crypto';
@@ -519,7 +519,7 @@ async function evaluateCandidate(options: OrchestrateOptions): Promise<ScenarioR
     const trace=normalizeWorldFinalTrace({...storedTrace,
       answerFirstRequested:storedTrace.answerFirstRequested??effectiveConstraints.answerFirst===true});
     if (trace.turns?.length) {
-      const finalMessage = extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '',trace.answerFirstRequested);
+      const finalMessage = verifiedWorldFinalMessage(trace);
       modelResponse = { ...modelResponse, content: finalMessage, executionWorld: { ...trace, finalMessage } };
     }
   }

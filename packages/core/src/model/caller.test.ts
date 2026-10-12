@@ -8,6 +8,56 @@ function stream(text: string, close = true, cancel = vi.fn()) {
 }
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
+describe('request cancellation and idle recovery', () => {
+  it.each([true,false])('makes no request for an already cancelled signal (stream=%s)', async stream => {
+    const controller=new AbortController(),reason=new Error('fixture cancellation');controller.abort(reason);
+    const fetch=vi.fn();vi.stubGlobal('fetch',fetch);
+    await expect(callModel({...options,stream,signal:controller.signal})).rejects.toBe(reason);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('removes controller listeners after a successful request', async () => {
+    const controller=new AbortController(),add=vi.spyOn(controller.signal,'addEventListener'),remove=vi.spyOn(controller.signal,'removeEventListener');
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(stream(event({choices:[{delta:{content:'ok'},finish_reason:'stop'}]})+'data: [DONE]\n\n')));
+    expect((await callModel({...options,signal:controller.signal})).content).toBe('ok');
+    const listener=add.mock.calls.find(([event])=>event==='abort')?.[1];
+    expect(remove).toHaveBeenCalledWith('abort',listener);
+  });
+  it('bounds stream cancellation even when the underlying callback never resolves', async () => {
+    vi.useFakeTimers();
+    const cancel=vi.fn(()=>new Promise<void>(()=>{}));
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(stream(event({choices:[{delta:{content:'ok'},finish_reason:'stop'}]})+'data: [DONE]\n\n',false,cancel)));
+    const pending=callModel(options);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect((await pending).content).toBe('ok');expect(cancel).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('enforces the hard deadline while reading a mock stream that ignores fetch abort', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch',vi.fn().mockResolvedValue(stream('',false)));
+    const result=callModel({...options,params:{hardTimeoutMs:50}}).catch(error=>error);
+    await vi.advanceTimersByTimeAsync(50);
+    expect((await result).message).toContain('timed out after 50ms');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('does not reissue an idle generation request', async () => {
+    vi.useFakeTimers();
+    const fetch=vi.fn().mockImplementation(async()=>stream('',false));vi.stubGlobal('fetch',fetch);
+    const result=callModelWithRetry({...options,params:{hardTimeoutMs:600000}},3).catch(error=>error);
+    await vi.advanceTimersByTimeAsync(180000);
+    expect((await result).message).toContain('Model stream idle');expect(fetch).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('removes completed backoff listeners before the next attempt', async () => {
+    vi.useFakeTimers();
+    const controller=new AbortController(),add=vi.spyOn(controller.signal,'addEventListener'),remove=vi.spyOn(controller.signal,'removeEventListener');
+    vi.stubGlobal('fetch',vi.fn().mockRejectedValueOnce(new Error('temporary fixture failure'))
+      .mockResolvedValueOnce(stream('data: [DONE]\n\n')));
+    const result=callModelWithRetry({...options,signal:controller.signal},1);
+    await vi.advanceTimersByTimeAsync(1000);await result;
+    for(const [event,listener] of add.mock.calls)if(event==='abort')expect(remove).toHaveBeenCalledWith('abort',listener);
+  });
+});
+
 describe('OpenAI-compatible usage and reasoning streams', () => {
   it('honors the explicit 1,200-second limit over a 600-second model default', async () => {
     vi.useFakeTimers();

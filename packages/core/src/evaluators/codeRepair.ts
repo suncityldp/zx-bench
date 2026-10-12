@@ -350,6 +350,7 @@ function getLanguageDefPatterns(lang: string): RegExp[] {
  */
 function extractBlockFromLine(lines: string[], startIdx: number, language: string): string | null {
   const l = language.toLowerCase();
+  if (l === 'php') return extractPhpBracedBlock(lines.slice(startIdx).join('\n'));
   const useBraceMatching = ['javascript', 'typescript', 'js', 'ts', 'go', 'golang', 'java',
     'csharp', 'c#', 'c', 'cpp', 'c++', 'rust', 'rs', 'swift', 'kotlin', 'dart', 'scala'].includes(l);
   const useIndentMatching = ['python', 'py', 'ruby', 'rb', 'yaml', 'yml', 'coffeescript'].includes(l);
@@ -400,6 +401,35 @@ function extractBlockFromLine(lines: string[], startIdx: number, language: strin
     result.push(lines[i]);
   }
   return result.join('\n');
+}
+
+/** PHP blocks may contain blank lines, quoted braces, comments and heredocs. */
+function extractPhpBracedBlock(text: string): string | null {
+  let depth = 0, started = false, quote = '', comment = '', heredoc = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i + 1];
+    if (heredoc) {
+      if (i === 0 || text[i - 1] === '\n') {
+        const line = text.slice(i).split('\n', 1)[0];
+        if (new RegExp(`^\\s*${heredoc}(?:[;,]?\\s*)$`).test(line)) heredoc = '';
+        i += line.length;
+      }
+      continue;
+    }
+    if (comment === 'line') { if (ch === '\n') comment = ''; continue; }
+    if (comment === 'block') { if (ch === '*' && next === '/') { comment = ''; i++; } continue; }
+    if (quote) { if (ch === '\\') i++; else if (ch === quote) quote = ''; continue; }
+    if (ch === '/' && next === '*') { comment = 'block'; i++; continue; }
+    if (ch === '/' && next === '/' || ch === '#') { comment = 'line'; i += ch === '#' ? 0 : 1; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') { quote = ch; continue; }
+    if (text.startsWith('<<<', i)) {
+      const marker = text.slice(i).match(/^<<<\s*(?:'([A-Za-z_]\w*)'|"([A-Za-z_]\w*)"|([A-Za-z_]\w*))[^\n]*\n/);
+      if (marker) { heredoc = marker[1] ?? marker[2] ?? marker[3]; i += marker[0].length - 1; continue; }
+    }
+    if (ch === '{') { started = true; depth++; }
+    if (ch === '}' && started && --depth === 0) return text.slice(0, i + 1);
+  }
+  return null;
 }
 
 /** 提取连续缩进代码段 */

@@ -22,6 +22,7 @@ export interface CallModelOptions {
 
 /** 调用模型（OpenAI Chat Completions API 兼容） */
 export async function callModel(options: CallModelOptions): Promise<ModelResponse> {
+  options.signal?.throwIfAborted();
   if (options.stream) {
     return callModelStreaming(options);
   }
@@ -34,7 +35,7 @@ async function callModelNonStreaming(options: CallModelOptions): Promise<ModelRe
   const { config, params, systemPrompt, userPrompt, signal, constraints } = options;
   const startTime = Date.now();
 
-  const { controller, timeoutId, timeoutMs } = buildTimeout(constraints, params, signal);
+  const { controller, timeoutId, timeoutMs, cleanup } = buildTimeout(constraints, params, signal);
   const { messages, defaultMaxTokens } = buildMessages(config, params, systemPrompt, userPrompt, constraints, options.priorMessages);
 
   const body: Record<string, unknown> = {
@@ -70,6 +71,7 @@ async function callModelNonStreaming(options: CallModelOptions): Promise<ModelRe
     throw wrapTimeoutError(err, timeoutMs);
   } finally {
     clearTimeout(timeoutId);
+    cleanup();
   }
 }
 
@@ -79,7 +81,7 @@ async function callModelStreaming(options: CallModelOptions): Promise<ModelRespo
   const { config, params, systemPrompt, userPrompt, signal, constraints } = options;
   const requestStartTime = Date.now();
 
-  const { controller, timeoutId, timeoutMs } = buildTimeout(constraints, params, signal);
+  const { controller, timeoutId, timeoutMs, cleanup } = buildTimeout(constraints, params, signal);
   const { messages, defaultMaxTokens } = buildMessages(config, params, systemPrompt, userPrompt, constraints, options.priorMessages);
 
   const body: Record<string, unknown> = {
@@ -115,11 +117,12 @@ async function callModelStreaming(options: CallModelOptions): Promise<ModelRespo
       throw new Error(`Model API error ${response.status}: ${errorText}`);
     }
 
-    return await parseStreamResponse(response, requestStartTime, timeoutMs, constraints?.maxReasoningTokens);
+    return await parseStreamResponse(response, requestStartTime, timeoutMs, constraints?.maxReasoningTokens, controller.signal);
   } catch (err) {
     throw wrapTimeoutError(err, timeoutMs);
   } finally {
     clearTimeout(timeoutId);
+    cleanup();
   }
 }
 
@@ -141,7 +144,7 @@ async function fetchAndParseStream(
   if (!response.ok) {
     throw new Error(`Model API error ${response.status}: ${await response.text()}`);
   }
-  return parseStreamResponse(response, requestStartTime, timeoutMs, maxReasoningTokens);
+  return parseStreamResponse(response, requestStartTime, timeoutMs, maxReasoningTokens, signal);
 }
 
 /**
@@ -152,19 +155,27 @@ async function readWithIdleTimeout(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   idleMs: number,
   requestStartTime: number,
+  signal?: AbortSignal,
 ): Promise<{ done: boolean; value?: Uint8Array }> {
+  signal?.throwIfAborted();
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let abort: (() => void) | undefined;
+  const cancelled = new Promise<never>((_, reject) => {
+    abort = () => reject(signal?.reason ?? new DOMException('Model request cancelled', 'AbortError'));
+    signal?.addEventListener('abort', abort, { once: true });
+  });
   const idle = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      reject(new Error(
+      reject(Object.assign(new Error(
         `Model stream idle for ${idleMs}ms (elapsed ${Date.now() - requestStartTime}ms) — 后端已连接但停止推送`,
-      ));
+      ), { stopSource: 'stream_idle' }));
     }, idleMs);
   });
   try {
-    return await Promise.race([reader.read(), idle]);
+    return await Promise.race([reader.read(), idle, cancelled]);
   } finally {
     if (timer) clearTimeout(timer);
+    if (abort) signal?.removeEventListener('abort', abort);
   }
 }
 
@@ -173,6 +184,7 @@ async function parseStreamResponse(
   requestStartTime: number,
   timeoutMs: number,
   maxReasoningTokens?: number,
+  requestSignal?: AbortSignal,
 ): Promise<ModelResponse> {
   if (!response.body) {
     throw new Error('Streaming response has no body');
@@ -211,7 +223,7 @@ async function parseStreamResponse(
 
   try {
     while (true) {
-      const { done, value } = await readWithIdleTimeout(reader, idleMs, requestStartTime);
+      const { done, value } = await readWithIdleTimeout(reader, idleMs, requestStartTime, requestSignal);
       buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
       if (done) buffer += '\n'; // Process the last event even without a trailing newline.
       const lines = buffer.split('\n');
@@ -282,7 +294,11 @@ async function parseStreamResponse(
 
   } finally {
     // A locally capped or failed read must also stop server-side generation.
-    await reader.cancel().catch(() => {});
+    let cleanupTimer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([reader.cancel().catch(() => {}), new Promise<void>(resolve => {
+      cleanupTimer = setTimeout(resolve, 1000);
+    })]);
+    clearTimeout(cleanupTimer);
     reader.releaseLock();
   }
 
@@ -332,7 +348,7 @@ function buildTimeout(
   constraints: EvalConstraints | undefined,
   params: ModelParams,
   signal: AbortSignal | undefined,
-): { controller: AbortController; timeoutId: ReturnType<typeof setTimeout>; timeoutMs: number } {
+): { controller: AbortController; timeoutId: ReturnType<typeof setTimeout>; timeoutMs: number; cleanup: () => void } {
   // 两级预算语义（2026-09-16 修）：
   //   题级硬超时（requirements.hardSeconds，与题面「时限N秒」一致）比模型默认超时更具体 → 覆盖它；
   //   运行级 hardTimeLimitMs 是全局反拖尾止损 → 只做上限，永远封顶两者。
@@ -347,10 +363,10 @@ function buildTimeout(
     () => controller.abort(new Error(`Model call timed out after ${timeoutMs}ms`)),
     timeoutMs,
   );
-  if (signal) {
-    signal.addEventListener('abort', () => controller.abort(signal.reason), { once: true });
-  }
-  return { controller, timeoutId, timeoutMs };
+  const abort = () => controller.abort(signal?.reason);
+  if (signal?.aborted) abort();
+  else signal?.addEventListener('abort', abort, { once: true });
+  return { controller, timeoutId, timeoutMs, cleanup: () => signal?.removeEventListener('abort', abort) };
 }
 
 function buildMessages(
@@ -521,6 +537,7 @@ export async function callModelWithRetry(
       // 重试大概率仍会超时，只会成倍浪费时间和占用本地模型队列。
       const isTimeout =
         (err as Error)?.name === 'AbortError'
+        || (err as Error & {stopSource?:string})?.stopSource === 'stream_idle'
         || /timed out|timeout/i.test((err as Error)?.message || '');
       if (isTimeout) {
         throw err;
@@ -528,9 +545,10 @@ export async function callModelWithRetry(
       if (attempt < maxRetries) {
         const delay = Math.min(1000 * 2 ** attempt, 10000);
         await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(resolve, delay);
+          const timeout = setTimeout(() => { options.signal?.removeEventListener('abort', abort); resolve(); }, delay);
           const abort = () => {
             clearTimeout(timeout);
+            options.signal?.removeEventListener('abort', abort);
             reject(options.signal?.reason ?? new DOMException('Model retry cancelled by evaluation controller', 'AbortError'));
           };
           options.signal?.addEventListener('abort', abort, { once: true });

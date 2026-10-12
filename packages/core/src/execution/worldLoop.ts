@@ -93,12 +93,24 @@ export function extractWorldFinalMessage(text: string, answerFirstRequested = fa
 
 /** Recover a final reply the old parser dropped; raw calls and state stay intact. */
 export function normalizeWorldFinalTrace(trace: WorldTrace): WorldTrace {
+  if (trace.toolProtocol === 'native') return trace;
   const last=trace.turns?.at(-1);
   const finalMessage=last?extractWorldFinalMessage(last.assistantRaw,trace.answerFirstRequested):trace.finalMessage;
   if(trace.answerFirstRequested && trace.terminationReason==='no_action' && last
       && !last.calls.length && !trace.turnErrors.length && finalMessage.trim()
       && last.finishReason!=='length') return {...trace,originalTerminationReason:trace.terminationReason,finalMessage,terminationReason:'completed'};
   return trace;
+}
+
+/** All graders use the same completed final-turn boundary for native tools. */
+export function verifiedWorldFinalMessage(trace: WorldTrace): string {
+  const last = trace.turns?.at(-1);
+  if (last?.interrupted) return '';
+  if (trace.toolProtocol === 'native') {
+    if (trace.terminationReason !== 'completed' || trace.turnErrors?.length || last?.calls.length) return '';
+    return (last?.assistantRaw ?? trace.finalMessage).trim();
+  }
+  return last ? extractWorldFinalMessage(last.assistantRaw, trace.answerFirstRequested) : trace.finalMessage;
 }
 
 function strictCalls(text: string): Array<{ tool: string; args: Record<string, unknown> }> {
@@ -137,7 +149,7 @@ export async function runWorldLoop(options: {
   let terminationReason: NonNullable<WorldTrace['terminationReason']> = 'turn_limit';
   let pendingUser = task;
   const systemPrompt = [
-    '你必须通过下面的模拟工具完成用户任务。工具会真实运行并保留状态。',
+    '按用户任务选择是否使用下面的模拟工具；任务要求直接答复、澄清或拒绝而无须操作时，不要为了使用工具而调用工具。实际调用会真实运行并保留状态。',
     '每个工具调用单独一行：CALL <工具名> {"参数名":值}；面向用户的答复为 SAY <内容>。',
     ...(options.constraints?.answerFirst ? ['本次先答约束也允许使用 ANSWER: <内容> 交付最终答复；该答复所在轮不能同时调用工具。'] : []),
     'SAY 开始最终答复，正文可以有多行；所有工具调用必须在 SAY 之前。',

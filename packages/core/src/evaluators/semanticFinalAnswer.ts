@@ -1,6 +1,6 @@
 import type { CriterionResult, ModelConfig, ModelResponse, OutputMetadata, Scenario, ScenarioResult, SemanticFinalReview } from '@zxbench/types';
 import { callModel } from '../model/caller.js';
-import { extractWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from '../execution/worldLoop.js';
+import { verifiedWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from '../execution/worldLoop.js';
 import { scoreWorldCheckpoints } from './worldCheckpoints.js';
 
 export const SEMANTIC_FINAL_REVIEW_VERSION = 'world-final-semantics-v1';
@@ -8,12 +8,6 @@ export const SEMANTIC_FINAL_REVIEW_VERSION = 'world-final-semantics-v1';
 interface MeaningCheck {
   id: string;
   requiredMeaning: string | string[];
-}
-
-function finalAnswer(trace: WorldTrace): string {
-  return trace.turns?.length
-    ? extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '',trace.answerFirstRequested)
-    : trace.finalMessage;
 }
 
 /** Only literal misses in positive final-answer checks may be reconsidered. */
@@ -35,7 +29,7 @@ export function semanticFinalReviewCandidate(
 
   const failed = criteria.filter(c => c.status !== 'pass');
   if (!failed.length || failed.some(c => !/^world_final_(?:any_)?\d+$/.test(c.id))) return null;
-  const answer = finalAnswer(trace);
+  const answer = verifiedWorldFinalMessage(trace);
   if (!answer.trim()) return null;
   const checks: MeaningCheck[] = [];
   for (const criterion of failed) {

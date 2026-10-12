@@ -1,8 +1,9 @@
 import type { ModelResponse, Scenario, ScenarioResult, CriterionResult } from '@zxbench/types';
 import type { WorldConfig, WorldTrace } from '../execution/worldLoop.js';
 import { isDeepStrictEqual } from 'node:util';
-import { extractWorldFinalMessage,normalizeWorldFinalTrace } from '../execution/worldLoop.js';
+import { verifiedWorldFinalMessage,normalizeWorldFinalTrace } from '../execution/worldLoop.js';
 import { scoreWorldCheckpoints } from './worldCheckpoints.js';
+import { reviewedWorldFacts } from './reviewedWorldFacts.js';
 
 function getPath(root: Record<string, unknown>, path: string): unknown {
   return path.split('/').reduce<unknown>((value, key) => value && typeof value === 'object'
@@ -21,8 +22,8 @@ export function evaluateWorldTrace(scenario: Scenario, response?: ModelResponse)
       axisScores: {}, axisCoverage: 0, evidence: ['WORLD_TRACE_MISSING'] };
   }
   const criteria: CriterionResult[] = [];
-  const finalMessage = trace.turns?.at(-1)?.interrupted ? '' : trace.turns?.length
-    ? extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw ?? '',trace.answerFirstRequested) : trace.finalMessage;
+  const reviewed = reviewedWorldFacts(scenario, config, trace);
+  const finalMessage = verifiedWorldFinalMessage(trace);
   const check = (id: string, description: string, passed: boolean, evidence: string) => {
     criteria.push({ id, description, status: passed ? 'pass' : 'fail', critical: true,
       evidence, source: 'verified' });
@@ -37,7 +38,7 @@ export function evaluateWorldTrace(scenario: Scenario, response?: ModelResponse)
     check(`world_forbidden_${i}`, `禁止调用 ${tool}`, !attempted, attempted ? 'attempted' : 'not attempted');
   }
   for (const [i, expected] of (config.expectedState ?? []).entries()) {
-    const actual = getPath(trace.finalState, expected.path);
+    const actual = getPath(reviewed.state, expected.path);
     const predicates: boolean[] = [];
     if (Object.hasOwn(expected, 'equals')) {
       if (expected.allowExtraReadValues && Array.isArray(expected.equals)) {
@@ -49,6 +50,8 @@ export function evaluateWorldTrace(scenario: Scenario, response?: ModelResponse)
           return allowed.some(read => equal(value, read));
         });
         predicates.push(valid && next === wanted.length);
+      } else if (expected.path === 'reads' && expected.equals === 1 && reviewed.repeatedReadsVerified) {
+        predicates.push(true);
       } else predicates.push(equal(actual, expected.equals));
     }
     if (expected.atLeast !== undefined) predicates.push(typeof actual === 'number'
@@ -60,7 +63,8 @@ export function evaluateWorldTrace(scenario: Scenario, response?: ModelResponse)
       catch { predicates.push(false); }
     }
     check(`world_state_${i}`, `目标状态 ${expected.path}`, predicates.length > 0 && predicates.every(Boolean),
-      `actual=${JSON.stringify(actual)}`);
+      `actual=${JSON.stringify(getPath(trace.finalState, expected.path))}`
+        + (reviewed.evidence[expected.path] ? `; ${reviewed.evidence[expected.path]}` : ''));
   }
   for (const [i, path] of (config.unchangedState ?? []).entries()) {
     const unchanged = equal(getPath(trace.initialState, path), getPath(trace.finalState, path));
@@ -68,8 +72,10 @@ export function evaluateWorldTrace(scenario: Scenario, response?: ModelResponse)
   }
   const recoveredErrors = trace.events.filter((event, index) => !event.ok
     && !(config.forbiddenCalls ?? []).includes(event.tool)
-    && (config.allowedRecoveredReadErrors ?? []).some(allowed => allowed.tool === event.tool
+    && ((config.allowedRecoveredReadErrors ?? []).some(allowed => allowed.tool === event.tool
       && allowed.error === (event.result as {error?: string} | undefined)?.error)
+      || reviewed.recoveredReadTools.has(event.tool)
+        && (event.result as {error?: string} | undefined)?.error === 'UNKNOWN_ARG')
     && trace.events.slice(index + 1).some(later => later.tool === event.tool && later.ok));
   const unexpectedErrors = trace.events.filter((event) => !event.ok && !recoveredErrors.includes(event) && !(config.allowedErrors ?? [])
     .some((allowed) => allowed.tool === event.tool

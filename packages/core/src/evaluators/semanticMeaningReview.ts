@@ -1,6 +1,6 @@
 import type { ModelConfig, ModelResponse, OutputMetadata, Scenario, ScenarioResult, SemanticFinalReview, SemanticReviewRouting } from '@zxbench/types';
 import { callModel } from '../model/caller.js';
-import { extractWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from '../execution/worldLoop.js';
+import { verifiedWorldFinalMessage, normalizeWorldFinalTrace, type WorldConfig, type WorldTrace } from '../execution/worldLoop.js';
 import { parseSemanticVerdict, applySemanticFinalReview } from './semanticFinalAnswer.js';
 
 export const MEANING_REVIEW_POLICY = 'bounded-meaning-v2' as const;
@@ -40,7 +40,7 @@ export function inspectMeaningReview(s:Scenario,response:ModelResponse,metadata:
     if(!trace)return skip('missing_execution_trace');
     if(trace.turns?.at(-1)?.interrupted||trace.turnErrors?.length
       || (trace.terminationReason&&trace.terminationReason!=='completed'))return skip('incomplete_execution_or_protocol_error');
-    answer=trace.turns?.length?extractWorldFinalMessage(trace.turns.at(-1)?.assistantRaw??'',trace.answerFirstRequested):trace.finalMessage;
+    answer=verifiedWorldFinalMessage(trace);
     if(!result.criterionResults?.length)return skip('missing_verified_criteria');
     for(const c of result.criterionResults.filter(c=>c.status!=='pass')){
       if(!positiveId.test(c.id)||c.evidence?.startsWith('contradictory')){
@@ -81,11 +81,14 @@ export function protectedFactMismatch(meaning:string|string[],quote:string):bool
 export function quotePreservesContext(answer:string,quote:string):boolean {
   if(!quote)return false;
   const boundary=/[。！？!?；;\n，,]/;
+  // A sentence-ending ASCII period is a boundary; decimal and URL dots are not.
+  const isBoundary=(at:number)=>boundary.test(answer[at]??'')
+    || (answer[at]==='.'&&(at===answer.length-1||/\s/.test(answer[at+1])));
   const stance=/(?:不(?:会|能|可|应|得|是)|未(?:获|经|曾|能|完成|成功|执行)|无法|没有|并非|尚未|拒绝|若|如果|假如|仅当|只有|假设|声称|谎称|不实|并未发生|\b(?:not|never|unless|if|denied|alleged)\b)/i;
   for(let at=answer.indexOf(quote);at>=0;at=answer.indexOf(quote,at+1)){
     let start=at,end=at+quote.length;
-    while(start>0&&!boundary.test(answer[start-1]))start--;
-    while(end<answer.length&&!boundary.test(answer[end]))end++;
+    while(start>0&&!isBoundary(start-1))start--;
+    if(!isBoundary(end-1))while(end<answer.length&&!isBoundary(end))end++;
     if(!stance.test(answer.slice(start,at))&&!stance.test(answer.slice(at+quote.length,end)))return true;
   }
   return false;
