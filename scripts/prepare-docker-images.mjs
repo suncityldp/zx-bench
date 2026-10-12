@@ -42,14 +42,32 @@ export function probeImageStore(run = dockerCommand) {
   return rows.some(row => Array.isArray(row) && row.includes('io.containerd.snapshotter.v1')) ? 'containerd' : 'classic';
 }
 
-export function planPreparation(contracts, report, manifest, store) {
+function cachedIdentities(contracts, report, manifest, run) {
+  const identities = new Map();
+  for (const contract of contracts) {
+    const checked = report.images.find(row => row.image === contract.image && row.expectedImageId === contract.expectedImageId);
+    if (checked?.status === 'ready') continue;
+    const wanted = contract.expectedImageId ?? manifest.images.find(row => row.image === contract.image)?.imageId;
+    if (!/^sha256:[a-f0-9]{64}$/.test(wanted ?? '') || identities.has(wanted)) continue;
+    const result = run(['image', 'inspect', wanted]);
+    if (result.error || result.status !== 0) continue;
+    let image;
+    try { image = JSON.parse(result.stdout)?.[0]; } catch { continue; }
+    if (image?.Id === wanted && image.Os === 'linux' && image.Architecture === report.daemon.architecture) identities.set(wanted, image);
+  }
+  return identities;
+}
+
+export function planPreparation(contracts, report, manifest, store, cached = new Map()) {
   validateRuntimeManifest(manifest);
   const entries = contracts.map(contract => {
     const checked = report.images.find(row => row.image === contract.image && row.expectedImageId === contract.expectedImageId);
     const spec = manifest.images.find(row => row.image === contract.image);
+    const wanted = contract.expectedImageId ?? spec?.imageId;
     const entry = { ...contract, status: checked?.status ?? report.daemon.status, action: 'blocked', spec };
     if (report.daemon.status !== 'ready') entry.reason = 'Docker Linux engine is not ready; start it before preparing images';
     else if (checked?.status === 'ready') entry.action = 'skip';
+    else if (cached.has(wanted)) { entry.action = 'retag'; entry.cachedReference = wanted; }
     else if (!spec || (contract.expectedImageId && contract.expectedImageId !== spec.imageId)) entry.reason = 'No published source for this frozen image contract; supply the matching release manifest';
     else if (!['unavailable', 'id_mismatch'].includes(checked?.status)) entry.reason = 'Image platform or inspection is unsupported';
     else if (checked?.actualImageId === spec.configDigest && spec.imageId !== spec.configDigest) entry.reason = 'IMAGE_STORE_IDENTITY: configuration exists, but the frozen ID is an OCI target; use a compatible containerd image store';
@@ -111,16 +129,23 @@ export async function prepareDockerImages({ contracts, manifest, cacheDir, check
   const archive = deps.archive ?? ((source, directory) => ensureArchive(source, directory));
   const log = deps.log ?? console.log;
   const store = probeImageStore(run);
-  const initial = planPreparation(contracts, checkDockerImages(contracts, run), manifest, store);
+  const snapshot = rows => {
+    const report = checkDockerImages(rows, run);
+    return planPreparation(rows, report, manifest, store, cachedIdentities(rows, report, manifest, run));
+  };
+  const initial = snapshot(contracts);
   if (checkOnly) return initial;
   if (initial.blocked) throw new Error(JSON.stringify(initial.entries.filter(row => row.action === 'blocked')));
   for (const row of initial.entries) {
     // A concurrent installer may have completed this image since the initial plan.
-    const current = planPreparation([row], checkDockerImages([row], run), manifest, store).entries[0];
+    const current = snapshot([row]).entries[0];
     if (current.action === 'skip') { log(`[ready] ${row.image}; no download`); continue; }
     if (current.action === 'blocked') throw new Error(current.reason);
     const spec = row.spec;
-    if (current.action === 'pull') {
+    if (current.action === 'retag') {
+      log(`[retag] ${row.image}; frozen content already local, no download`);
+      await command(['image', 'tag', current.cachedReference, row.image]);
+    } else if (current.action === 'pull') {
       const ref = `${spec.source.repository}@${spec.source.digest}`;
       log(`[pull] ${row.image} by frozen digest`);
       await command(['pull', ref]);
@@ -132,10 +157,10 @@ export async function prepareDockerImages({ contracts, manifest, cacheDir, check
       const path = await archive(spec.source, cacheDir);
       await command(['image', 'load', '--input', path]);
     }
-    const verified = checkDockerImages([{ image: row.image, expectedImageId: spec.imageId, scenarioIds: [] }], run);
+    const verified = checkDockerImages([{ image: row.image, expectedImageId: current.cachedReference ?? spec.imageId, scenarioIds: [] }], run);
     if (!verified.ok) throw new Error(`Prepared image does not satisfy release ID/platform: ${JSON.stringify(verified.images)}; check Docker image store mode`);
   }
-  return planPreparation(contracts, checkDockerImages(contracts, run), manifest, store);
+  return snapshot(contracts);
 }
 
 export async function main(args = process.argv.slice(2)) {

@@ -113,6 +113,8 @@ pnpm runtime:check
 
 The first command is a read-only plan. The second skips ready images, pulls public Python/Node/GCC images by frozen digest, verifies them before restoring the required tags, and downloads custom images as separate release assets. Archives are hashed and size-checked before `docker load`; actual image IDs are verified afterward. Verified archives are cached in `tmp/runtime`. **No complete image bundle, historical-tag search or private Harbor account is required.**
 
+If the frozen image content is already local and only its tag is missing or points elsewhere, the plan shows `[retag]` and restores the tag without a registry request or archive download.
+
 Archive downloads honor `HTTP_PROXY` / `HTTPS_PROXY` / `NO_PROXY` and their lowercase forms. Docker pulls use the engine's own proxy settings. The tool does not print proxy URLs/credentials or disable TLS verification.
 
 For a smaller evaluation, prepare its actual scope. Selection flags can be repeated:

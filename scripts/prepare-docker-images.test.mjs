@@ -50,6 +50,16 @@ test('pulls by immutable digest, validates before retagging, and skips on subseq
   assert.equal(host.mutations.length, 2);
 });
 
+test('restores a missing/wrong tag from a cached frozen ID without any registry or archive download', async () => {
+  const host = makeHost('wrong');
+  host.state.set(id, id);
+  host.archive = async () => { throw new Error('Archive must not be downloaded'); };
+  const plan = await prepareDockerImages({ contracts, manifest, checkOnly: true }, host);
+  assert.equal(plan.entries[0].action, 'retag');
+  assert.equal((await prepareDockerImages({ contracts, manifest }, host)).ready, true);
+  assert.deepEqual(host.mutations, [['image', 'tag', id, 'python:test']]);
+});
+
 test('classic store, config-versus-index mismatch and unknown frozen versions fail before network actions', async () => {
   for (const host of [makeHost(undefined, 'classic'), makeHost(config)]) {
     await assert.rejects(prepareDockerImages({ contracts, manifest }, host), /IMAGE_STORE_IDENTITY/);

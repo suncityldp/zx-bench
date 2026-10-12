@@ -6,6 +6,7 @@ New installations can prepare only the images their selected questions need. Pub
 
 - `pnpm runtime:prepare --check` produces a read-only plan. `pnpm runtime:prepare` applies it without interactive prompts, with optional repeated `--dimension`, `--scenario` or `--image` filters and an offline `--cache-dir`.
 - A pulled public image is verified before its required local tag is restored. Archives must match the release checksum and size before loading; loaded images must match the expected identity and platform afterward.
+- Missing or drifted tags are restored directly from an already-cached frozen ID before any registry or archive download is considered.
 - Archive downloads respect HTTP_PROXY/HTTPS_PROXY/NO_PROXY on supported Node versions, including Node 22, without changing global proxy settings or disabling TLS checks.
 - Classic/config-ID and containerd/OCI-target-ID differences are diagnosed before unnecessary downloads. The installer does not change Docker's global store, accept another frozen ID or rewrite question hashes.
 - Explicit task image contracts are checked before candidate generation. A missing or mismatched image pauses an evaluation using the existing `DOCKER_NOT_READY` recovery path and does not consume a candidate request. Docker sessions launch using the inspected immutable ID, preventing a concurrent tag change from altering their execution image.
