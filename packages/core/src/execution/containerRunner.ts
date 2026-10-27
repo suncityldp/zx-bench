@@ -1,3 +1,4 @@
+import {inspectContainerState} from './inspectContainerState.js';
 // ============================================================
 // 容器执行后端（Phase 2）：用 Docker 隔离执行不可信代码。
 // 替代 host fork + new AsyncFunction（安全缺陷：候选代码可提前
@@ -129,6 +130,10 @@ export interface ContainerRunResult {
   containerName?: string;
   /** Trusted control-plane observation, never derived from candidate stdout/stderr. */
   infrastructureError?: string;
+  inspectQueryFailure?: boolean;
+  executionError?: boolean;
+  inspectDiagnostics?: Omit<Awaited<ReturnType<typeof inspectContainerState>>, 'result'>;
+  infrastructureEvidence?: { stage: 'inspect'; runStatus: number | null; inspectStatus: number | null; reason: 'not-started' | 'invalid-state'; dockerError: DockerErrorCategory; untrustedRunDiagnostic: DockerErrorCategory };
   outputLimitExceeded?: boolean;
   success: boolean;
   stdout: string;
@@ -415,7 +420,29 @@ async function buildLocalImage(image: string, dockerfile: string): Promise<boole
 }
 
 /** 确保镜像就绪：本地缓存 → 内置自建 → docker pull */
+export function resolveContainerImage(image: string): string {
+  return Object.prototype.hasOwnProperty.call(LOCAL_IMAGE_RECOVERY_ALIASES, image)
+    ? LOCAL_IMAGE_RECOVERY_ALIASES[image] : image;
+}
+
+// Fixed vocabulary: retain useful daemon diagnostics without credentials, paths,
+// container names or arbitrary candidate-controlled text.
+type DockerErrorCategory = 'mount-error' | 'access-denied' | 'container-missing' | 'daemon-connection' | 'other-docker-error' | 'no-docker-error';
+
+function diagnosticStatus(status: unknown): number | null {
+  return typeof status === 'number' && Number.isSafeInteger(status) ? status : null;
+}
+
+export function dockerErrorCategory(text: string): DockerErrorCategory {
+  if (/mount|bind source/i.test(text)) return 'mount-error';
+  if (/permission denied|access is denied/i.test(text)) return 'access-denied';
+  if (/no such (object|container)/i.test(text)) return 'container-missing';
+  if (/connect|daemon|pipe/i.test(text)) return 'daemon-connection';
+  return text ? 'other-docker-error' : 'no-docker-error';
+}
+
 async function ensureImage(image: string): Promise<void> {
+  image = resolveContainerImage(image);
   const inspect = await execAsync('docker', ['image', 'inspect', image], { timeout: 15000 });
   if (inspect.status === 0) return;
 
@@ -437,7 +464,7 @@ async function ensureImage(image: string): Promise<void> {
  */
 export async function ensureContainerImage(image: string): Promise<void> {
   await ensureImage(image);
-  const inspect = await execAsync('docker', ['image', 'inspect', image], { timeout: 15_000 });
+  const inspect = await execAsync('docker', ['image', 'inspect', resolveContainerImage(image)], { timeout: 15_000 });
   if (inspect.status !== 0) {
     throw new Error(`Required container image is unavailable after recovery: ${image}`);
   }
@@ -452,7 +479,7 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
     seccompUnconfined = false, env = {}, mounts = [],
     readOnlyRoot = false, localImageOnly = false, maxOutputBytes = 8 * 1024 * 1024, tmpfsSizeMb = 32, tmpfsExec = false,
   } = options;
-  const runtimeImage = LOCAL_IMAGE_RECOVERY_ALIASES[image] ?? image;
+  const runtimeImage = resolveContainerImage(image);
   if(!Number.isInteger(tmpfsSizeMb)||tmpfsSizeMb<16||tmpfsSizeMb>512)throw new Error('tmpfsSizeMb must be an integer from 16 to 512');
 
   const startedAt = Date.now();
@@ -517,6 +544,9 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
     args.push(runtimeImage, ...command);
     if (T) console.log('[CT] docker run 开始: ' + args.join(' ').slice(0, 220));
 
+    // Candidate CLI allowance plus one bounded post-run control-plane allowance.
+    const runStartedAt = performance.now();
+    const controlDeadline = runStartedAt + timeoutMs + 5000 + Math.min(8000, timeoutMs);
     const res = await execAsync('docker', args, { timeout: timeoutMs + 5000, maxBuffer: maxOutputBytes });
     if (T) console.log('[CT] docker run 返回 status=' + res.status + ' err=' + (res.error && res.error.code));
 
@@ -527,20 +557,31 @@ export async function runInContainer(options: ContainerRunOptions): Promise<Cont
     // Never retry user code automatically after a possibly partial execution.
     const daemonLost = exitCode !== 0 && !(await probeDockerDaemon());
     let infrastructureError = daemonLost ? 'Docker daemon unavailable' : undefined;
+    let infrastructureEvidence: ContainerRunResult['infrastructureEvidence'];
+    let inspectDiagnostics: ContainerRunResult['inspectDiagnostics'];
+    let inspectQueryFailure = false;
+    // untrustedRunDiagnostic is a fixed-category troubleshooting hint only.
+    // Populate it only AFTER independent control-plane failure is established;
+    // candidate stderr must never decide infrastructureError or score exemption.
     // Inspect daemon-owned state, not text printed by the candidate. A candidate
     // can exit(125) or print "Docker unavailable" without making itself unmeasured.
     if (localImageOnly && !daemonLost && !timedOut && res.error?.code !== 'ENOBUFS') {
-      const inspected = await execAsync('docker', ['inspect', '--format', '{{json .State}}', containerName], { timeout: 8000 });
-      try {
-        const state = JSON.parse(inspected.stdout);
-        if (inspected.status !== 0 || state.Error || !state.StartedAt || state.StartedAt.startsWith('0001-')) {
-          infrastructureError = 'Container did not start successfully';
-        }
-      } catch { infrastructureError = 'Container control-plane state unavailable'; }
+      const checked = await inspectContainerState(containerName, Math.min(8000, timeoutMs, Math.max(0, controlDeadline-performance.now())));
+      inspectDiagnostics = {available:checked.available,kind:checked.kind,history:checked.history,attempts:checked.attempts,budgetMs:checked.budgetMs,elapsedMs:checked.elapsedMs,budgetExceeded:checked.budgetExceeded};
+      if (!checked.available) {
+        inspectQueryFailure = checked.kind !== 'state-conflict';
+        infrastructureError = inspectQueryFailure ? 'Container control-plane state unavailable' : 'Container did not start successfully';
+        infrastructureEvidence = { stage:'inspect',runStatus:diagnosticStatus(res.status),inspectStatus:diagnosticStatus(checked.result.status),reason:inspectQueryFailure?'invalid-state':'not-started',dockerError:dockerErrorCategory(checked.kind==='state-conflict'?String(JSON.parse(checked.result.stdout).Error||''):checked.result.stderr||''),untrustedRunDiagnostic:dockerErrorCategory(res.stderr||'') };
+      }
     }
+
     return {
       success: exitCode === 0 && !res.error && !infrastructureError,
       infrastructureError,
+      infrastructureEvidence,
+      inspectDiagnostics,
+      inspectQueryFailure,
+      executionError: !!res.error,
       outputLimitExceeded: res.error?.code === 'ENOBUFS',
       containerName,
       stdout: (res.stdout || '').trim(),

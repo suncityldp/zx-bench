@@ -142,12 +142,36 @@ export function compareQuickJsObservations(stdout: string, expected: QuickJsExpe
   } catch {return false;}
 }
 
+/** Only v1 complete observer records are eligible; IDs stay host-bound to this invocation. */
+export function sufficientQuickJsV1Evidence(stdout:string,c:QuickJsObservationCase,protocol:QuickJsProtocol):boolean {
+ if(protocol!=='quickjs-observation-v1'||Buffer.byteLength(stdout)>65536)return false;
+ const keys=(o:Record<string,any>,allowed:string[])=>Object.keys(o).every(k=>allowed.includes(k));
+ try {
+  const r=JSON.parse(stdout);if(!record(r)||r.protocol!==protocol||!Array.isArray(r.observations))return false;
+  if(r.status!=='ok')return keys(r,['protocol','status','phase','observations'])&&r.observations.length===0&&(
+    (r.phase===undefined&&['candidate_load_error','execution_budget_exceeded'].includes(r.status))||
+    (r.phase==='load'&&['execution_budget_exceeded','entrypoint_not_function','async_not_supported','imports_not_supported'].includes(r.status))||
+    (r.phase==='call'&&['execution_budget_exceeded','engine_resource_error','async_not_supported','imports_not_supported'].includes(r.status)));
+  if(!keys(r,['protocol','status','observations'])||r.observations.length!==c.calls.length)return false;
+  return r.observations.every((o:unknown,i:number)=>{
+   if(!record(o)||!Array.isArray(o.argumentsAfter)||o.argumentsAfter.length!==c.calls[i].length||!validObservationJson(o.argumentsAfter))return false;
+   if(o.kind==='throw')return keys(o,['kind','errorType','argumentsAfter'])&&['RangeError','TypeError','ReferenceError','SyntaxError','URIError','EvalError','Error','ThrownValue'].includes(o.errorType);
+   return o.kind==='return'&&keys(o,['kind','sameArgument','valueType','value','argumentsAfter'])&&Array.isArray(o.sameArgument)&&o.sameArgument.length===c.calls[i].length&&o.sameArgument.every((v:unknown)=>typeof v==='boolean')&&(
+    (o.valueType==='undefined'&&!own(o,'value'))||(o.valueType==='json'&&own(o,'value')&&validObservationJson(o.value)));
+  });
+ }catch{return false;}
+}
+
 export async function runQuickJsObservationSuite(code:string,language:'javascript'|'typescript',contract:QuickJsObservationContract) {
   if(!validQuickJsObservationContract(contract))throw Error('Invalid observation contract');
   const details=[];
   for(const c of contract.cases){
     if(!Array.isArray(c.calls)||!c.calls.length||c.calls.length>100||c.calls.length!==c.expected.length)throw Error('Invalid observation case');
     const r=await runInContainer(quickJsObservationOptions(code,language,contract.entrypoint,c.calls,1000,contract.protocol));
+    // Explicit adapter-only degradation: never syntax, execution errors or conflicting state.
+    if(r.inspectQueryFailure && r.infrastructureError && r.exitCode===0 && !r.executionError && !r.timedOut && !r.outputLimitExceeded && sufficientQuickJsV1Evidence(r.stdout,c,contract.protocol)) {
+      r.infrastructureError=undefined;r.success=true;
+    }
     // This channel belongs to the independent observer, not the candidate.
     // A failed self-check before candidate load cannot count as model failure.
     if(r.success&&!r.timedOut&&!r.outputLimitExceeded&&!r.infrastructureError){
@@ -182,14 +206,21 @@ export async function runQuickJsScoringSuite(code:string,language:'javascript'|'
     files:[{path:'syntax.mjs',content:options.files!.find(f=>f.path==='candidate.js')!.content}]});
   let infrastructureError=syntax.infrastructureError;
   const details:TestDetail[]=[];
+  if(infrastructureError)details.push({testId:'syntax',testType:'infrastructure',passed:false,
+    error:JSON.stringify({phase:'syntax',...syntax.infrastructureEvidence,inspect:syntax.inspectDiagnostics})});
   if(!infrastructureError){
     const observations=syntax.success?await runQuickJsObservationSuite(code,language,contract):undefined;
     infrastructureError=observations?.infrastructureError;
     for(const [i,c] of contract.cases.entries()){
       const r=observations?.details[i]??syntax;
-      if(!r||r.infrastructureError)break;
+      if(!r)break;
+      if(r.infrastructureError){
+        details.push({testId:c.id,testType:'infrastructure',passed:false,
+          error:JSON.stringify({phase:'observation',...r.infrastructureEvidence,inspect:r.inspectDiagnostics})});
+        break;
+      }
       details.push({testId:c.id,testType:'hidden',passed:observations?.details[i]?.passed??false,
-        stdout:r.stdout,stderr:r.stderr,actualOutput:r.stdout,exitCode:r.exitCode,timedOut:r.timedOut,duration:r.durationMs});
+        error:r.inspectQueryFailure?JSON.stringify({status:'degraded-observer-evidence',phase:'observation',inspect:r.inspectDiagnostics}):undefined,stdout:r.stdout,stderr:r.stderr,actualOutput:r.stdout,exitCode:r.exitCode,timedOut:r.timedOut,duration:r.durationMs});
     }
   }
   return {compiled:syntax.success,compileError:syntax.success?undefined:syntax.stderr,infrastructureError,details,total:contract.cases.length,passed:details.filter(d=>d.passed).length};

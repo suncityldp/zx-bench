@@ -40,3 +40,26 @@ describe('Docker connection failures after readiness', () => {
     expect(result.exitCode).toBe(1);
   });
 });
+
+it.each(['mount','inspect'])('retains safe %s failure evidence',async(stage)=>{
+ vi.mocked(execAsync).mockImplementation(async(_cmd,args)=>({status:args[0]==='run'?125:args[0]==='inspect'&&stage==='inspect'?1:0,
+ stdout:args[0]==='inspect'&&stage==='mount'?JSON.stringify({StartedAt:'0001-',Error:'invalid mount /private/token=secret'}):'',
+ stderr:args[0]==='inspect'?'No such container /private/secret':''}));
+ const r=await runInContainer({image:'fixture',command:['false'],localImageOnly:true});
+ expect(r.infrastructureError).toBeTruthy();
+ expect(r.infrastructureEvidence).toMatchObject({runStatus:125,dockerError:stage==='mount'?'mount-error':'container-missing'});
+ expect(JSON.stringify(r.infrastructureEvidence)).not.toMatch(/private|secret/);
+ expect(vi.mocked(execAsync).mock.calls.filter(c=>c[1][0]==='run')).toHaveLength(1);
+});
+it('localImageOnly never builds or pulls a missing image',async()=>{
+ vi.mocked(execAsync).mockImplementation(async(_cmd,args)=>({status:args[0]==='image'?1:0,stdout:'',stderr:''}));
+ const r=await runInContainer({image:'missing',command:['true'],localImageOnly:true});
+ expect(r.infrastructureError).toBeTruthy();
+ expect(vi.mocked(execAsync).mock.calls.some(c=>['pull','build','run'].includes(c[1][0]))).toBe(false);
+});
+it.each([NaN,Infinity,1.5,'secret-status',null])('normalizes malformed diagnostic status %s',async status=>{
+ vi.mocked(execAsync).mockImplementation(async(_cmd,args)=>({status:args[0]==='run'||args[0]==='inspect'?status:0,stdout:'',stderr:'No such container'} as any));
+ const result=await runInContainer({image:'fixture',command:['false'],localImageOnly:true});
+ expect(result.infrastructureEvidence).toMatchObject({runStatus:null,inspectStatus:null});
+ expect(JSON.stringify(result.infrastructureEvidence)).not.toContain('secret-status');
+});

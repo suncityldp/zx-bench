@@ -1,7 +1,7 @@
 import {expect,it,vi} from 'vitest';
 import {readFileSync} from 'node:fs';
 import {QUICKJS_OBSERVATION_PILOTS} from '../evaluationLab/quickJsObservationGold.js';
-import {validObservationJson,validQuickJsObservationContract,quickJsObservationOptions,runQuickJsObservationSuite,compareQuickJsObservations} from './quickJsObservation.js';
+import {validObservationJson,validQuickJsObservationContract,quickJsObservationOptions,runQuickJsObservationSuite,runQuickJsScoringSuite,compareQuickJsObservations} from './quickJsObservation.js';
 import {runInContainer} from './containerRunner.js';
 vi.mock('./containerRunner.js',()=>({runInContainer:vi.fn(),CONTAINER_IMAGES:{javascript:'node:20-alpine'}}));
 it('binds every migrated observation contract to original test IDs and discloses the restricted runtime',()=>{
@@ -17,6 +17,20 @@ it('binds every migrated observation contract to original test IDs and discloses
   }
 });
 const contract=()=>({protocol:'quickjs-observation-v1' as const,entrypoint:'target',cases:[{id:'only',calls:[[[1,2]]],expected:[{outcome:{kind:'return' as const,value:[1,2]},sameArgument:[{index:0,same:true}]}]}]});
+it.each(['syntax','observation'])('retains trusted failure evidence for %s without candidate output',async(phase)=>{
+  vi.mocked(runInContainer).mockReset();
+  const failure={success:false,stdout:'secret candidate text',stderr:'sensitive path',exitCode:125,timedOut:false,durationMs:1,
+    infrastructureError:'Container control-plane state unavailable',
+    infrastructureEvidence:{stage:'inspect' as const,runStatus:125,inspectStatus:1,reason:'invalid-state' as const,dockerError:'container-missing'}};
+  if(phase==='observation')vi.mocked(runInContainer).mockResolvedValueOnce({...failure,success:true,exitCode:0,infrastructureError:undefined});
+  vi.mocked(runInContainer).mockResolvedValueOnce(failure);
+  const result=await runQuickJsScoringSuite('function target(a){return a}','javascript',contract());
+  expect(result.infrastructureError).toBe(failure.infrastructureError);
+  expect(JSON.parse(result.details[0].error!)).toMatchObject({phase,runStatus:125,inspectStatus:1});
+  expect(JSON.stringify(result.details)).not.toMatch(/secret|sensitive/);
+  expect(runInContainer).toHaveBeenCalledTimes(phase==='syntax'?1:2);
+  vi.mocked(runInContainer).mockReset();
+});
 it('rejects lossy or executable JSON before starting any container',async()=>{
   const cycle:any={};cycle.self=cycle;
   for(const v of [NaN,Infinity,-0,undefined,()=>0,new Date(),cycle,[,1],{get x(){throw Error('getter must not execute')}},Object.assign([1],{x:2})]){

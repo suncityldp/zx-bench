@@ -1354,7 +1354,11 @@ export const codeRepairEvaluator: Evaluator = {
                         : fixtureExitObserved?await runIsolatedFixtureExitSuite(patch,fixtureExit,scenario.hiddenTests??[],requirements?.fixture,{forbidMutex:requirements?.forbidMutex===true,forbidTransmute:requirements?.forbidTransmute===true})
         : validIsolatedJsonContract(contract)?await runIsolatedJsonSuite(patch, lang!, contract):null;
     if(!suite)return pending('Invalid observation contract');
-    if (suite.infrastructureError) return pending(suite.infrastructureError);
+    if (suite.infrastructureError) {
+      const result = pending(suite.infrastructureError);
+      result.evidence = [...result.evidence ?? [], ...suite.details.filter(d=>d.testType==='infrastructure').map(d=>'EXECUTION_FAILURE_DETAIL: '+d.error)];
+      return result;
+    }
     const quality = calculateDiffQuality(scenario.sourceCode, candidate);
     const scope = calculateScopeDiscipline(scenario.sourceCode, candidate);
     const scores = { patch_extraction: blocks.length ? 100 : 40, compilation: suite.compiled ? 100 : 0,
@@ -1364,7 +1368,11 @@ export const codeRepairEvaluator: Evaluator = {
     return { totalScore, axisCoverage: 1, axisScores: scores, safetyLevel: 'safe', environmentError: false,
       axisEvidence: { patch_extraction: 'rule', compilation: 'verified', test_pass: 'verified', patch_quality: 'rule', scope_discipline: 'rule' },
       extractedPatch: patch, codeExtractionFailed: blocks.length === 0,
-      evidence: [observed?`${observation.protocol.replaceAll('-','_').toUpperCase()}: ${suite.passed}/${suite.total}; separate WASM guest and trusted service contexts; engine-owned observations`
+      evidence: [...(observed?suite.details.flatMap(d=>{
+        if(!('error' in d)||typeof d.error!=='string'||!d.error)return [];
+        try {const warning=JSON.parse(d.error);return warning.status==='degraded-observer-evidence'
+          ? ['EXECUTION_OBSERVATION_DEGRADED: '+JSON.stringify(warning)] : [];}catch{return [];}
+      }):[]), observed?`${observation.protocol.replaceAll('-','_').toUpperCase()}: ${suite.passed}/${suite.total}; separate WASM guest and trusted service contexts; engine-owned observations`
         :`${javaObserved?java.protocol.replaceAll('-','_').toUpperCase():csharpObserved?csharp.protocol.replaceAll('-','_').toUpperCase():goObserved?go.protocol.replaceAll('-','_').toUpperCase():phpObserved?php.protocol.replaceAll('-','_').toUpperCase():pythonObserved?python.protocol.replaceAll('-','_').toUpperCase():javascriptObserved?javascript.protocol.replaceAll('-','_').toUpperCase():sqlObserved?sql.protocol.replaceAll('-','_').toUpperCase():typescriptObserved?typescript.protocol.replaceAll('-','_').toUpperCase():typescriptTypeObserved?typescriptType.protocol.replaceAll('-','_').toUpperCase():fixtureExitObserved?fixtureExit.protocol.replaceAll('-','_').toUpperCase():validIsolatedJsonContract(contract)?contract.protocol.replaceAll('-','_').toUpperCase():'INVALID'}: ${suite.passed}/${suite.total}; host compares values; candidate reports have no score authority`,
         observed?'Synchronous JSON data properties, native reference identity, engine throws; v2 additionally observes message data without getters/coercion and compares literal strings; not error provenance, construction history, descriptors, alias graphs, performance or TypeScript types'
           :'Behavior-only JSON observations; no identity, complexity, type-system or side-effect certification',

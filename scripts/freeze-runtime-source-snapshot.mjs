@@ -16,7 +16,7 @@ const programPaths = ['packages/core/src/evaluators/repairSubmission.ts','packag
 const semanticPaths = ['packages/core/src/evaluators/semanticMeaningReview.ts','packages/core/src/evaluators/semanticMeaningReview.test.ts','docs/semantic-meaning-review-v2.md','scripts/freeze-runtime-source-snapshot.mjs'];
 const deploymentPaths = ['packages/core/src/execution/imagePreflight.ts','packages/core/src/execution/sessionRunner.ts','packages/core/src/orchestrator.ts','apps/server/src/index.ts','apps/server/src/applicationVersion.ts','scripts/check-docker-images.mjs','scripts/prepare-docker-images.mjs','scripts/export-docker-images.mjs','scripts/configure-server-env.mjs','scripts/check-deployment.mjs','docker/execution-images/runtime.json'];
 const bugfixPaths = ["apps/server/src/modelSecrets.ts","packages/core/src/model/caller.ts","packages/core/src/evaluators/codeRepair.ts","packages/core/src/evaluators/reviewedWorldFacts.ts","scripts/lib/safety-contract-repairs.mjs"];
-const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths,...deploymentPaths,...bugfixPaths])].sort();
+const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths,...deploymentPaths,...bugfixPaths,'packages/core/src/execution/inspectContainerState.ts'])].sort();
 const snapshot = {
   schemaVersion: 1,
   version: 'runtime-source-2026-10-12-v0.2.12-local-bugfixes',
