@@ -4,9 +4,9 @@
 
 [![CI](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/suncityldp/zx-bench/actions/workflows/ci.yml)
 
-ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则评分、可选 AI Judge、实时监控、冻结运行、报告和排行榜。当前应用版本 **v0.2.12**；发布题库 **1.60.0** 有 **803 道来源题、920 个执行实例**，其中 614 道普通题及 189 道来源题对应的 306 个迁移实例按来源题归并计分。
+ZxBench 是本地部署的大模型评测平台，提供 Docker 执行、规则评分、可选 AI Judge、实时监控、冻结运行、报告和排行榜。当前应用版本 **v0.2.13**；发布题库 **1.60.0** 有 **803 道来源题、920 个执行实例**，其中 614 道普通题及 189 道来源题对应的 306 个迁移实例按来源题归并计分。
 
-本版修复密钥加载、请求取消、PHP 提取及语义/状态判定，沿用按需镜像准备、自动本地配置及部署验收。下面的步骤可以由智能体执行；部署过程不需要模型 API Key，也不会调用候选模型或 Judge。[发布说明](docs/release-v0.2.12.md)
+本版修复推理中继故障处理、Go 镜像别名一致性及容器状态查询与安全诊断，沿用按需镜像准备、自动本地配置及部署验收。下面的步骤可以由智能体执行；部署过程不需要模型 API Key，也不会调用候选模型或 Judge。[发布说明](docs/release-v0.2.13.md)
 
 ## 部署：按顺序执行
 
@@ -88,7 +88,7 @@ mkdir -p logs
 echo $! > logs/server.pid
 ```
 
-轮询 `GET http://127.0.0.1:3001/api/health`，等待最多 60 秒；成功条件是 HTTP 200、`status: "ok"`、`version: "0.2.12"`。Windows 可用 `curl.exe -fsS http://127.0.0.1:3001/api/health`，其他系统用 `curl -fsS`。失败时读 `logs/server.err.log`、`logs/server.out.log`；端口冲突先确认进程归属，不要强杀其他部署或用户进程。服务会提供已构建的前端，不需要再启动 Vite。
+轮询 `GET http://127.0.0.1:3001/api/health`，等待最多 60 秒；成功条件是 HTTP 200、`status: "ok"`、`version: "0.2.13"`。Windows 可用 `curl.exe -fsS http://127.0.0.1:3001/api/health`，其他系统用 `curl -fsS`。失败时读 `logs/server.err.log`、`logs/server.out.log`；端口冲突先确认进程归属，不要强杀其他部署或用户进程。服务会提供已构建的前端，不需要再启动 Vite。
 
 ### 4. 同步并核验题库
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "version": "runtime-source-2026-10-12-v0.2.12-local-bugfixes",
-  "applicationVersion": "0.2.12",
+  "version": "runtime-source-2026-10-28-v0.2.13-container-recovery",
+  "applicationVersion": "0.2.13",
   "baselineCommit": "5c4648973dd1ad5034a6eb7671042bd9dd93afe3",
   "purpose": "Current runtime fingerprint; historical audit and production-task snapshots remain unchanged",
   "independentHumanGold": false,
@@ -147,7 +147,7 @@
     "scripts/check-docker-images.mjs": "563f5cf426a6516cfdd3132462300acd6b063f4c5ac918e7e80ed471b10bc69e",
     "scripts/configure-server-env.mjs": "f62c5fe558f50da8d083896c298ff4991ca10fdf49acfe53f78cf3aacce70f9b",
     "scripts/export-docker-images.mjs": "43fb199e56470690f3a887dc19841ea1a6ee0ce823610360f2b70015eaddcc3d",
-    "scripts/freeze-runtime-source-snapshot.mjs": "ddeea7877aed6133441127bf959b1b2ddd53e4671ff79c088f9a22c0ba5525f8",
+    "scripts/freeze-runtime-source-snapshot.mjs": "4c3e57254723a7b0efb2febc647f34c45360bea9c496c285b4def287b68d5d66",
     "scripts/lib/execution-task-pack.mjs": "3744e3fddf963f175231e90a9a61b5c69564d2c7bf4dbd8675f7757ae75274cb",
     "scripts/lib/recovery-world-tasks.mjs": "c2e7040c53104581538d2b0a5af8269c2fc9076dd9a43cf0bf9f9fc603dae1e2",
     "scripts/lib/safety-contract-repairs.mjs": "bc2db3a76081892b25501dcbfa15e8d283edc663ab0d1d66e57f4b1dff756a38",

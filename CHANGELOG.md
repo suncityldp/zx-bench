@@ -2,6 +2,13 @@
 
 All notable changes to ZxBench are documented here.
 
+## [0.2.13] — 2026-10-28
+
+- Contain inference relay faults and preserve runtime monitoring evidence.
+- Resolve the exact supported Go image alias consistently without weakening image identity checks.
+- Bound same-container state queries; gate QuickJS v1 observation recovery on strict evidence and retain safe diagnostics.
+- Preserve historical scores and frozen definitions. See [release notes](docs/release-v0.2.13.md) for scope and limitations.
+
 ## [0.2.10] — 2026-10-07
 
 ### Question contracts and grading evidence

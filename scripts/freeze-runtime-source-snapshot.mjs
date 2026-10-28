@@ -19,7 +19,7 @@ const bugfixPaths = ["apps/server/src/modelSecrets.ts","packages/core/src/model/
 const paths = [...new Set([...historical.flatMap(([, artifact]) => Object.keys(artifact.sourceHashes)),...workflowPaths,...toolPaths,...visibleContractPaths,...reviewPaths,...programPaths,...semanticPaths,...deploymentPaths,...bugfixPaths,'packages/core/src/execution/inspectContainerState.ts'])].sort();
 const snapshot = {
   schemaVersion: 1,
-  version: 'runtime-source-2026-10-12-v0.2.12-local-bugfixes',
+  version: 'runtime-source-2026-10-28-v0.2.13-container-recovery',
   applicationVersion: JSON.parse(read('package.json')).version,
   baselineCommit: '5c4648973dd1ad5034a6eb7671042bd9dd93afe3',
   purpose: 'Current runtime fingerprint; historical audit and production-task snapshots remain unchanged',
